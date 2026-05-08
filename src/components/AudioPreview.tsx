@@ -6,9 +6,19 @@ type Props = {
   previewUrl: string
 }
 
+const PlayIcon = () => (
+  <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M7 5v14l12-7z"/></svg>
+)
+const PauseIcon = () => (
+  <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor">
+    <rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/>
+  </svg>
+)
+
 export default function AudioPreview({ previewUrl }: Props) {
   const [playing, setPlaying] = useState(false)
   const [progress, setProgress] = useState(0)
+  const [duration, setDuration] = useState(30)
   const [error, setError] = useState(false)
   const audioRef = useRef<HTMLAudioElement | null>(null)
 
@@ -16,30 +26,28 @@ export default function AudioPreview({ previewUrl }: Props) {
     const audio = new Audio(previewUrl)
     audioRef.current = audio
 
-    const handleTimeUpdate = () => {
-      if (audio.duration) {
-        setProgress((audio.currentTime / audio.duration) * 100)
-      }
+    const onTime = () => {
+      if (audio.duration) setProgress(audio.currentTime / audio.duration)
     }
-    const handleEnded = () => {
-      setPlaying(false)
-      setProgress(0)
-    }
-    const handleError = () => setError(true)
+    const onEnded = () => { setPlaying(false); setProgress(0) }
+    const onMeta = () => setDuration(Math.round(audio.duration || 30))
+    const onError = () => setError(true)
 
-    audio.addEventListener('timeupdate', handleTimeUpdate)
-    audio.addEventListener('ended', handleEnded)
-    audio.addEventListener('error', handleError)
+    audio.addEventListener('timeupdate', onTime)
+    audio.addEventListener('ended', onEnded)
+    audio.addEventListener('loadedmetadata', onMeta)
+    audio.addEventListener('error', onError)
 
     return () => {
-      audio.removeEventListener('timeupdate', handleTimeUpdate)
-      audio.removeEventListener('ended', handleEnded)
-      audio.removeEventListener('error', handleError)
+      audio.removeEventListener('timeupdate', onTime)
+      audio.removeEventListener('ended', onEnded)
+      audio.removeEventListener('loadedmetadata', onMeta)
+      audio.removeEventListener('error', onError)
       audio.pause()
     }
   }, [previewUrl])
 
-  const togglePlay = () => {
+  const toggle = () => {
     const audio = audioRef.current
     if (!audio) return
     if (playing) {
@@ -52,91 +60,40 @@ export default function AudioPreview({ previewUrl }: Props) {
 
   if (error) return null
 
+  const elapsed = Math.round(progress * duration)
+
   return (
-    <div
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: 12,
-        background: '#18181b',
-        border: '1px solid #27272a',
-        borderRadius: 9999,
-        padding: '8px 16px',
-        marginTop: 12,
-      }}
-    >
-      {/* Play/pause button */}
-      <button
-        onClick={togglePlay}
-        style={{
-          width: 32,
-          height: 32,
-          borderRadius: '50%',
-          background: '#22c55e',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          border: 'none',
-          cursor: 'pointer',
-          flexShrink: 0,
-        }}
-      >
-        {playing ? (
-          <div style={{ display: 'flex', gap: 3 }}>
-            <div style={{ width: 3, height: 12, background: '#fff', borderRadius: 2 }} />
-            <div style={{ width: 3, height: 12, background: '#fff', borderRadius: 2 }} />
+    <div style={{ padding: '10px var(--pad-x)', borderBottom: '1px solid var(--line-soft)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <button
+          onClick={toggle}
+          className="btn"
+          data-variant="primary"
+          data-size="sm"
+          data-icon-only="true"
+          style={{ width: 28, height: 28, borderRadius: 999 }}
+        >
+          {playing ? <PauseIcon /> : <PlayIcon />}
+        </button>
+        <div style={{ flex: 1, position: 'relative' }}>
+          <div style={{ height: 4, background: 'var(--bg-2)', borderRadius: 99, overflow: 'hidden' }}>
+            <div style={{
+              height: '100%',
+              width: `${progress * 100}%`,
+              background: 'var(--accent)',
+              transition: 'width 1s linear',
+            }} />
           </div>
-        ) : (
-          <svg width="12" height="14" viewBox="0 0 12 14" fill="white">
-            <path d="M2 1.5l9 5-9 5v-10z" />
-          </svg>
-        )}
-      </button>
-
-      {/* Equalizer bars */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 2, height: 16 }}>
-        {[0, 1, 2].map((i) => (
-          <div
-            key={i}
-            style={{
-              width: 3,
-              background: '#4ade80',
-              borderRadius: 2,
-              height: playing ? undefined : 4,
-              animation: playing
-                ? `eq-bounce-${i} ${0.6 + i * 0.15}s ease-in-out infinite alternate`
-                : 'none',
-            }}
-          />
-        ))}
+          <div style={{
+            display: 'flex', justifyContent: 'space-between', marginTop: 4,
+            fontFamily: 'var(--font-mono)', fontSize: 10.5, color: 'var(--fg-3)',
+          }}>
+            <span>0:{String(elapsed).padStart(2, '0')}</span>
+            <span>0:{String(duration).padStart(2, '0')}</span>
+          </div>
+        </div>
+        {playing && <div className="eq"><i/><i/><i/><i/></div>}
       </div>
-      <style>{`
-        @keyframes eq-bounce-0 { from { height: 4px; } to { height: 16px; } }
-        @keyframes eq-bounce-1 { from { height: 8px; } to { height: 12px; } }
-        @keyframes eq-bounce-2 { from { height: 6px; } to { height: 14px; } }
-      `}</style>
-
-      {/* Progress bar */}
-      <div
-        style={{
-          flex: 1,
-          height: 4,
-          background: '#3f3f46',
-          borderRadius: 9999,
-          overflow: 'hidden',
-        }}
-      >
-        <div
-          style={{
-            width: `${progress}%`,
-            height: '100%',
-            background: '#22c55e',
-            transition: 'width 0.1s linear',
-          }}
-        />
-      </div>
-
-      <span style={{ fontSize: 11, color: '#71717a', whiteSpace: 'nowrap' }}>30s preview</span>
     </div>
   )
 }

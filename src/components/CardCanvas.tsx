@@ -7,7 +7,6 @@ import { TrackData, CardConfig } from '@/types'
 type Props = {
   track: TrackData
   config: CardConfig
-  selectedLines: string[]
   cardRef: React.RefObject<HTMLDivElement>
 }
 
@@ -18,15 +17,14 @@ const sizeMap: Record<CardConfig['size'], { width: number; height: number }> = {
   '9:16': { width: 360, height: 640 },
 }
 
-function fmt(ms: number) {
-  const s = Math.round(ms / 1000)
-  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`
-}
-
 function fontFamily(font: CardConfig['font']): string {
-  if (font === 'mono') return 'var(--font-mono)'
-  if (font === 'serif') return "'Instrument Serif', ui-serif, Georgia, serif"
-  return 'var(--font)'
+  switch (font) {
+    case 'syne':       return 'var(--font-syne)'
+    case 'dm-serif':   return 'var(--font-dm-serif)'
+    case 'playfair':   return 'var(--font-playfair)'
+    case 'bebas':      return 'var(--font-bebas)'
+    case 'instrument': return 'var(--font-instrument)'
+  }
 }
 
 function BlurBg({ hue, coverUrl }: { hue: number; coverUrl: string | null }) {
@@ -47,51 +45,39 @@ function BlurBg({ hue, coverUrl }: { hue: number; coverUrl: string | null }) {
     )
   }
   return (
-    <div
-      style={{
-        position: 'absolute', inset: '-10%',
-        background: `radial-gradient(ellipse at 25% 20%, oklch(0.62 0.18 ${hue}) 0%, transparent 55%),
-                     radial-gradient(ellipse at 80% 70%, oklch(0.40 0.16 ${hue + 30}) 0%, transparent 55%),
-                     repeating-linear-gradient(135deg, oklch(0.32 0.10 ${hue}) 0 18px, oklch(0.22 0.08 ${hue}) 18px 36px)`,
-        zIndex: 0,
-      }}
-    />
+    <div style={{
+      position: 'absolute', inset: '-10%', zIndex: 0,
+      background: `radial-gradient(ellipse at 25% 20%, oklch(0.62 0.18 ${hue}) 0%, transparent 55%),
+                   radial-gradient(ellipse at 80% 70%, oklch(0.40 0.16 ${hue + 30}) 0%, transparent 55%),
+                   repeating-linear-gradient(135deg, oklch(0.32 0.10 ${hue}) 0 18px, oklch(0.22 0.08 ${hue}) 18px 36px)`,
+    }} />
   )
 }
 
-function AlbumArtEl({
-  coverUrl, album, hue, size, radius,
-}: {
+function AlbumArtEl({ coverUrl, album, hue, size, radius = 6 }: {
   coverUrl: string | null; album: string; hue: number; size: number; radius?: number
 }) {
   if (coverUrl) {
     return (
       <Image
-        src={coverUrl}
-        alt={album}
-        width={size}
-        height={size}
-        style={{ borderRadius: radius ?? 6, flexShrink: 0, display: 'block' }}
+        src={coverUrl} alt={album}
+        width={size} height={size}
+        style={{ borderRadius: radius, flexShrink: 0, display: 'block' }}
         unoptimized
       />
     )
   }
   return (
-    <div
-      className="albumart"
-      style={{
-        width: size, height: size,
-        borderRadius: radius ?? 6,
-        flexShrink: 0,
-        '--art-hue': hue,
-      } as React.CSSProperties}
-    >
+    <div className="albumart" style={{
+      width: size, height: size, borderRadius: radius, flexShrink: 0,
+      ['--art-hue' as string]: hue,
+    }}>
       <span style={{ position: 'relative', zIndex: 1, opacity: 0.85 }}>ART</span>
     </div>
   )
 }
 
-function SolidBg({ config }: { config: CardConfig }) {
+function BgLayer({ config }: { config: CardConfig }) {
   if (config.bgStyle === 'solid') {
     return <div style={{ position: 'absolute', inset: 0, background: config.bgColor, zIndex: 0 }} />
   }
@@ -104,42 +90,36 @@ function SolidBg({ config }: { config: CardConfig }) {
     )
   }
   if (config.bgStyle === 'transparent') {
-    return (
-      <div style={{
-        position: 'absolute', inset: 0, zIndex: 0,
-        background: 'repeating-conic-gradient(oklch(0.92 0 0) 0% 25%, oklch(0.85 0 0) 0% 50%) 0 0 / 16px 16px',
-      }} />
-    )
+    return null
   }
   return null
 }
 
-export default function CardCanvas({ track, config, selectedLines, cardRef }: Props) {
+export default function CardCanvas({ track, config, cardRef }: Props) {
   const { width, height } = sizeMap[config.size]
   const ff = fontFamily(config.font)
   const hue = config.tintHue
   const p = config.padding
   const r = config.borderRadius
-  const lyric = selectedLines.join(' / ')
-  const textClass = config.textColor === 'black' ? 'fcard text-dark' : 'fcard'
+  const lyric = config.lyricQuote
   const useBlur = config.bgStyle === 'blurred-art'
+  const isDark = config.textColor !== 'black'
+  const textClass = config.textColor === 'black' ? 'fcard text-dark' : 'fcard'
 
   const baseStyle: React.CSSProperties = {
     width, height,
     fontFamily: ff,
     ['--card-radius' as string]: `${r}px`,
+    transition: 'opacity 150ms ease',
   }
 
   if (config.preset === 'glass') {
     const artSize = Math.min(width, height) * 0.42
     return (
       <div ref={cardRef} className={textClass} style={baseStyle}>
-        {useBlur
-          ? <BlurBg hue={hue} coverUrl={track.coverUrl} />
-          : <SolidBg config={config} />}
+        {useBlur ? <BlurBg hue={hue} coverUrl={track.coverUrl} /> : <BgLayer config={config} />}
         <div style={{
-          position: 'relative', zIndex: 1,
-          width: '100%', height: '100%', padding: p,
+          position: 'relative', zIndex: 1, width: '100%', height: '100%', padding: p,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
         }}>
           <div className="glass" style={{
@@ -149,7 +129,7 @@ export default function CardCanvas({ track, config, selectedLines, cardRef }: Pr
             padding: p * 0.9, textAlign: 'center',
           }}>
             {config.showAlbumArt && (
-              <AlbumArtEl coverUrl={track.coverUrl} album={track.album} hue={hue} size={artSize} radius={6} />
+              <AlbumArtEl coverUrl={track.coverUrl} album={track.album} hue={hue} size={artSize} />
             )}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxWidth: '90%' }}>
               {config.showTitle && (
@@ -164,15 +144,12 @@ export default function CardCanvas({ track, config, selectedLines, cardRef }: Pr
                 <div className="mono" style={{ fontSize: width * 0.022, opacity: 0.6, letterSpacing: '0.04em', marginTop: 4 }}>
                   {config.showYear && <span>{track.releaseYear}</span>}
                   {config.showYear && config.showDuration && <span style={{ margin: '0 8px', opacity: 0.5 }}>·</span>}
-                  {config.showDuration && <span>{fmt(track.duration)}</span>}
+                  {config.showDuration && <span>{track.duration}</span>}
                 </div>
               )}
             </div>
             {config.showLyrics && lyric && (
-              <div style={{
-                fontSize: width * 0.026, fontStyle: 'italic', opacity: 0.85, lineHeight: 1.45,
-                maxWidth: '85%', marginTop: 8,
-              }}>
+              <div style={{ fontSize: width * 0.026, fontStyle: 'italic', opacity: 0.85, lineHeight: 1.45, maxWidth: '85%', marginTop: 8 }}>
                 &ldquo;{lyric}&rdquo;
               </div>
             )}
@@ -188,19 +165,8 @@ export default function CardCanvas({ track, config, selectedLines, cardRef }: Pr
         {useBlur ? (
           <>
             {track.coverUrl
-              ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={track.coverUrl} alt="" style={{
-                  position: 'absolute', inset: 0, width: '100%', height: '100%',
-                  objectFit: 'cover', zIndex: 0,
-                }} />
-              )
-              : (
-                <div className="albumart" style={{
-                  position: 'absolute', inset: 0, borderRadius: 0, zIndex: 0,
-                  ['--art-hue' as string]: hue,
-                }} />
-              )
+              ? <img src={track.coverUrl} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', zIndex: 0 }} />
+              : <div className="albumart" style={{ position: 'absolute', inset: 0, borderRadius: 0, zIndex: 0, ['--art-hue' as string]: hue }} />
             }
             <div style={{
               position: 'absolute', inset: 0, zIndex: 1,
@@ -208,12 +174,9 @@ export default function CardCanvas({ track, config, selectedLines, cardRef }: Pr
             }} />
           </>
         ) : (
-          <SolidBg config={config} />
+          <BgLayer config={config} />
         )}
-        <div style={{
-          position: 'absolute', left: 0, right: 0, bottom: 0, padding: p, zIndex: 2,
-          display: 'flex', flexDirection: 'column', gap: 6,
-        }}>
+        <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, padding: p, zIndex: 2, display: 'flex', flexDirection: 'column', gap: 6 }}>
           {config.showLyrics && lyric && (
             <div style={{ fontSize: width * 0.028, fontStyle: 'italic', opacity: 0.85, lineHeight: 1.4, marginBottom: 10, maxWidth: '82%' }}>
               &ldquo;{lyric}&rdquo;
@@ -227,7 +190,7 @@ export default function CardCanvas({ track, config, selectedLines, cardRef }: Pr
             <div className="mono" style={{ fontSize: width * 0.020, opacity: 0.65, letterSpacing: '0.04em' }}>
               {config.showYear && <span>{track.releaseYear}</span>}
               {config.showYear && config.showDuration && <span style={{ margin: '0 6px', opacity: 0.5 }}>—</span>}
-              {config.showDuration && <span>{fmt(track.duration)}</span>}
+              {config.showDuration && <span>{track.duration}</span>}
             </div>
           </div>
         </div>
@@ -237,15 +200,13 @@ export default function CardCanvas({ track, config, selectedLines, cardRef }: Pr
 
   if (config.preset === 'minimal') {
     const artSize = height - p * 2
-    const isDark = config.textColor !== 'black'
     const textPrimary = isDark ? 'oklch(0.97 0.003 80)' : 'oklch(0.14 0.005 80)'
     const bg = config.bgStyle === 'solid' ? config.bgColor
       : isDark ? 'oklch(0.13 0.005 80)' : 'oklch(0.97 0.003 80)'
     return (
       <div ref={cardRef} className={textClass} style={{ ...baseStyle, background: bg }}>
         <div style={{
-          position: 'relative', zIndex: 1,
-          width: '100%', height: '100%', padding: p,
+          position: 'relative', zIndex: 1, width: '100%', height: '100%', padding: p,
           display: 'flex', alignItems: 'center', gap: p * 0.9,
         }}>
           {config.showAlbumArt && (
@@ -264,7 +225,7 @@ export default function CardCanvas({ track, config, selectedLines, cardRef }: Pr
             <div style={{ marginTop: 6, height: 1, background: isDark ? 'oklch(1 0 0 / 0.14)' : 'oklch(0 0 0 / 0.12)' }} />
             <div className="mono" style={{ fontSize: width * 0.022, opacity: 0.6, letterSpacing: '0.04em', display: 'flex', gap: 14 }}>
               {config.showYear && <span>{track.releaseYear}</span>}
-              {config.showDuration && <span>{fmt(track.duration)}</span>}
+              {config.showDuration && <span>{track.duration}</span>}
             </div>
             {config.showLyrics && lyric && (
               <div style={{ fontSize: width * 0.026, fontStyle: 'italic', opacity: 0.7, lineHeight: 1.45, marginTop: 10, color: textPrimary }}>
@@ -285,14 +246,11 @@ export default function CardCanvas({ track, config, selectedLines, cardRef }: Pr
       <div ref={cardRef} className="fcard" style={{ ...baseStyle, width: sw, height: sh, color: 'white' }}>
         <BlurBg hue={hue} coverUrl={track.coverUrl} />
         <div style={{
-          position: 'relative', zIndex: 1,
-          width: '100%', height: '100%', padding: p,
+          position: 'relative', zIndex: 1, width: '100%', height: '100%', padding: p,
           display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'space-between',
           textAlign: 'center',
         }}>
-          <div className="mono" style={{ fontSize: 11, opacity: 0.7, letterSpacing: '0.16em' }}>
-            FRAMESOUND · STORY
-          </div>
+          <div className="mono" style={{ fontSize: 11, opacity: 0.7, letterSpacing: '0.16em' }}>FRAMESOUND · STORY</div>
           {config.showAlbumArt && (
             <AlbumArtEl coverUrl={track.coverUrl} album={track.album} hue={hue} size={artSize} radius={8} />
           )}
@@ -304,11 +262,7 @@ export default function CardCanvas({ track, config, selectedLines, cardRef }: Pr
               <div style={{ fontSize: sw * 0.038, opacity: 0.85 }}>{track.artist}</div>
             )}
             {config.showLyrics && lyric && (
-              <div className="glass" style={{
-                marginTop: 8, padding: '12px 16px',
-                fontSize: sw * 0.034, fontStyle: 'italic', lineHeight: 1.4,
-                maxWidth: '92%',
-              }}>
+              <div className="glass" style={{ marginTop: 8, padding: '12px 16px', fontSize: sw * 0.034, fontStyle: 'italic', lineHeight: 1.4, maxWidth: '92%' }}>
                 &ldquo;{lyric}&rdquo;
               </div>
             )}
@@ -321,13 +275,11 @@ export default function CardCanvas({ track, config, selectedLines, cardRef }: Pr
   // square
   const artSize = Math.min(width, height) * 0.36
   return (
-    <div ref={cardRef} className={textClass} style={{ ...baseStyle, width: width, height: width }}>
+    <div ref={cardRef} className={textClass} style={{ ...baseStyle, width, height: width }}>
       <BlurBg hue={hue} coverUrl={track.coverUrl} />
       <div style={{
-        position: 'relative', zIndex: 1,
-        width: '100%', height: '100%',
-        padding: p * 0.85,
-        display: 'flex', flexDirection: 'column', gap: 12,
+        position: 'relative', zIndex: 1, width: '100%', height: '100%',
+        padding: p * 0.85, display: 'flex', flexDirection: 'column', gap: 12,
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
           {config.showAlbumArt && (
@@ -343,15 +295,12 @@ export default function CardCanvas({ track, config, selectedLines, cardRef }: Pr
             <div className="mono" style={{ fontSize: width * 0.020, opacity: 0.6, marginTop: 4, letterSpacing: '0.04em' }}>
               {config.showYear && track.releaseYear}
               {config.showYear && config.showDuration && ' · '}
-              {config.showDuration && fmt(track.duration)}
+              {config.showDuration && track.duration}
             </div>
           </div>
         </div>
         {config.showLyrics && lyric && (
-          <div className="glass" style={{
-            padding: 14, marginTop: 'auto',
-            fontSize: width * 0.028, fontStyle: 'italic', lineHeight: 1.45,
-          }}>
+          <div className="glass" style={{ padding: 14, marginTop: 'auto', fontSize: width * 0.028, fontStyle: 'italic', lineHeight: 1.45 }}>
             &ldquo;{lyric}&rdquo;
           </div>
         )}

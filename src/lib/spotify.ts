@@ -30,6 +30,11 @@ export function parseSpotifyTrackId(url: string): string | null {
   return null
 }
 
+function fmtMs(ms: number): string {
+  const s = Math.round(ms / 1000)
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`
+}
+
 export async function fetchTrack(trackId: string) {
   const token = await getAccessToken()
   const res = await fetch(`${API_BASE}/tracks/${trackId}`, {
@@ -45,8 +50,7 @@ export async function fetchTrack(trackId: string) {
     album: track.album.name,
     coverUrl: track.album.images[0]?.url ?? null,
     releaseYear: track.album.release_date?.split('-')[0] ?? '',
-    duration: track.duration_ms,
+    duration: fmtMs(track.duration_ms),
     previewUrl: track.preview_url ?? null,
-    trackNumber: track.track_number,
   }
 }

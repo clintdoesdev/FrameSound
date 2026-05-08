@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
 import Image from 'next/image'
 import { getTrackFromUrl } from '@/actions/spotify'
 import { getLyrics } from '@/actions/lyrics'
@@ -11,395 +11,354 @@ import CustomizePanel from '@/components/CustomizePanel'
 import ExportBar from '@/components/ExportBar'
 import AudioPreview from '@/components/AudioPreview'
 import RecentTracks, { addRecentTrack } from '@/components/RecentTracks'
-import LandingPage, { Logo } from '@/components/LandingPage'
 
-// Icons
-const BackIcon = () => (
-  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-    <path d="m15 6-6 6 6 6"/>
+const GithubIcon = () => (
+  <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+    <path d="M12 2a10 10 0 0 0-3.16 19.49c.5.09.68-.22.68-.48v-1.7c-2.78.6-3.37-1.34-3.37-1.34-.45-1.16-1.1-1.47-1.1-1.47-.9-.62.07-.6.07-.6 1 .07 1.53 1.03 1.53 1.03.89 1.52 2.34 1.08 2.91.83.09-.65.35-1.08.63-1.33-2.22-.25-4.55-1.11-4.55-4.94 0-1.09.39-1.98 1.03-2.68-.1-.25-.45-1.27.1-2.65 0 0 .84-.27 2.75 1.02a9.5 9.5 0 0 1 5 0c1.91-1.29 2.75-1.02 2.75-1.02.55 1.38.2 2.4.1 2.65.64.7 1.03 1.59 1.03 2.68 0 3.84-2.34 4.69-4.57 4.93.36.31.68.92.68 1.85v2.74c0 .27.18.58.69.48A10 10 0 0 0 12 2z"/>
   </svg>
 )
-const SettingsIcon = () => (
-  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-    <circle cx="12" cy="12" r="3"/>
-    <path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1A1.7 1.7 0 0 0 4.6 9 1.7 1.7 0 0 0 4.3 7.2l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>
-  </svg>
-)
-const DlIcon = () => (
-  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M12 4v12"/><path d="m7 11 5 5 5-5"/><path d="M5 20h14"/>
-  </svg>
-)
+
 const LinkIcon = () => (
-  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
     <path d="M10 14a4 4 0 0 1 0-5.6l3-3a4 4 0 1 1 5.6 5.6l-1.5 1.5"/>
     <path d="M14 10a4 4 0 0 1 0 5.6l-3 3a4 4 0 1 1-5.6-5.6L6.9 11.5"/>
   </svg>
 )
 
-function EditorHeader({ onBack, onExport, busy }: { onBack: () => void; onExport: () => void; busy: boolean }) {
+function Logo() {
   return (
-    <header style={{
-      height: 'var(--header-h)', flexShrink: 0,
-      borderBottom: '1px solid var(--line)',
-      background: 'var(--bg)',
-      display: 'grid', gridTemplateColumns: '1fr auto 1fr',
-      alignItems: 'center', padding: '0 16px', gap: 16,
-    }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-        <button className="btn" data-variant="ghost" data-size="sm" onClick={onBack}
-          style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-          <BackIcon /><span>Back</span>
-        </button>
-        <div style={{ width: 1, height: 18, background: 'var(--line)' }} />
-        <Logo />
-        <div className="mono" style={{
-          fontSize: 11, color: 'var(--fg-3)', padding: '3px 7px',
-          background: 'var(--bg-inset)', border: '1px solid var(--line)',
-          borderRadius: 4, letterSpacing: '0.04em',
-        }}>/editor</div>
-      </div>
-
-      <nav style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-        {['Card', 'Lyrics', 'Export', 'History'].map((t, i) => (
-          <button key={t} className="btn" data-variant="ghost" data-size="sm"
-            style={{ color: i === 0 ? 'var(--fg)' : 'var(--fg-2)', background: i === 0 ? 'var(--bg-2)' : 'transparent' }}>
-            {t}
-          </button>
-        ))}
-      </nav>
-
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8 }}>
-        <div className="mono" style={{ fontSize: 11, color: 'var(--fg-3)', display: 'flex', alignItems: 'center', gap: 6 }}>
-          <span style={{ display: 'inline-block', width: 6, height: 6, borderRadius: 99, background: 'var(--accent)', boxShadow: '0 0 0 3px var(--accent-quiet)' }} />
-          AUTOSAVED · 0s
-        </div>
-        <button className="btn" data-variant="ghost" data-icon-only="true" data-size="sm"><SettingsIcon /></button>
-        <button className="btn" data-variant="primary" data-size="sm" onClick={onExport} disabled={busy}
-          style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-          <DlIcon /><span>Export</span>
-        </button>
-      </div>
-    </header>
-  )
-}
-
-function URLBar({ url, onChange, loading, isLive }: {
-  url: string; onChange: (v: string) => void; loading: boolean; isLive: boolean
-}) {
-  return (
-    <div style={{
-      display: 'flex', alignItems: 'center', gap: 10,
-      padding: '0 16px', height: 'var(--header-h)',
-      borderBottom: '1px solid var(--line)',
-      background: 'var(--bg)',
-      position: 'sticky', top: 0, zIndex: 5, flexShrink: 0,
-    }}>
-      <div style={{ flex: 1, maxWidth: 680 }}>
-        <div className="input" style={{ height: 36 }}>
-          <span style={{ color: 'var(--fg-3)' }}><LinkIcon /></span>
-          <input
-            value={url}
-            onChange={(e) => onChange(e.target.value)}
-            placeholder="Paste a Spotify track URL…"
-            spellCheck={false}
-          />
-          {loading && (
-            <span className="spin" style={{
-              display: 'inline-block', width: 14, height: 14,
-              border: '2px solid var(--accent)', borderTopColor: 'transparent',
-              borderRadius: '50%', flexShrink: 0,
-            }} />
-          )}
-        </div>
-      </div>
-      <div style={{ flex: 1 }} />
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--fg-2)' }}>
-        <span style={{
-          display: 'inline-block', width: 6, height: 6, borderRadius: 99,
-          background: isLive ? 'var(--accent)' : 'var(--fg-3)',
-          boxShadow: isLive ? '0 0 0 3px var(--accent-quiet)' : 'none',
-        }} />
-        <span className="mono" style={{ fontSize: 11, letterSpacing: '0.04em' }}>
-          {loading ? 'FETCHING…' : isLive ? 'TRACK · LIVE' : 'PASTE TO BEGIN'}
-        </span>
-      </div>
-    </div>
-  )
-}
-
-function EmptyStage() {
-  return (
-    <div style={{
-      flex: 1, display: 'flex', flexDirection: 'column',
-      alignItems: 'center', justifyContent: 'center',
-      gap: 16, color: 'var(--fg-3)',
-    }}>
+    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}>
       <div style={{
-        width: 64, height: 64, borderRadius: 16,
-        background: 'var(--bg-1)', border: '1px solid var(--line)',
-        display: 'grid', placeItems: 'center', fontSize: 28,
-      }}>♫</div>
-      <div style={{ textAlign: 'center' }}>
-        <div style={{ fontSize: 15, color: 'var(--fg-2)', fontWeight: 500 }}>Paste a Spotify URL to begin</div>
-        <div style={{ fontSize: 13, color: 'var(--fg-3)', marginTop: 4 }}>Supports track, album, and playlist links</div>
+        width: 28, height: 28, borderRadius: 7,
+        background: 'linear-gradient(135deg, var(--accent) 0%, oklch(from var(--accent) calc(l - 0.12) c h) 100%)',
+        display: 'grid', placeItems: 'center',
+        boxShadow: '0 0 0 1px oklch(from var(--accent) l c h / 0.3)',
+      }}>
+        <div style={{ width: 12, height: 12, borderRadius: 2, background: 'oklch(0 0 0 / 0.85)' }} />
       </div>
-      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center' }}>
-        {['5 card presets', 'Lyric quotes', 'PNG 3× export'].map(f => (
-          <span key={f} className="mono" style={{
-            fontSize: 11, color: 'var(--fg-3)', letterSpacing: '0.04em',
-            padding: '4px 10px', background: 'var(--bg-1)',
-            border: '1px solid var(--line)', borderRadius: 999,
-          }}>{f}</span>
-        ))}
-      </div>
+      <span style={{
+        fontFamily: 'var(--font-display)',
+        fontWeight: 700, letterSpacing: '-0.02em',
+        fontSize: 17, color: 'var(--fg)',
+      }}>FrameSound</span>
     </div>
   )
 }
 
 export default function Home() {
-  const [view, setView] = useState<'landing' | 'editor'>('landing')
-  const [spotifyUrl, setSpotifyUrl] = useState('')
+  const [url, setUrl] = useState('')
   const [track, setTrack] = useState<TrackData | null>(null)
+  const [config, setConfig] = useState<CardConfig>(defaultConfig)
+  const [lyrics, setLyrics] = useState<string[] | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [lyrics, setLyrics] = useState<string[]>([])
-  const [lyricsLoading, setLyricsLoading] = useState(false)
-  const [selectedLines, setSelectedLines] = useState<string[]>([])
-  const [customQuote, setCustomQuote] = useState('')
-  const [config, setConfig] = useState<CardConfig>(defaultConfig)
-  const [exportBusy, setExportBusy] = useState(false)
+  const [accentColor, setAccentColor] = useState<string | null>(null)
 
   const cardRef = useRef<HTMLDivElement>(null!)
 
-  const fetchTrack = useCallback(async (url: string) => {
+  const updateConfig = useCallback((updates: Partial<CardConfig>) => {
+    setConfig(prev => ({ ...prev, ...updates }))
+  }, [])
+
+  // Extract accent colour from album art with colorthief
+  useEffect(() => {
+    if (!track?.coverUrl) { setAccentColor(null); return }
+    const coverUrl = track.coverUrl
+    import('colorthief').then(({ getColorSync }) => {
+      const img = new window.Image()
+      img.crossOrigin = 'anonymous'
+      img.onload = () => {
+        try {
+          const color = getColorSync(img)
+          if (color) setAccentColor(color.hex())
+        } catch { /* CORS or extraction failure — keep default */ }
+      }
+      // Use Next.js image proxy to avoid Spotify CDN CORS issues
+      img.src = `/_next/image?url=${encodeURIComponent(coverUrl)}&w=64&q=75`
+    }).catch(() => {/* ignore */ })
+  }, [track?.coverUrl])
+
+  const fetchTrack = useCallback(async (rawUrl: string) => {
     setLoading(true)
     setError(null)
-    setTrack(null)
-    setLyrics([])
-    setSelectedLines([])
-    setCustomQuote('')
-    const result = await getTrackFromUrl(url)
+    setLyrics(null)
+    const result = await getTrackFromUrl(rawUrl)
     if (result.data) {
       setTrack(result.data)
       addRecentTrack(result.data)
-      setLyricsLoading(true)
-      const lr = await getLyrics(result.data.artist, result.data.title)
-      setLyrics(lr.lines)
-      setLyricsLoading(false)
+      // Reset lyric quote when new track loads
+      setConfig(prev => ({ ...prev, lyricQuote: '' }))
+      getLyrics(result.data.artist, result.data.title).then(r => {
+        setLyrics(r.lines.length > 0 ? r.lines : null)
+      })
     } else {
       setError(result.error ?? 'Failed to fetch track')
     }
     setLoading(false)
   }, [])
 
-  const handleUrlChange = (val: string) => {
-    setSpotifyUrl(val)
+  const handleUrlInput = (val: string) => {
+    setUrl(val)
     if (val.includes('spotify.com/track/') || val.includes('spotify:track:')) {
       fetchTrack(val)
     }
   }
 
-  const handleLineSelect = (line: string) => {
-    setSelectedLines((prev) =>
-      prev.includes(line)
-        ? prev.filter((l) => l !== line)
-        : prev.length < 2 ? [...prev, line] : [prev[1], line]
+  const handlePaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
+    const pasted = e.clipboardData.getData('text')
+    if (pasted.includes('spotify.com/track/') || pasted.includes('spotify:track:')) {
+      e.preventDefault()
+      setUrl(pasted)
+      fetchTrack(pasted)
+    }
+  }
+
+  const loadFromRecent = useCallback((t: TrackData) => {
+    setTrack(t)
+    setUrl(`https://open.spotify.com/track/${t.id}`)
+    setConfig(prev => ({ ...prev, lyricQuote: '' }))
+    setLyrics(null)
+    getLyrics(t.artist, t.title).then(r => {
+      setLyrics(r.lines.length > 0 ? r.lines : null)
+    })
+  }, [])
+
+  const urlBar = (
+    <div style={{ position: 'relative', width: '100%' }}>
+      <div className="input" style={{ height: 52, paddingLeft: 16, paddingRight: 16, fontSize: 15 }}>
+        <span style={{ color: 'var(--fg-3)', flexShrink: 0 }}><LinkIcon /></span>
+        <input
+          value={url}
+          onChange={e => handleUrlInput(e.target.value)}
+          onPaste={handlePaste}
+          placeholder="Paste a Spotify track link…"
+          spellCheck={false}
+          style={{ fontSize: 15 }}
+        />
+        {loading && (
+          <span className="spin" style={{
+            display: 'inline-block', width: 16, height: 16,
+            border: '2px solid var(--accent)', borderTopColor: 'transparent',
+            borderRadius: '50%', flexShrink: 0,
+          }} />
+        )}
+      </div>
+    </div>
+  )
+
+  // ── EMPTY STATE ──────────────────────────────────────────────
+  if (!track && !loading) {
+    return (
+      <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--bg)' }}>
+        {accentColor && <style>{`:root { --accent: ${accentColor}; }`}</style>}
+
+        {/* Minimal nav */}
+        <nav style={{
+          height: 56, display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: '0 24px', borderBottom: '1px solid var(--line-soft)',
+          background: 'var(--bg)', flexShrink: 0,
+        }}>
+          <Logo />
+          <a href="https://github.com/clintdoesdev/FrameSound" target="_blank" rel="noopener noreferrer"
+            style={{ color: 'var(--fg-2)', display: 'flex', alignItems: 'center' }}>
+            <GithubIcon />
+          </a>
+        </nav>
+
+        {/* Centered empty state */}
+        <div style={{
+          flex: 1, display: 'flex', flexDirection: 'column',
+          alignItems: 'center', justifyContent: 'center',
+          padding: '40px 24px',
+        }}>
+          <div style={{ marginBottom: 40, textAlign: 'center' }}>
+            <Logo />
+          </div>
+          <div style={{ width: '100%', maxWidth: 560 }}>
+            {urlBar}
+            {error && (
+              <div style={{ marginTop: 10, fontSize: 13, color: 'var(--danger)', textAlign: 'center' }}>{error}</div>
+            )}
+            <div style={{ marginTop: 10, fontSize: 13, color: 'var(--fg-3)', textAlign: 'center' }}>
+              spotify.com/track/… links only
+            </div>
+          </div>
+          <RecentTracks onSelect={loadFromRecent} />
+        </div>
+      </div>
     )
   }
 
-  const effectiveSelectedLines = customQuote.trim()
-    ? [customQuote.trim()]
-    : selectedLines
-
-  const handleExportPNG = async () => {
-    if (!cardRef.current || exportBusy) return
-    setExportBusy(true)
-    try {
-      const dti = (await import('dom-to-image-more')).default
-      const url = await dti.toPng(cardRef.current, { scale: 3 })
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `framesound-card.png`
-      a.click()
-    } catch (e) { console.error(e) }
-    finally { setExportBusy(false) }
-  }
-
-  if (view === 'landing') {
-    return <LandingPage onOpenEditor={() => setView('editor')} />
-  }
-
-  return (
-    <div style={{
-      height: '100vh', display: 'flex', flexDirection: 'column',
-      background: 'var(--bg)', color: 'var(--fg)', overflow: 'hidden',
-    }}>
-      <EditorHeader onBack={() => setView('landing')} onExport={handleExportPNG} busy={exportBusy} />
-
-      <RecentTracks onSelect={(t) => {
-        setTrack(t)
-        setSpotifyUrl(`https://open.spotify.com/track/${t.id}`)
-        setLyricsLoading(true)
-        getLyrics(t.artist, t.title).then((r) => {
-          setLyrics(r.lines)
-          setLyricsLoading(false)
-        })
-      }} />
-
-      <div style={{ flex: 1, display: 'flex', minHeight: 0, overflow: 'hidden' }}>
-        {/* LEFT PANE — Customize */}
-        <aside style={{
-          width: 'var(--pane-w-l)',
-          borderRight: '1px solid var(--line)',
-          display: 'flex', flexDirection: 'column',
-          background: 'var(--bg)', minHeight: 0, flexShrink: 0,
+  // ── LOADING STATE ────────────────────────────────────────────
+  if (loading) {
+    return (
+      <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--bg)' }}>
+        <nav style={{
+          height: 56, display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: '0 24px', borderBottom: '1px solid var(--line-soft)',
+          background: 'var(--bg)', flexShrink: 0,
         }}>
-          <div style={{ padding: '14px var(--pad-x) 12px', borderBottom: '1px solid var(--line-soft)' }}>
-            <div className="eyebrow" style={{ marginBottom: 6 }}>
-              <span className="dot" /> CUSTOMIZE
+          <Logo />
+          <a href="https://github.com/clintdoesdev/FrameSound" target="_blank" rel="noopener noreferrer"
+            style={{ color: 'var(--fg-2)', display: 'flex', alignItems: 'center' }}>
+            <GithubIcon />
+          </a>
+        </nav>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px 24px' }}>
+          <div style={{ width: '100%', maxWidth: 560, marginBottom: 40 }}>{urlBar}</div>
+          <div style={{ display: 'flex', gap: 32, flexWrap: 'wrap', justifyContent: 'center' }}>
+            {/* Card skeleton */}
+            <div className="animate-pulse-slow" style={{
+              width: 340, height: 340, borderRadius: 18,
+              background: 'var(--bg-1)', border: '1px solid var(--line)',
+            }} />
+            {/* Controls skeleton */}
+            <div style={{ width: 280, display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {[80, 60, 100, 70, 90, 55].map((w, i) => (
+                <div key={i} className="animate-pulse-slow" style={{
+                  height: 14, width: `${w}%`, borderRadius: 4, background: 'var(--bg-2)',
+                }} />
+              ))}
             </div>
-            <div style={{ fontSize: 13, color: 'var(--fg-1)', lineHeight: 1.4 }}>
-              Style your card live.
-              <span style={{ color: 'var(--fg-3)' }}> Changes render instantly.</span>
-            </div>
-          </div>
-          <CustomizePanel config={config} onChange={(u) => setConfig((p) => ({ ...p, ...u }))} />
-          <div style={{
-            borderTop: '1px solid var(--line-soft)', padding: '10px var(--pad-x)',
-            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            fontSize: 11, color: 'var(--fg-3)', flexShrink: 0,
-          }}>
-            <span className="mono">cfg.json</span>
-            <span className="mono">{Object.keys(config).length} keys</span>
-          </div>
-        </aside>
-
-        {/* CENTER — URL bar + card stage */}
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-          <URLBar url={spotifyUrl} onChange={handleUrlChange} loading={loading} isLive={!!track} />
-
-          {error && (
-            <div style={{ padding: '8px 16px', background: 'oklch(0.66 0.18 25 / 0.12)', borderBottom: '1px solid oklch(0.66 0.18 25 / 0.3)' }}>
-              <span style={{ fontSize: 13, color: 'var(--danger)' }}>{error}</span>
-            </div>
-          )}
-
-          {/* Stage */}
-          <div className="stage-bg grid-bg" style={{
-            flex: 1, minHeight: 0, position: 'relative',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            overflow: 'hidden',
-          }}>
-            {/* Stage annotations */}
-            <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
-              <div style={{ position: 'absolute', top: 16, left: 16, fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)', letterSpacing: '0.04em' }}>
-                STAGE · 1×
-              </div>
-              <div style={{ position: 'absolute', top: 16, right: 16, fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)', letterSpacing: '0.04em' }}>
-                PREVIEW
-              </div>
-              {track && (
-                <div style={{ position: 'absolute', bottom: 16, left: 16, fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)', letterSpacing: '0.04em' }}>
-                  EXPORTS @ 3×
-                </div>
-              )}
-            </div>
-
-            {loading ? (
-              <div className="animate-pulse-slow" style={{
-                width: 340, height: 340,
-                background: 'var(--bg-1)', borderRadius: 18,
-                border: '1px solid var(--line)',
-              }} />
-            ) : track ? (
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14, padding: 32 }}>
-                <div style={{ transform: 'scale(0.75)', transformOrigin: 'top center' }}>
-                  <CardCanvas
-                    track={track}
-                    config={config}
-                    selectedLines={effectiveSelectedLines}
-                    cardRef={cardRef}
-                  />
-                </div>
-                <div className="mono" style={{ display: 'flex', alignItems: 'center', gap: 14, fontSize: 11, color: 'var(--fg-3)' }}>
-                  <span>{config.preset.toUpperCase()}</span>
-                  <span style={{ width: 3, height: 3, background: 'var(--fg-4)', borderRadius: 99 }} />
-                  <span>{config.size}</span>
-                  <span style={{ width: 3, height: 3, background: 'var(--fg-4)', borderRadius: 99 }} />
-                  <span>EXPORTS @ 3×</span>
-                </div>
-              </div>
-            ) : (
-              <EmptyStage />
-            )}
           </div>
         </div>
+      </div>
+    )
+  }
 
-        {/* RIGHT PANE — Track info + Audio + Lyrics + Export */}
-        <aside style={{
-          width: 'var(--pane-w-r)',
+  // ── LOADED STATE ─────────────────────────────────────────────
+  return (
+    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--bg)' }}>
+      {accentColor && <style>{`:root { --accent: ${accentColor}; }`}</style>}
+
+      {/* Nav */}
+      <nav style={{
+        height: 56, display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '0 24px', borderBottom: '1px solid var(--line-soft)',
+        background: 'var(--bg)', flexShrink: 0, position: 'sticky', top: 0, zIndex: 20,
+      }}>
+        <Logo />
+        <a href="https://github.com/clintdoesdev/FrameSound" target="_blank" rel="noopener noreferrer"
+          style={{ color: 'var(--fg-2)', display: 'flex', alignItems: 'center' }}>
+          <GithubIcon />
+        </a>
+      </nav>
+
+      {/* Split layout */}
+      <div style={{
+        flex: 1, display: 'flex',
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        maxWidth: 1280, margin: '0 auto', width: '100%',
+        padding: '0',
+      }}
+        className="editor-layout"
+      >
+        {/* ── LEFT: Card + Audio + Recent ─────────────────── */}
+        <div style={{
+          flex: '0 0 auto',
+          width: 'min(560px, 100%)',
+          padding: '32px 24px 24px',
+          display: 'flex', flexDirection: 'column', gap: 20,
+          position: 'sticky', top: 56, maxHeight: 'calc(100vh - 56px)',
+          overflowY: 'auto',
+        }}
+          className="scroll left-col"
+        >
+          {/* URL bar stays at top of left col */}
+          <div>
+            {urlBar}
+            {error && (
+              <div style={{ marginTop: 8, fontSize: 13, color: 'var(--danger)' }}>{error}</div>
+            )}
+          </div>
+
+          {/* Card preview */}
+          <div style={{
+            display: 'flex', justifyContent: 'center',
+            background: 'var(--bg-1)', borderRadius: 12,
+            border: '1px solid var(--line)',
+            padding: 20,
+          }}>
+            {track && (
+              <div style={{
+                transform: 'scale(0.72)', transformOrigin: 'top center',
+                transition: 'opacity 150ms ease',
+              }}>
+                <CardCanvas track={track} config={config} cardRef={cardRef} />
+              </div>
+            )}
+          </div>
+
+          {/* Audio preview */}
+          {track?.previewUrl && <AudioPreview previewUrl={track.previewUrl} trackId={track.id} />}
+
+          {/* Recent tracks */}
+          <RecentTracks onSelect={loadFromRecent} />
+        </div>
+
+        {/* ── RIGHT: Lyrics + Customize + Export ──────────── */}
+        <div style={{
+          flex: 1, minWidth: 0,
           borderLeft: '1px solid var(--line)',
           display: 'flex', flexDirection: 'column',
-          background: 'var(--bg)', minHeight: 0, flexShrink: 0,
+          minHeight: 'calc(100vh - 56px)',
         }}>
-          {/* Track meta header */}
-          {track ? (
-            <div style={{ padding: '14px var(--pad-x)', borderBottom: '1px solid var(--line-soft)', display: 'flex', gap: 12, alignItems: 'center', flexShrink: 0 }}>
-              <div style={{ width: 48, height: 48, borderRadius: 6, overflow: 'hidden', flexShrink: 0, position: 'relative', background: 'var(--bg-2)' }}>
+          {/* Track meta strip */}
+          {track && (
+            <div style={{
+              padding: '16px 20px', borderBottom: '1px solid var(--line-soft)',
+              display: 'flex', alignItems: 'center', gap: 14, flexShrink: 0,
+            }}>
+              <div style={{ width: 44, height: 44, borderRadius: 6, overflow: 'hidden', flexShrink: 0, position: 'relative', background: 'var(--bg-2)' }}>
                 {track.coverUrl && (
                   <Image src={track.coverUrl} alt={track.title} fill style={{ objectFit: 'cover' }} unoptimized />
                 )}
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 13.5, fontWeight: 500, color: 'var(--fg)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--fg)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {track.title}
                 </div>
                 <div style={{ fontSize: 12, color: 'var(--fg-2)', marginTop: 1 }}>{track.artist}</div>
-                <div className="mono" style={{ fontSize: 10.5, color: 'var(--fg-3)', marginTop: 3, letterSpacing: '0.04em' }}>
-                  {track.album.toUpperCase()} · {track.releaseYear}
+                <div className="mono" style={{ fontSize: 11, color: 'var(--fg-3)', marginTop: 2, letterSpacing: '0.04em' }}>
+                  {track.album.toUpperCase()} · {track.releaseYear} · {track.duration}
                 </div>
               </div>
             </div>
-          ) : (
-            <div style={{ padding: '14px var(--pad-x)', borderBottom: '1px solid var(--line-soft)', flexShrink: 0 }}>
-              <div className="mono" style={{ fontSize: 11, color: 'var(--fg-3)', letterSpacing: '0.04em' }}>LYRICS + EXPORT</div>
-              <div style={{ fontSize: 13, color: 'var(--fg-2)', marginTop: 4 }}>
-                Paste a Spotify URL to fetch track data.
-              </div>
-            </div>
           )}
 
-          {/* Audio preview */}
-          {track?.previewUrl && <AudioPreview previewUrl={track.previewUrl} />}
-
-          {/* Lyrics */}
-          <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+          {/* Lyrics panel */}
+          <div style={{ borderBottom: '1px solid var(--line-soft)', flexShrink: 0 }}>
             <LyricsPanel
-              lines={lyrics}
-              loading={lyricsLoading}
-              selectedLines={selectedLines}
-              onSelect={handleLineSelect}
-              customQuote={customQuote}
-              onCustomQuote={setCustomQuote}
+              lines={lyrics ?? []}
+              loading={false}
+              onQuoteChange={q => updateConfig({ lyricQuote: q })}
             />
           </div>
 
-          {/* Export bar */}
-          {track && <ExportBar cardRef={cardRef} track={track} />}
-          {!track && (
-            <div style={{ padding: '12px var(--pad-x)', background: 'var(--bg-1)', borderTop: '1px solid var(--line)', flexShrink: 0 }}>
-              <div className="mono" style={{ fontSize: 11, color: 'var(--fg-3)', letterSpacing: '0.04em', marginBottom: 8 }}>EXPORT</div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, opacity: 0.4 }}>
-                <button className="btn" data-variant="primary" data-size="sm" disabled>PNG · 3×</button>
-                <button className="btn" data-size="sm" disabled>JPG · 2×</button>
-                <button className="btn" data-size="sm" disabled>Trans. PNG</button>
-                <button className="btn" data-size="sm" disabled>Copy</button>
-              </div>
-            </div>
+          {/* Customize panel — scrollable */}
+          <div className="scroll" style={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
+            <CustomizePanel config={config} onChange={updateConfig} />
+          </div>
+
+          {/* Export bar — sticky at bottom */}
+          {track && (
+            <ExportBar cardRef={cardRef} track={track} config={config} onConfigChange={updateConfig} />
           )}
-        </aside>
+        </div>
       </div>
+
+      <style>{`
+        @media (max-width: 768px) {
+          .editor-layout { flex-direction: column !important; }
+          .left-col {
+            position: static !important;
+            width: 100% !important;
+            max-height: none !important;
+            overflow-y: visible !important;
+          }
+        }
+      `}</style>
     </div>
   )
 }

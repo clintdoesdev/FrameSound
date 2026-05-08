@@ -206,15 +206,22 @@ export default function CustomizePanel({ config, onChange }: Props) {
       <Section icon={<TypeIcon />} label="03 · Typography">
         <div>
           <FieldLabel hint="family">Card font</FieldLabel>
-          <SegRow
-            value={config.font}
-            onChange={(v) => onChange({ font: v })}
-            options={[
-              { value: 'geist', label: 'Display' },
-              { value: 'serif', label: 'Serif' },
-              { value: 'mono',  label: 'Mono', mono: true },
-            ]}
-          />
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 4 }}>
+            {([
+              { value: 'syne',       label: 'Syne' },
+              { value: 'dm-serif',   label: 'DM Serif' },
+              { value: 'playfair',   label: 'Playfair' },
+              { value: 'bebas',      label: 'Bebas' },
+              { value: 'instrument', label: 'Instrument' },
+            ] as { value: CardConfig['font']; label: string }[]).map(f => (
+              <button key={f.value} onClick={() => onChange({ font: f.value })} style={{
+                height: 28, border: `1px solid ${config.font === f.value ? 'var(--accent)' : 'var(--line)'}`,
+                background: config.font === f.value ? 'var(--accent-quiet)' : 'var(--bg-inset)',
+                borderRadius: 'var(--r-2)', fontSize: 11.5, fontWeight: 500,
+                color: config.font === f.value ? 'var(--fg)' : 'var(--fg-2)', cursor: 'pointer',
+              }}>{f.label}</button>
+            ))}
+          </div>
         </div>
         <div>
           <FieldLabel hint="contrast">Text color</FieldLabel>

@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useCallback } from 'react'
+import Image from 'next/image'
 import { getTrackFromUrl } from '@/actions/spotify'
 import { getLyrics } from '@/actions/lyrics'
 import { TrackData, CardConfig, defaultConfig } from '@/types'
@@ -10,8 +11,154 @@ import CustomizePanel from '@/components/CustomizePanel'
 import ExportBar from '@/components/ExportBar'
 import AudioPreview from '@/components/AudioPreview'
 import RecentTracks, { addRecentTrack } from '@/components/RecentTracks'
+import LandingPage, { Logo } from '@/components/LandingPage'
+
+// Icons
+const BackIcon = () => (
+  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+    <path d="m15 6-6 6 6 6"/>
+  </svg>
+)
+const SettingsIcon = () => (
+  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="3"/>
+    <path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1A1.7 1.7 0 0 0 4.6 9 1.7 1.7 0 0 0 4.3 7.2l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>
+  </svg>
+)
+const DlIcon = () => (
+  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M12 4v12"/><path d="m7 11 5 5 5-5"/><path d="M5 20h14"/>
+  </svg>
+)
+const LinkIcon = () => (
+  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M10 14a4 4 0 0 1 0-5.6l3-3a4 4 0 1 1 5.6 5.6l-1.5 1.5"/>
+    <path d="M14 10a4 4 0 0 1 0 5.6l-3 3a4 4 0 1 1-5.6-5.6L6.9 11.5"/>
+  </svg>
+)
+
+function EditorHeader({ onBack, onExport, busy }: { onBack: () => void; onExport: () => void; busy: boolean }) {
+  return (
+    <header style={{
+      height: 'var(--header-h)', flexShrink: 0,
+      borderBottom: '1px solid var(--line)',
+      background: 'var(--bg)',
+      display: 'grid', gridTemplateColumns: '1fr auto 1fr',
+      alignItems: 'center', padding: '0 16px', gap: 16,
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <button className="btn" data-variant="ghost" data-size="sm" onClick={onBack}
+          style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+          <BackIcon /><span>Back</span>
+        </button>
+        <div style={{ width: 1, height: 18, background: 'var(--line)' }} />
+        <Logo />
+        <div className="mono" style={{
+          fontSize: 11, color: 'var(--fg-3)', padding: '3px 7px',
+          background: 'var(--bg-inset)', border: '1px solid var(--line)',
+          borderRadius: 4, letterSpacing: '0.04em',
+        }}>/editor</div>
+      </div>
+
+      <nav style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+        {['Card', 'Lyrics', 'Export', 'History'].map((t, i) => (
+          <button key={t} className="btn" data-variant="ghost" data-size="sm"
+            style={{ color: i === 0 ? 'var(--fg)' : 'var(--fg-2)', background: i === 0 ? 'var(--bg-2)' : 'transparent' }}>
+            {t}
+          </button>
+        ))}
+      </nav>
+
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8 }}>
+        <div className="mono" style={{ fontSize: 11, color: 'var(--fg-3)', display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span style={{ display: 'inline-block', width: 6, height: 6, borderRadius: 99, background: 'var(--accent)', boxShadow: '0 0 0 3px var(--accent-quiet)' }} />
+          AUTOSAVED · 0s
+        </div>
+        <button className="btn" data-variant="ghost" data-icon-only="true" data-size="sm"><SettingsIcon /></button>
+        <button className="btn" data-variant="primary" data-size="sm" onClick={onExport} disabled={busy}
+          style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+          <DlIcon /><span>Export</span>
+        </button>
+      </div>
+    </header>
+  )
+}
+
+function URLBar({ url, onChange, loading, isLive }: {
+  url: string; onChange: (v: string) => void; loading: boolean; isLive: boolean
+}) {
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', gap: 10,
+      padding: '0 16px', height: 'var(--header-h)',
+      borderBottom: '1px solid var(--line)',
+      background: 'var(--bg)',
+      position: 'sticky', top: 0, zIndex: 5, flexShrink: 0,
+    }}>
+      <div style={{ flex: 1, maxWidth: 680 }}>
+        <div className="input" style={{ height: 36 }}>
+          <span style={{ color: 'var(--fg-3)' }}><LinkIcon /></span>
+          <input
+            value={url}
+            onChange={(e) => onChange(e.target.value)}
+            placeholder="Paste a Spotify track URL…"
+            spellCheck={false}
+          />
+          {loading && (
+            <span className="spin" style={{
+              display: 'inline-block', width: 14, height: 14,
+              border: '2px solid var(--accent)', borderTopColor: 'transparent',
+              borderRadius: '50%', flexShrink: 0,
+            }} />
+          )}
+        </div>
+      </div>
+      <div style={{ flex: 1 }} />
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--fg-2)' }}>
+        <span style={{
+          display: 'inline-block', width: 6, height: 6, borderRadius: 99,
+          background: isLive ? 'var(--accent)' : 'var(--fg-3)',
+          boxShadow: isLive ? '0 0 0 3px var(--accent-quiet)' : 'none',
+        }} />
+        <span className="mono" style={{ fontSize: 11, letterSpacing: '0.04em' }}>
+          {loading ? 'FETCHING…' : isLive ? 'TRACK · LIVE' : 'PASTE TO BEGIN'}
+        </span>
+      </div>
+    </div>
+  )
+}
+
+function EmptyStage() {
+  return (
+    <div style={{
+      flex: 1, display: 'flex', flexDirection: 'column',
+      alignItems: 'center', justifyContent: 'center',
+      gap: 16, color: 'var(--fg-3)',
+    }}>
+      <div style={{
+        width: 64, height: 64, borderRadius: 16,
+        background: 'var(--bg-1)', border: '1px solid var(--line)',
+        display: 'grid', placeItems: 'center', fontSize: 28,
+      }}>♫</div>
+      <div style={{ textAlign: 'center' }}>
+        <div style={{ fontSize: 15, color: 'var(--fg-2)', fontWeight: 500 }}>Paste a Spotify URL to begin</div>
+        <div style={{ fontSize: 13, color: 'var(--fg-3)', marginTop: 4 }}>Supports track, album, and playlist links</div>
+      </div>
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center' }}>
+        {['5 card presets', 'Lyric quotes', 'PNG 3× export'].map(f => (
+          <span key={f} className="mono" style={{
+            fontSize: 11, color: 'var(--fg-3)', letterSpacing: '0.04em',
+            padding: '4px 10px', background: 'var(--bg-1)',
+            border: '1px solid var(--line)', borderRadius: 999,
+          }}>{f}</span>
+        ))}
+      </div>
+    </div>
+  )
+}
 
 export default function Home() {
+  const [view, setView] = useState<'landing' | 'editor'>('landing')
   const [spotifyUrl, setSpotifyUrl] = useState('')
   const [track, setTrack] = useState<TrackData | null>(null)
   const [loading, setLoading] = useState(false)
@@ -21,34 +168,35 @@ export default function Home() {
   const [selectedLines, setSelectedLines] = useState<string[]>([])
   const [customQuote, setCustomQuote] = useState('')
   const [config, setConfig] = useState<CardConfig>(defaultConfig)
-  const [showCustomize, setShowCustomize] = useState(false)
-  const [showLyrics, setShowLyrics] = useState(false)
-  const [isDark, setIsDark] = useState(true)
+  const [exportBusy, setExportBusy] = useState(false)
 
   const cardRef = useRef<HTMLDivElement>(null!)
 
-  const handleInput = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = e.target.value
+  const fetchTrack = useCallback(async (url: string) => {
+    setLoading(true)
+    setError(null)
+    setTrack(null)
+    setLyrics([])
+    setSelectedLines([])
+    setCustomQuote('')
+    const result = await getTrackFromUrl(url)
+    if (result.data) {
+      setTrack(result.data)
+      addRecentTrack(result.data)
+      setLyricsLoading(true)
+      const lr = await getLyrics(result.data.artist, result.data.title)
+      setLyrics(lr.lines)
+      setLyricsLoading(false)
+    } else {
+      setError(result.error ?? 'Failed to fetch track')
+    }
+    setLoading(false)
+  }, [])
+
+  const handleUrlChange = (val: string) => {
     setSpotifyUrl(val)
     if (val.includes('spotify.com/track/') || val.includes('spotify:track:')) {
-      setLoading(true)
-      setError(null)
-      setTrack(null)
-      setLyrics([])
-      setSelectedLines([])
-      setCustomQuote('')
-      const result = await getTrackFromUrl(val)
-      if (result.data) {
-        setTrack(result.data)
-        addRecentTrack(result.data)
-        setLyricsLoading(true)
-        const lyricsResult = await getLyrics(result.data.artist, result.data.title)
-        setLyrics(lyricsResult.lines)
-        setLyricsLoading(false)
-      } else {
-        setError(result.error)
-      }
-      setLoading(false)
+      fetchTrack(val)
     }
   }
 
@@ -56,414 +204,202 @@ export default function Home() {
     setSelectedLines((prev) =>
       prev.includes(line)
         ? prev.filter((l) => l !== line)
-        : prev.length < 2
-        ? [...prev, line]
-        : [prev[1], line]
+        : prev.length < 2 ? [...prev, line] : [prev[1], line]
     )
   }
 
-  const effectiveSelectedLines =
-    customQuote && lyrics.length === 0 ? [customQuote] : selectedLines
+  const effectiveSelectedLines = customQuote.trim()
+    ? [customQuote.trim()]
+    : selectedLines
+
+  const handleExportPNG = async () => {
+    if (!cardRef.current || exportBusy) return
+    setExportBusy(true)
+    try {
+      const dti = (await import('dom-to-image-more')).default
+      const url = await dti.toPng(cardRef.current, { scale: 3 })
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `framesound-card.png`
+      a.click()
+    } catch (e) { console.error(e) }
+    finally { setExportBusy(false) }
+  }
+
+  if (view === 'landing') {
+    return <LandingPage onOpenEditor={() => setView('editor')} />
+  }
 
   return (
-    <main
-      style={{
-        minHeight: '100vh',
-        background: isDark ? '#0a0a0a' : '#f4f4f5',
-        color: isDark ? '#f4f4f5' : '#09090b',
-      }}
-    >
-      {/* HEADER */}
-      <header
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          padding: '20px 24px',
-          borderBottom: `1px solid ${isDark ? '#18181b' : '#e4e4e7'}`,
-        }}
-      >
-        <div>
-          <h1
-            style={{
-              fontFamily: 'var(--font-syne)',
-              fontSize: 20,
-              fontWeight: 700,
-              letterSpacing: '-0.02em',
-              margin: 0,
-            }}
-          >
-            Frame<span style={{ color: '#22c55e' }}>Sound</span>
-          </h1>
-          <p style={{ fontSize: 12, color: '#71717a', margin: '2px 0 0' }}>
-            Spotify → Beautiful Cards
-          </p>
-        </div>
-        <button
-          onClick={() => setIsDark(!isDark)}
-          style={{
-            fontSize: 12,
-            color: '#71717a',
-            border: `1px solid ${isDark ? '#27272a' : '#d4d4d8'}`,
-            padding: '6px 12px',
-            borderRadius: 9999,
-            background: 'transparent',
-            cursor: 'pointer',
-          }}
-        >
-          {isDark ? '☀ Light' : '🌙 Dark'}
-        </button>
-      </header>
+    <div style={{
+      height: '100vh', display: 'flex', flexDirection: 'column',
+      background: 'var(--bg)', color: 'var(--fg)', overflow: 'hidden',
+    }}>
+      <EditorHeader onBack={() => setView('landing')} onExport={handleExportPNG} busy={exportBusy} />
 
-      {/* INPUT BAR */}
-      <div style={{ padding: '20px 16px', maxWidth: 672, margin: '0 auto' }}>
-        <div style={{ position: 'relative' }}>
-          <span
-            style={{
-              position: 'absolute',
-              left: 16,
-              top: '50%',
-              transform: 'translateY(-50%)',
-              color: '#22c55e',
-              fontSize: 18,
-            }}
-          >
-            ♫
-          </span>
-          <input
-            type="text"
-            value={spotifyUrl}
-            onChange={handleInput}
-            placeholder="Paste a Spotify track link..."
-            style={{
-              width: '100%',
-              background: isDark ? '#18181b' : '#fff',
-              border: `1px solid ${isDark ? '#27272a' : '#d4d4d8'}`,
-              borderRadius: 16,
-              padding: '16px 40px 16px 44px',
-              fontSize: 14,
-              color: isDark ? '#e4e4e7' : '#18181b',
-              outline: 'none',
-              boxSizing: 'border-box',
-            }}
-            onFocus={(e) => (e.currentTarget.style.borderColor = 'rgba(34,197,94,0.5)')}
-            onBlur={(e) => (e.currentTarget.style.borderColor = isDark ? '#27272a' : '#d4d4d8')}
-          />
-          {spotifyUrl && (
-            <button
-              onClick={() => {
-                setSpotifyUrl('')
-                setTrack(null)
-                setError(null)
-              }}
-              style={{
-                position: 'absolute',
-                right: 16,
-                top: '50%',
-                transform: 'translateY(-50%)',
-                color: '#71717a',
-                background: 'none',
-                border: 'none',
-                cursor: 'pointer',
-                fontSize: 18,
-              }}
-            >
-              ×
-            </button>
+      <RecentTracks onSelect={(t) => {
+        setTrack(t)
+        setSpotifyUrl(`https://open.spotify.com/track/${t.id}`)
+        setLyricsLoading(true)
+        getLyrics(t.artist, t.title).then((r) => {
+          setLyrics(r.lines)
+          setLyricsLoading(false)
+        })
+      }} />
+
+      <div style={{ flex: 1, display: 'flex', minHeight: 0, overflow: 'hidden' }}>
+        {/* LEFT PANE — Customize */}
+        <aside style={{
+          width: 'var(--pane-w-l)',
+          borderRight: '1px solid var(--line)',
+          display: 'flex', flexDirection: 'column',
+          background: 'var(--bg)', minHeight: 0, flexShrink: 0,
+        }}>
+          <div style={{ padding: '14px var(--pad-x) 12px', borderBottom: '1px solid var(--line-soft)' }}>
+            <div className="eyebrow" style={{ marginBottom: 6 }}>
+              <span className="dot" /> CUSTOMIZE
+            </div>
+            <div style={{ fontSize: 13, color: 'var(--fg-1)', lineHeight: 1.4 }}>
+              Style your card live.
+              <span style={{ color: 'var(--fg-3)' }}> Changes render instantly.</span>
+            </div>
+          </div>
+          <CustomizePanel config={config} onChange={(u) => setConfig((p) => ({ ...p, ...u }))} />
+          <div style={{
+            borderTop: '1px solid var(--line-soft)', padding: '10px var(--pad-x)',
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            fontSize: 11, color: 'var(--fg-3)', flexShrink: 0,
+          }}>
+            <span className="mono">cfg.json</span>
+            <span className="mono">{Object.keys(config).length} keys</span>
+          </div>
+        </aside>
+
+        {/* CENTER — URL bar + card stage */}
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+          <URLBar url={spotifyUrl} onChange={handleUrlChange} loading={loading} isLive={!!track} />
+
+          {error && (
+            <div style={{ padding: '8px 16px', background: 'oklch(0.66 0.18 25 / 0.12)', borderBottom: '1px solid oklch(0.66 0.18 25 / 0.3)' }}>
+              <span style={{ fontSize: 13, color: 'var(--danger)' }}>{error}</span>
+            </div>
           )}
-        </div>
-        {error && (
-          <p style={{ color: '#f87171', fontSize: 12, marginTop: 8, paddingLeft: 4 }}>{error}</p>
-        )}
-      </div>
 
-      {/* RECENT TRACKS */}
-      <div style={{ padding: '0 16px 8px', maxWidth: 672, margin: '0 auto' }}>
-        <RecentTracks
-          onSelect={(t) => {
-            setTrack(t)
-            setSpotifyUrl(`https://open.spotify.com/track/${t.id}`)
-            setLyricsLoading(true)
-            getLyrics(t.artist, t.title).then((r) => {
-              setLyrics(r.lines)
-              setLyricsLoading(false)
-            })
-          }}
-        />
-      </div>
-
-      {/* EMPTY STATE */}
-      {!track && !loading && (
-        <div
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '80px 16px',
-          }}
-        >
-          <div
-            style={{
-              border: `2px dashed ${isDark ? '#27272a' : '#d4d4d8'}`,
-              borderRadius: 24,
-              padding: '48px 32px',
-              textAlign: 'center',
-              maxWidth: 384,
-              width: '100%',
-            }}
-          >
-            <div style={{ fontSize: 48, marginBottom: 16 }}>🎵</div>
-            <p style={{ color: '#71717a', fontSize: 14, marginBottom: 24 }}>
-              Paste a Spotify link above to get started
-            </p>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'center' }}>
-              {['Liquid Glass Cards', 'Lyrics Quotes', 'HD Export'].map((f) => (
-                <span
-                  key={f}
-                  style={{
-                    fontSize: 12,
-                    background: isDark ? '#18181b' : '#f4f4f5',
-                    border: `1px solid ${isDark ? '#27272a' : '#d4d4d8'}`,
-                    color: '#71717a',
-                    padding: '6px 12px',
-                    borderRadius: 9999,
-                  }}
-                >
-                  {f}
-                </span>
-              ))}
+          {/* Stage */}
+          <div className="stage-bg grid-bg" style={{
+            flex: 1, minHeight: 0, position: 'relative',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            overflow: 'hidden',
+          }}>
+            {/* Stage annotations */}
+            <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
+              <div style={{ position: 'absolute', top: 16, left: 16, fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)', letterSpacing: '0.04em' }}>
+                STAGE · 1×
+              </div>
+              <div style={{ position: 'absolute', top: 16, right: 16, fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)', letterSpacing: '0.04em' }}>
+                PREVIEW
+              </div>
+              {track && (
+                <div style={{ position: 'absolute', bottom: 16, left: 16, fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--fg-3)', letterSpacing: '0.04em' }}>
+                  EXPORTS @ 3×
+                </div>
+              )}
             </div>
+
+            {loading ? (
+              <div className="animate-pulse-slow" style={{
+                width: 340, height: 340,
+                background: 'var(--bg-1)', borderRadius: 18,
+                border: '1px solid var(--line)',
+              }} />
+            ) : track ? (
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14, padding: 32 }}>
+                <div style={{ transform: 'scale(0.75)', transformOrigin: 'top center' }}>
+                  <CardCanvas
+                    track={track}
+                    config={config}
+                    selectedLines={effectiveSelectedLines}
+                    cardRef={cardRef}
+                  />
+                </div>
+                <div className="mono" style={{ display: 'flex', alignItems: 'center', gap: 14, fontSize: 11, color: 'var(--fg-3)' }}>
+                  <span>{config.preset.toUpperCase()}</span>
+                  <span style={{ width: 3, height: 3, background: 'var(--fg-4)', borderRadius: 99 }} />
+                  <span>{config.size}</span>
+                  <span style={{ width: 3, height: 3, background: 'var(--fg-4)', borderRadius: 99 }} />
+                  <span>EXPORTS @ 3×</span>
+                </div>
+              </div>
+            ) : (
+              <EmptyStage />
+            )}
           </div>
         </div>
-      )}
 
-      {/* LOADING SKELETON */}
-      {loading && (
-        <div style={{ display: 'flex', justifyContent: 'center', padding: '40px 0' }}>
-          <div
-            className="animate-pulse-slow"
-            style={{
-              width: 340,
-              height: 340,
-              background: '#18181b',
-              borderRadius: 24,
-            }}
-          />
-        </div>
-      )}
-
-      {/* MAIN EDITOR */}
-      {track && !loading && (
-        <>
-          {/* DESKTOP: 3 column layout */}
-          <div
-            className="hidden lg:flex"
-            style={{ gap: 16, padding: '16px 24px', maxWidth: 1280, margin: '0 auto' }}
-          >
-            {/* Lyrics - left */}
-            <div
-              style={{
-                width: 256,
-                flexShrink: 0,
-                background: isDark ? 'rgba(24,24,27,0.5)' : '#fff',
-                border: `1px solid ${isDark ? 'rgba(39,39,42,0.5)' : '#e4e4e7'}`,
-                borderRadius: 16,
-                padding: 16,
-                maxHeight: 600,
-                overflowY: 'auto',
-              }}
-            >
-              <LyricsPanel
-                lines={lyrics}
-                loading={lyricsLoading}
-                selectedLines={selectedLines}
-                onSelect={handleLineSelect}
-                customQuote={customQuote}
-                onCustomQuote={setCustomQuote}
-              />
+        {/* RIGHT PANE — Track info + Audio + Lyrics + Export */}
+        <aside style={{
+          width: 'var(--pane-w-r)',
+          borderLeft: '1px solid var(--line)',
+          display: 'flex', flexDirection: 'column',
+          background: 'var(--bg)', minHeight: 0, flexShrink: 0,
+        }}>
+          {/* Track meta header */}
+          {track ? (
+            <div style={{ padding: '14px var(--pad-x)', borderBottom: '1px solid var(--line-soft)', display: 'flex', gap: 12, alignItems: 'center', flexShrink: 0 }}>
+              <div style={{ width: 48, height: 48, borderRadius: 6, overflow: 'hidden', flexShrink: 0, position: 'relative', background: 'var(--bg-2)' }}>
+                {track.coverUrl && (
+                  <Image src={track.coverUrl} alt={track.title} fill style={{ objectFit: 'cover' }} unoptimized />
+                )}
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 13.5, fontWeight: 500, color: 'var(--fg)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {track.title}
+                </div>
+                <div style={{ fontSize: 12, color: 'var(--fg-2)', marginTop: 1 }}>{track.artist}</div>
+                <div className="mono" style={{ fontSize: 10.5, color: 'var(--fg-3)', marginTop: 3, letterSpacing: '0.04em' }}>
+                  {track.album.toUpperCase()} · {track.releaseYear}
+                </div>
+              </div>
             </div>
-
-            {/* Card - center */}
-            <div
-              style={{
-                flex: 1,
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'flex-start',
-                paddingTop: 16,
-              }}
-            >
-              <CardCanvas
-                track={track}
-                config={config}
-                selectedLines={effectiveSelectedLines}
-                cardRef={cardRef}
-              />
-              {track.previewUrl && <AudioPreview previewUrl={track.previewUrl} />}
-            </div>
-
-            {/* Customize - right */}
-            <div
-              style={{
-                width: 288,
-                flexShrink: 0,
-                background: isDark ? 'rgba(24,24,27,0.5)' : '#fff',
-                border: `1px solid ${isDark ? 'rgba(39,39,42,0.5)' : '#e4e4e7'}`,
-                borderRadius: 16,
-                padding: 16,
-                maxHeight: 600,
-                overflowY: 'auto',
-              }}
-            >
-              <CustomizePanel
-                config={config}
-                onChange={(u) => setConfig((p) => ({ ...p, ...u }))}
-              />
-            </div>
-          </div>
-
-          {/* MOBILE: card + buttons */}
-          <div
-            className="lg:hidden"
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              padding: '16px',
-              gap: 16,
-            }}
-          >
-            <div style={{ overflowX: 'auto', width: '100%', display: 'flex', justifyContent: 'center' }}>
-              <CardCanvas
-                track={track}
-                config={config}
-                selectedLines={effectiveSelectedLines}
-                cardRef={cardRef}
-              />
-            </div>
-            {track.previewUrl && <AudioPreview previewUrl={track.previewUrl} />}
-            <div style={{ display: 'flex', gap: 12, width: '100%' }}>
-              <button
-                onClick={() => setShowLyrics(true)}
-                style={{
-                  flex: 1,
-                  padding: '12px',
-                  background: isDark ? '#18181b' : '#fff',
-                  border: `1px solid ${isDark ? '#27272a' : '#d4d4d8'}`,
-                  borderRadius: 16,
-                  fontSize: 14,
-                  color: isDark ? '#d4d4d8' : '#18181b',
-                  cursor: 'pointer',
-                }}
-              >
-                🎤 Lyrics
-              </button>
-              <button
-                onClick={() => setShowCustomize(true)}
-                style={{
-                  flex: 1,
-                  padding: '12px',
-                  background: isDark ? '#18181b' : '#fff',
-                  border: `1px solid ${isDark ? '#27272a' : '#d4d4d8'}`,
-                  borderRadius: 16,
-                  fontSize: 14,
-                  color: isDark ? '#d4d4d8' : '#18181b',
-                  cursor: 'pointer',
-                }}
-              >
-                🎨 Customize
-              </button>
-            </div>
-          </div>
-
-          {/* MOBILE BOTTOM SHEET — Customize */}
-          {showCustomize && (
-            <div
-              className="lg:hidden"
-              style={{ position: 'fixed', inset: 0, zIndex: 50, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}
-            >
-              <div
-                style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.6)' }}
-                onClick={() => setShowCustomize(false)}
-              />
-              <div
-                style={{
-                  position: 'relative',
-                  background: '#09090b',
-                  borderTop: '1px solid #27272a',
-                  borderRadius: '24px 24px 0 0',
-                  padding: 20,
-                  maxHeight: '80vh',
-                  overflowY: 'auto',
-                }}
-              >
-                <div
-                  style={{
-                    width: 40,
-                    height: 4,
-                    background: '#3f3f46',
-                    borderRadius: 9999,
-                    margin: '0 auto 16px',
-                  }}
-                />
-                <CustomizePanel
-                  config={config}
-                  onChange={(u) => setConfig((p) => ({ ...p, ...u }))}
-                />
+          ) : (
+            <div style={{ padding: '14px var(--pad-x)', borderBottom: '1px solid var(--line-soft)', flexShrink: 0 }}>
+              <div className="mono" style={{ fontSize: 11, color: 'var(--fg-3)', letterSpacing: '0.04em' }}>LYRICS + EXPORT</div>
+              <div style={{ fontSize: 13, color: 'var(--fg-2)', marginTop: 4 }}>
+                Paste a Spotify URL to fetch track data.
               </div>
             </div>
           )}
 
-          {/* MOBILE BOTTOM SHEET — Lyrics */}
-          {showLyrics && (
-            <div
-              className="lg:hidden"
-              style={{ position: 'fixed', inset: 0, zIndex: 50, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}
-            >
-              <div
-                style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.6)' }}
-                onClick={() => setShowLyrics(false)}
-              />
-              <div
-                style={{
-                  position: 'relative',
-                  background: '#09090b',
-                  borderTop: '1px solid #27272a',
-                  borderRadius: '24px 24px 0 0',
-                  padding: 20,
-                  maxHeight: '80vh',
-                  overflowY: 'auto',
-                }}
-              >
-                <div
-                  style={{
-                    width: 40,
-                    height: 4,
-                    background: '#3f3f46',
-                    borderRadius: 9999,
-                    margin: '0 auto 16px',
-                  }}
-                />
-                <LyricsPanel
-                  lines={lyrics}
-                  loading={lyricsLoading}
-                  selectedLines={selectedLines}
-                  onSelect={handleLineSelect}
-                  customQuote={customQuote}
-                  onCustomQuote={setCustomQuote}
-                />
+          {/* Audio preview */}
+          {track?.previewUrl && <AudioPreview previewUrl={track.previewUrl} />}
+
+          {/* Lyrics */}
+          <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+            <LyricsPanel
+              lines={lyrics}
+              loading={lyricsLoading}
+              selectedLines={selectedLines}
+              onSelect={handleLineSelect}
+              customQuote={customQuote}
+              onCustomQuote={setCustomQuote}
+            />
+          </div>
+
+          {/* Export bar */}
+          {track && <ExportBar cardRef={cardRef} track={track} />}
+          {!track && (
+            <div style={{ padding: '12px var(--pad-x)', background: 'var(--bg-1)', borderTop: '1px solid var(--line)', flexShrink: 0 }}>
+              <div className="mono" style={{ fontSize: 11, color: 'var(--fg-3)', letterSpacing: '0.04em', marginBottom: 8 }}>EXPORT</div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, opacity: 0.4 }}>
+                <button className="btn" data-variant="primary" data-size="sm" disabled>PNG · 3×</button>
+                <button className="btn" data-size="sm" disabled>JPG · 2×</button>
+                <button className="btn" data-size="sm" disabled>Trans. PNG</button>
+                <button className="btn" data-size="sm" disabled>Copy</button>
               </div>
             </div>
           )}
-
-          {/* EXPORT BAR */}
-          <div style={{ position: 'sticky', bottom: 0, zIndex: 40 }}>
-            <ExportBar cardRef={cardRef} track={track} />
-          </div>
-        </>
-      )}
-    </main>
+        </aside>
+      </div>
+    </div>
   )
 }

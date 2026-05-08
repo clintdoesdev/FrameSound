@@ -16,7 +16,7 @@ const dmSans = DM_Sans({
 
 export const metadata: Metadata = {
   title: 'FrameSound — Spotify Card Generator',
-  description: 'Turn any Spotify track into a beautiful shareable card. Liquid glass effects, lyrics quotes, HD export.',
+  description: 'Turn any Spotify track into a beautiful shareable card. Five presets, lyrics quotes, HD export.',
   openGraph: {
     title: 'FrameSound',
     description: 'Turn Spotify tracks into beautiful cards',
@@ -30,7 +30,7 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" className={`${syne.variable} ${dmSans.variable}`}>
+    <html lang="en" data-theme="dark" data-accent="emerald" className={`${syne.variable} ${dmSans.variable}`}>
       <body>{children}</body>
     </html>
   )

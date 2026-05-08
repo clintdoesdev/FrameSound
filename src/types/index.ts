@@ -16,7 +16,7 @@ export type CardConfig = {
   bgColor: string
   tintHue: number
   textColor: 'white' | 'black' | 'auto'
-  font: 'syne' | 'dm-serif' | 'playfair' | 'bebas' | 'instrument'
+  font: 'geist' | 'serif' | 'mono'
   showAlbumArt: boolean
   showArtist: boolean
   showTitle: boolean
@@ -32,16 +32,16 @@ export const defaultConfig: CardConfig = {
   preset: 'glass',
   bgStyle: 'blurred-art',
   bgColor: '#1a1a2e',
-  tintHue: 0,
-  textColor: 'auto',
-  font: 'syne',
+  tintHue: 162,
+  textColor: 'white',
+  font: 'geist',
   showAlbumArt: true,
   showArtist: true,
   showTitle: true,
   showLyrics: true,
   showYear: true,
-  showDuration: false,
-  padding: 32,
-  borderRadius: 24,
+  showDuration: true,
+  padding: 28,
+  borderRadius: 18,
   size: '1:1',
 }

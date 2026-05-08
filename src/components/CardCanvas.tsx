@@ -26,7 +26,7 @@ function fmt(ms: number) {
 function fontFamily(font: CardConfig['font']): string {
   if (font === 'mono') return 'var(--font-mono)'
   if (font === 'serif') return "'Instrument Serif', ui-serif, Georgia, serif"
-  return 'var(--font-display)'
+  return 'var(--font)'
 }
 
 function BlurBg({ hue, coverUrl }: { hue: number; coverUrl: string | null }) {

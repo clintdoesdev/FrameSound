@@ -1,7 +1,6 @@
 'use client'
 
 import React, { useState } from 'react'
-import domtoimage from 'dom-to-image-more'
 import { TrackData } from '@/types'
 
 type Props = {
@@ -23,6 +22,7 @@ export default function ExportBar({ cardRef, track }: Props) {
     if (!cardRef.current) return
     setLoadingState('transparent')
     try {
+      const domtoimage = (await import('dom-to-image-more')).default
       const blob = await domtoimage.toBlob(cardRef.current, { bgcolor: null })
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
@@ -42,6 +42,7 @@ export default function ExportBar({ cardRef, track }: Props) {
     if (!cardRef.current) return
     setLoadingState('png')
     try {
+      const domtoimage = (await import('dom-to-image-more')).default
       const dataUrl = await domtoimage.toPng(cardRef.current, { scale: 3 })
       const a = document.createElement('a')
       a.href = dataUrl
@@ -59,6 +60,7 @@ export default function ExportBar({ cardRef, track }: Props) {
     if (!cardRef.current) return
     setLoadingState('jpg')
     try {
+      const domtoimage = (await import('dom-to-image-more')).default
       const dataUrl = await domtoimage.toJpeg(cardRef.current, { quality: 0.95, scale: 2 })
       const a = document.createElement('a')
       a.href = dataUrl
@@ -76,6 +78,7 @@ export default function ExportBar({ cardRef, track }: Props) {
     if (!cardRef.current) return
     setLoadingState('clipboard')
     try {
+      const domtoimage = (await import('dom-to-image-more')).default
       const blob = await domtoimage.toBlob(cardRef.current, { scale: 2 })
       await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })])
       setLoadingState('idle')

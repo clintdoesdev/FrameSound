@@ -4,17 +4,16 @@ import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import { TrackData } from '@/types'
 
-type Props = {
-  onSelect: (track: TrackData) => void
-}
+type Props = { onSelect: (track: TrackData) => void }
 
 const STORAGE_KEY = 'framesound_recent'
+const MAX_RECENT = 5
 
 export function addRecentTrack(track: TrackData) {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
     const existing: TrackData[] = raw ? JSON.parse(raw) : []
-    const deduped = [track, ...existing.filter((t) => t.id !== track.id)].slice(0, 8)
+    const deduped = [track, ...existing.filter(t => t.id !== track.id)].slice(0, MAX_RECENT)
     localStorage.setItem(STORAGE_KEY, JSON.stringify(deduped))
   } catch { /* localStorage unavailable */ }
 }
@@ -32,49 +31,35 @@ export default function RecentTracks({ onSelect }: Props) {
   if (recent.length === 0) return null
 
   return (
-    <div style={{
-      borderBottom: '1px solid var(--line-soft)',
-      background: 'var(--bg)',
-      padding: '8px 16px',
-      display: 'flex', alignItems: 'center', gap: 12,
-      flexShrink: 0,
-    }}>
-      <div className="mono" style={{ fontSize: 11, color: 'var(--fg-3)', letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>
-        RECENT
-      </div>
-      <div className="scroll" style={{ display: 'flex', gap: 6, overflowX: 'auto', flex: 1 }}>
-        {recent.map((track) => (
+    <div>
+      <div className="mono" style={{ fontSize: 11, color: 'var(--fg-3)', letterSpacing: '0.04em', marginBottom: 8 }}>RECENT</div>
+      <div className="scroll" style={{ display: 'flex', gap: 8, overflowX: 'auto' }}>
+        {recent.map(track => (
           <button
             key={track.id}
             onClick={() => onSelect(track)}
             title={`${track.title} — ${track.artist}`}
             style={{
-              display: 'flex', alignItems: 'center', gap: 7,
-              padding: '4px 8px 4px 4px',
-              background: 'var(--bg-1)',
-              border: '1px solid var(--line)',
-              borderRadius: 999, cursor: 'pointer',
-              flexShrink: 0,
-              transition: 'background 120ms, border-color 120ms',
+              position: 'relative', width: 44, height: 44,
+              borderRadius: 6, overflow: 'hidden', flexShrink: 0,
+              border: '1px solid var(--line)', cursor: 'pointer',
+              background: 'var(--bg-2)', padding: 0,
+              transition: 'border-color 120ms, transform 120ms',
             }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = 'var(--bg-2)'
-              e.currentTarget.style.borderColor = 'var(--line-1)'
+            onMouseEnter={e => {
+              e.currentTarget.style.borderColor = 'var(--accent)'
+              e.currentTarget.style.transform = 'scale(1.06)'
             }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = 'var(--bg-1)'
+            onMouseLeave={e => {
               e.currentTarget.style.borderColor = 'var(--line)'
+              e.currentTarget.style.transform = 'scale(1)'
             }}
           >
-            <div style={{ width: 20, height: 20, borderRadius: 4, overflow: 'hidden', flexShrink: 0, position: 'relative' }}>
-              {track.coverUrl ? (
-                <Image src={track.coverUrl} alt={track.title} fill style={{ objectFit: 'cover' }} unoptimized />
-              ) : (
-                <div style={{ width: '100%', height: '100%', background: 'var(--bg-3)' }} />
-              )}
-            </div>
-            <span style={{ fontSize: 12, color: 'var(--fg-1)', whiteSpace: 'nowrap' }}>{track.title}</span>
-            <span style={{ fontSize: 12, color: 'var(--fg-3)', whiteSpace: 'nowrap' }}>· {track.artist}</span>
+            {track.coverUrl ? (
+              <Image src={track.coverUrl} alt={track.title} fill style={{ objectFit: 'cover' }} unoptimized />
+            ) : (
+              <div style={{ width: '100%', height: '100%', background: 'var(--bg-3)' }} />
+            )}
           </button>
         ))}
       </div>

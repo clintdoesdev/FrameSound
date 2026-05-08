@@ -1,12 +1,37 @@
 import type { Metadata } from 'next'
-import { Poppins } from 'next/font/google'
+import {
+  Syne,
+  DM_Sans,
+  DM_Serif_Display,
+  Playfair_Display,
+  Bebas_Neue,
+  Instrument_Serif,
+} from 'next/font/google'
 import './globals.css'
 
-const poppins = Poppins({
-  subsets: ['latin'],
-  variable: '--font-poppins',
-  weight: ['400', '500', '600', '700', '800'],
-  display: 'swap',
+const syne = Syne({
+  subsets: ['latin'], variable: '--font-syne',
+  weight: ['400', '500', '600', '700', '800'], display: 'swap',
+})
+const dmSans = DM_Sans({
+  subsets: ['latin'], variable: '--font-dm-sans',
+  weight: ['400', '500', '600'], display: 'swap',
+})
+const dmSerifDisplay = DM_Serif_Display({
+  subsets: ['latin'], variable: '--font-dm-serif',
+  weight: ['400'], display: 'swap', style: ['normal', 'italic'],
+})
+const playfair = Playfair_Display({
+  subsets: ['latin'], variable: '--font-playfair',
+  weight: ['400', '700'], display: 'swap', style: ['normal', 'italic'],
+})
+const bebasNeue = Bebas_Neue({
+  subsets: ['latin'], variable: '--font-bebas',
+  weight: ['400'], display: 'swap',
+})
+const instrumentSerif = Instrument_Serif({
+  subsets: ['latin'], variable: '--font-instrument',
+  weight: ['400'], display: 'swap', style: ['normal', 'italic'],
 })
 
 export const metadata: Metadata = {
@@ -20,8 +45,17 @@ export const metadata: Metadata = {
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
+  const fontVars = [
+    syne.variable,
+    dmSans.variable,
+    dmSerifDisplay.variable,
+    playfair.variable,
+    bebasNeue.variable,
+    instrumentSerif.variable,
+  ].join(' ')
+
   return (
-    <html lang="en" data-theme="dark" data-accent="emerald" className={poppins.variable}>
+    <html lang="en" data-theme="dark" data-accent="emerald" className={fontVars}>
       <body>{children}</body>
     </html>
   )

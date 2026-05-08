@@ -1,17 +1,6 @@
 'use server'
 import { parseSpotifyTrackId, fetchTrack } from '@/lib/spotify'
-
-export type TrackData = {
-  id: string
-  title: string
-  artist: string
-  album: string
-  coverUrl: string | null
-  releaseYear: string
-  duration: number
-  previewUrl: string | null
-  trackNumber: number
-}
+import { TrackData } from '@/types'
 
 export async function getTrackFromUrl(
   spotifyUrl: string

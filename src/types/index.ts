@@ -5,9 +5,8 @@ export type TrackData = {
   album: string
   coverUrl: string | null
   releaseYear: string
-  duration: number
+  duration: string        // formatted "3:42"
   previewUrl: string | null
-  trackNumber: number
 }
 
 export type CardConfig = {
@@ -16,32 +15,34 @@ export type CardConfig = {
   bgColor: string
   tintHue: number
   textColor: 'white' | 'black' | 'auto'
-  font: 'geist' | 'serif' | 'mono'
+  font: 'syne' | 'dm-serif' | 'playfair' | 'bebas' | 'instrument'
   showAlbumArt: boolean
-  showArtist: boolean
   showTitle: boolean
-  showLyrics: boolean
+  showArtist: boolean
   showYear: boolean
   showDuration: boolean
+  showLyrics: boolean
   padding: number
   borderRadius: number
   size: '1:1' | '16:9' | '4:5' | '9:16'
+  lyricQuote: string
 }
 
 export const defaultConfig: CardConfig = {
   preset: 'glass',
   bgStyle: 'blurred-art',
-  bgColor: '#1a1a2e',
-  tintHue: 162,
-  textColor: 'white',
-  font: 'geist',
+  bgColor: '#111111',
+  tintHue: 0,
+  textColor: 'auto',
+  font: 'syne',
   showAlbumArt: true,
-  showArtist: true,
   showTitle: true,
-  showLyrics: true,
+  showArtist: true,
   showYear: true,
   showDuration: true,
-  padding: 28,
-  borderRadius: 18,
+  showLyrics: true,
+  padding: 32,
+  borderRadius: 16,
   size: '1:1',
+  lyricQuote: '',
 }

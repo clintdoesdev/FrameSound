@@ -114,42 +114,88 @@ export default function CardCanvas({ track, config, cardRef }: Props) {
   }
 
   if (config.preset === 'glass') {
-    const artSize = Math.min(width, height) * 0.42
+    // Liquid glass preset — iOS-style frosted card, artwork at top, meta below
+    const artRadius = r * 0.7
     return (
-      <div ref={cardRef} className={textClass} style={baseStyle}>
-        {useBlur ? <BlurBg hue={hue} coverUrl={track.coverUrl} /> : <BgLayer config={config} />}
+      <div ref={cardRef} className="fcard liquid-glass" style={{
+        ...baseStyle, color: 'white',
+        display: 'flex', flexDirection: 'column',
+      }}>
+        {/* Blurred art or colour background fills the entire card behind everything */}
+        {useBlur
+          ? <BlurBg hue={hue} coverUrl={track.coverUrl} />
+          : <BgLayer config={config} />}
+
+        {/* Specular top-left highlight — simulates ::before */}
         <div style={{
-          position: 'relative', zIndex: 1, width: '100%', height: '100%', padding: p,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-        }}>
-          <div className="glass" style={{
-            width: '100%', height: '100%',
-            display: 'flex', flexDirection: 'column', gap: 16,
-            alignItems: 'center', justifyContent: 'center',
-            padding: p * 0.9, textAlign: 'center',
-          }}>
-            {config.showAlbumArt && (
-              <AlbumArtEl coverUrl={track.coverUrl} album={track.album} hue={hue} size={artSize} />
-            )}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxWidth: '90%' }}>
-              {config.showTitle && (
-                <div style={{ fontSize: width * 0.058, fontWeight: 600, lineHeight: 1.1, letterSpacing: '-0.02em' }}>
-                  {track.title}
-                </div>
-              )}
-              {config.showArtist && (
-                <div style={{ fontSize: width * 0.030, fontWeight: 500, opacity: 0.85 }}>{track.artist}</div>
-              )}
-              {(config.showYear || config.showDuration) && (
-                <div className="mono" style={{ fontSize: width * 0.022, opacity: 0.6, letterSpacing: '0.04em', marginTop: 4 }}>
-                  {config.showYear && <span>{track.releaseYear}</span>}
-                  {config.showYear && config.showDuration && <span style={{ margin: '0 8px', opacity: 0.5 }}>·</span>}
-                  {config.showDuration && <span>{track.duration}</span>}
-                </div>
-              )}
+          position: 'absolute', inset: 1, borderRadius: r - 1,
+          background:
+            'radial-gradient(120% 60% at 20% 0%, rgba(255,255,255,0.40) 0%, rgba(255,255,255,0) 52%),' +
+            'radial-gradient(80% 40% at 80% 0%, rgba(255,255,255,0.16) 0%, rgba(255,255,255,0) 58%)',
+          mixBlendMode: 'screen', zIndex: 2, pointerEvents: 'none',
+        }} />
+
+        {/* Bottom refraction glint — simulates ::after */}
+        <div style={{
+          position: 'absolute', left: 1, right: 1, bottom: 1, height: '38%',
+          borderRadius: `0 0 ${r - 1}px ${r - 1}px`,
+          background: 'linear-gradient(to top, rgba(255,255,255,0.09), rgba(255,255,255,0))',
+          zIndex: 2, pointerEvents: 'none',
+        }} />
+
+        {/* Content layer */}
+        <div style={{ position: 'relative', zIndex: 3, padding: p, display: 'flex', flexDirection: 'column', height: '100%', gap: p * 0.6 }}>
+          {/* Artwork — full width, square */}
+          {config.showAlbumArt && (
+            <div style={{
+              width: '100%', aspectRatio: '1 / 1',
+              borderRadius: artRadius, overflow: 'hidden', flexShrink: 0,
+              boxShadow: '0 18px 40px -12px rgba(0,0,0,0.6), 0 4px 12px -2px rgba(0,0,0,0.40), 0 0 0 1px rgba(255,255,255,0.10) inset',
+            }}>
+              {track.coverUrl
+                // eslint-disable-next-line @next/next/no-img-element
+                ? <img src={track.coverUrl} alt={track.album} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                : <div className="albumart" style={{ width: '100%', height: '100%', borderRadius: 0, ['--art-hue' as string]: hue }}>
+                    <span style={{ position: 'relative', zIndex: 1, opacity: 0.85 }}>ART</span>
+                  </div>
+              }
+              {/* Artwork corner sheen */}
+              <div style={{
+                position: 'absolute', inset: 0, pointerEvents: 'none',
+                background: 'linear-gradient(135deg, rgba(255,255,255,0.18), rgba(255,255,255,0) 35%)',
+              }} />
             </div>
+          )}
+
+          {/* Metadata */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4, paddingBottom: 2 }}>
+            {config.showTitle && (
+              <div style={{ fontSize: width * 0.058, fontWeight: 700, letterSpacing: '-0.02em', lineHeight: 1.15 }}>
+                {track.title}
+              </div>
+            )}
+            {config.showArtist && (
+              <div style={{ fontSize: width * 0.034, fontWeight: 500, opacity: 0.78, letterSpacing: '-0.01em' }}>
+                {track.artist}
+              </div>
+            )}
+            {(config.showYear || config.showDuration) && (
+              <div className="mono" style={{ fontSize: width * 0.022, opacity: 0.55, letterSpacing: '0.04em', marginTop: 2 }}>
+                {config.showYear && <span>{track.releaseYear}</span>}
+                {config.showYear && config.showDuration && <span style={{ margin: '0 6px', opacity: 0.5 }}>·</span>}
+                {config.showDuration && <span>{track.duration}</span>}
+              </div>
+            )}
             {config.showLyrics && lyric && (
-              <div style={{ fontSize: width * 0.026, fontStyle: 'italic', opacity: 0.85, lineHeight: 1.45, maxWidth: '85%', marginTop: 8 }}>
+              <div style={{
+                marginTop: 6, padding: '8px 10px',
+                background: 'rgba(0,0,0,0.22)',
+                backdropFilter: 'blur(8px)',
+                WebkitBackdropFilter: 'blur(8px)',
+                border: '1px solid rgba(255,255,255,0.14)',
+                borderRadius: r * 0.4,
+                fontSize: width * 0.026, fontStyle: 'italic', opacity: 0.9, lineHeight: 1.45,
+              }}>
                 &ldquo;{lyric}&rdquo;
               </div>
             )}

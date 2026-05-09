@@ -55,7 +55,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   ].join(' ')
 
   return (
-    <html lang="en" data-theme="dark" data-accent="emerald" className={fontVars}>
+    <html lang="en" data-accent="emerald" className={fontVars}>
       <body>{children}</body>
     </html>
   )

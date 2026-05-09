@@ -61,11 +61,11 @@ export default function LyricsPanel({ lines, loading, onQuoteChange }: Props) {
         borderBottom: '1px solid var(--line-soft)', flexShrink: 0,
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-          <span className="mono" style={{ fontSize: 11, color: 'var(--fg-3)', letterSpacing: '0.06em' }}>LYRICS</span>
+          <span className="mono" style={{ fontSize: 11, color: 'var(--fg-1)', letterSpacing: '0.06em' }}>LYRICS</span>
           {showLines && (
             <>
-              <span style={{ width: 3, height: 3, borderRadius: '50%', background: 'var(--fg-4)', display: 'inline-block' }} />
-              <span className="mono" style={{ fontSize: 11, color: 'var(--fg-4)' }}>{selected.length}/2</span>
+              <span style={{ width: 3, height: 3, borderRadius: '50%', background: 'var(--fg-2)', display: 'inline-block' }} />
+              <span className="mono" style={{ fontSize: 11, color: 'var(--fg-2)' }}>{selected.length}/2</span>
             </>
           )}
         </div>
@@ -114,7 +114,7 @@ export default function LyricsPanel({ lines, loading, onQuoteChange }: Props) {
                   background: isSel ? 'var(--accent-quiet)' : 'transparent',
                   border: 'none',
                   borderLeft: `3px solid ${isSel ? 'var(--accent)' : 'transparent'}`,
-                  color: isSel ? 'var(--fg)' : isMaxed ? 'var(--fg-4)' : 'var(--fg-2)',
+                  color: isSel ? 'var(--fg)' : isMaxed ? 'var(--fg-3)' : 'var(--fg-1)',
                   cursor: isMaxed ? 'not-allowed' : 'pointer',
                   fontSize: 13.5, lineHeight: 1.5,
                   transition: 'background 100ms, color 100ms',
@@ -140,7 +140,7 @@ export default function LyricsPanel({ lines, loading, onQuoteChange }: Props) {
 
       {/* Custom quote */}
       <div style={{ padding: '10px 16px 14px', borderTop: showLines ? '1px solid var(--line-soft)' : 'none' }}>
-        <div className="mono" style={{ fontSize: 10.5, color: 'var(--fg-4)', letterSpacing: '0.05em', marginBottom: 7 }}>
+        <div className="mono" style={{ fontSize: 10.5, color: 'var(--fg-2)', letterSpacing: '0.05em', marginBottom: 7 }}>
           {showLines ? 'OR CUSTOM' : 'TYPE QUOTE'}
         </div>
         <textarea

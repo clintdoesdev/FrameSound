@@ -30,7 +30,7 @@ function Section({ icon, label, children, defaultOpen = true }: {
         }}
       >
         <span style={{ color: 'var(--accent)', flexShrink: 0 }}>{icon}</span>
-        <span style={{ flex: 1, textAlign: 'left', fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--fg-2)' }}>
+        <span style={{ flex: 1, textAlign: 'left', fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--fg-1)' }}>
           {label}
         </span>
         <span style={{ color: 'var(--fg-3)', transform: open ? 'rotate(90deg)' : 'none', transition: 'transform 150ms' }}>
@@ -49,8 +49,8 @@ function Section({ icon, label, children, defaultOpen = true }: {
 function FieldLabel({ children, hint }: { children: React.ReactNode; hint?: string }) {
   return (
     <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 7 }}>
-      <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--fg-1)' }}>{children}</div>
-      {hint && <span className="mono" style={{ fontSize: 11, color: 'var(--fg-3)' }}>{hint}</span>}
+      <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--fg)' }}>{children}</div>
+      {hint && <span className="mono" style={{ fontSize: 11, color: 'var(--fg-2)' }}>{hint}</span>}
     </div>
   )
 }
@@ -68,7 +68,7 @@ function SegRow<T extends string>({ value, options, onChange }: {
         <button key={i} onClick={() => onChange(o.value)} title={o.title} style={{
           border: 0, cursor: 'pointer',
           background: value === o.value ? 'var(--bg-2)' : 'transparent',
-          color: value === o.value ? 'var(--fg)' : 'var(--fg-3)',
+          color: value === o.value ? 'var(--fg)' : 'var(--fg-1)',
           borderRadius: 8, fontSize: 12.5, fontWeight: 500,
           display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
           transition: 'background 120ms, color 120ms',
@@ -88,16 +88,16 @@ function NumStep({ value, min, max, step = 1, onChange, suffix = '' }: {
       background: 'var(--bg-inset)', border: '1px solid var(--line)', borderRadius: 10,
     }}>
       <button onClick={() => onChange(Math.max(min, value - step))}
-        style={{ border: 0, background: 'transparent', color: 'var(--fg-2)', cursor: 'pointer', fontSize: 18, borderRadius: '10px 0 0 10px' }}>−</button>
+        style={{ border: 0, background: 'transparent', color: 'var(--fg)', cursor: 'pointer', fontSize: 18, borderRadius: '10px 0 0 10px' }}>−</button>
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        fontFamily: 'var(--font-mono)', fontSize: 13,
+        fontFamily: 'var(--font-mono)', fontSize: 13, color: 'var(--fg)',
         borderLeft: '1px solid var(--line)', borderRight: '1px solid var(--line)',
       }}>
-        {value}{suffix && <span style={{ opacity: 0.45, marginLeft: 2, fontSize: 11 }}>{suffix}</span>}
+        {value}{suffix && <span style={{ opacity: 0.55, marginLeft: 2, fontSize: 11 }}>{suffix}</span>}
       </div>
       <button onClick={() => onChange(Math.min(max, value + step))}
-        style={{ border: 0, background: 'transparent', color: 'var(--fg-2)', cursor: 'pointer', fontSize: 18, borderRadius: '0 10px 10px 0' }}>+</button>
+        style={{ border: 0, background: 'transparent', color: 'var(--fg)', cursor: 'pointer', fontSize: 18, borderRadius: '0 10px 10px 0' }}>+</button>
     </div>
   )
 }
@@ -109,7 +109,7 @@ function ToggleRow({ label, value, onChange, icon }: {
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '3px 0', minHeight: 40 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
         {icon && <span style={{ color: 'var(--fg-3)', display: 'flex' }}>{icon}</span>}
-        <span style={{ fontSize: 13, color: 'var(--fg-1)' }}>{label}</span>
+        <span style={{ fontSize: 13, color: 'var(--fg)' }}>{label}</span>
       </div>
       <button
         onClick={() => onChange(!value)}
@@ -238,7 +238,7 @@ export default function CustomizePanel({ config, onChange }: Props) {
               transition: 'border-color 120ms, background 120ms',
             }}>
               <span style={{ fontSize: 13, fontWeight: 600, color: config.preset === p.id ? 'var(--accent)' : 'var(--fg)' }}>{p.name}</span>
-              <span className="mono" style={{ fontSize: 10.5, color: 'var(--fg-3)', letterSpacing: '0.02em' }}>{p.sub}</span>
+              <span className="mono" style={{ fontSize: 10.5, color: 'var(--fg-2)', letterSpacing: '0.02em' }}>{p.sub}</span>
             </button>
           ))}
         </div>
@@ -261,7 +261,7 @@ export default function CustomizePanel({ config, onChange }: Props) {
         </div>
         {config.bgStyle === 'solid' && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <span style={{ fontSize: 13, color: 'var(--fg-2)' }}>Color</span>
+            <span style={{ fontSize: 13, color: 'var(--fg)' }}>Color</span>
             <input type="color" value={config.bgColor} onChange={(e) => onChange({ bgColor: e.target.value })}
               style={{ width: 40, height: 32, borderRadius: 8, border: '1px solid var(--line)', cursor: 'pointer', background: 'none', padding: 2 }} />
             <span className="mono" style={{ fontSize: 11, color: 'var(--fg-3)' }}>{config.bgColor}</span>
@@ -274,7 +274,7 @@ export default function CustomizePanel({ config, onChange }: Props) {
               onChange={(e) => onChange({ tintHue: parseInt(e.target.value) })}
               style={{ accentColor: 'var(--accent)' }} />
             <div className="mono tnum" style={{
-              fontSize: 12, color: 'var(--fg-2)', textAlign: 'center',
+              fontSize: 12, color: 'var(--fg)', textAlign: 'center',
               background: 'var(--bg-inset)', border: '1px solid var(--line)',
               borderRadius: 8, padding: '5px 6px',
             }}>{config.tintHue}°</div>
@@ -298,7 +298,7 @@ export default function CustomizePanel({ config, onChange }: Props) {
                 height: 36, border: `1.5px solid ${config.font === f.value ? 'var(--accent)' : 'var(--line)'}`,
                 background: config.font === f.value ? 'var(--accent-quiet)' : 'var(--bg-inset)',
                 borderRadius: 8, fontSize: 12, fontWeight: 500,
-                color: config.font === f.value ? 'var(--accent)' : 'var(--fg-2)', cursor: 'pointer',
+                color: config.font === f.value ? 'var(--accent)' : 'var(--fg-1)', cursor: 'pointer',
                 transition: 'all 120ms',
               }}>{f.label}</button>
             ))}
@@ -344,7 +344,7 @@ export default function CustomizePanel({ config, onChange }: Props) {
                 border: `1.5px solid ${config.size === s ? 'var(--accent)' : 'var(--line)'}`,
                 borderRadius: 8,
                 fontFamily: 'var(--font-mono)', fontSize: 11,
-                color: config.size === s ? 'var(--accent)' : 'var(--fg-2)',
+                color: config.size === s ? 'var(--accent)' : 'var(--fg-1)',
                 cursor: 'pointer', transition: 'all 120ms',
               }}>{s}</button>
             ))}

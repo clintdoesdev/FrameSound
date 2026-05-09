@@ -28,13 +28,18 @@ function fontFamily(font: CardConfig['font']): string {
   }
 }
 
+function proxySrc(url: string) {
+  return `/_next/image?url=${encodeURIComponent(url)}&w=640&q=85`
+}
+
 // Export-safe: hsl() instead of oklch() so dom-to-image can parse it
-function BlurBg({ hue, coverUrl }: { hue: number; coverUrl: string | null }) {
+function BlurBg({ hue, coverUrl, exportMode }: { hue: number; coverUrl: string | null; exportMode?: boolean }) {
   if (coverUrl) {
     return (
       // eslint-disable-next-line @next/next/no-img-element
       <img
-        src={coverUrl}
+        src={exportMode ? proxySrc(coverUrl) : coverUrl}
+        crossOrigin="anonymous"
         alt=""
         style={{
           position: 'absolute', inset: 0,
@@ -175,7 +180,7 @@ export default function CardCanvas({ track, config, cardRef, exportMode = false 
       flexShrink: 0,
       color: 'white',
       borderRadius: r,
-      background: isTransparent ? 'transparent' : 'rgba(0,0,0,0.55)',
+      background: isTransparent ? 'transparent' : 'rgba(14,14,14,0.92)',
       boxShadow: isTransparent ? 'none' : '0 24px 64px rgba(0,0,0,0.6)',
     } : {
       ...baseStyle,
@@ -216,7 +221,7 @@ export default function CardCanvas({ track, config, cardRef, exportMode = false 
       return (
         <div ref={cardRef} style={{ ...glassCardStyle, display: 'flex', flexDirection: 'row' }}>
           {useBlur
-            ? <BlurBg hue={hue} coverUrl={track.coverUrl} />
+            ? <BlurBg hue={hue} coverUrl={track.coverUrl} exportMode={exportMode} />
             : <BgLayer config={config} />}
           {specularDiv}
           {refractionDiv}
@@ -234,7 +239,7 @@ export default function CardCanvas({ track, config, cardRef, exportMode = false 
               }}>
                 {track.coverUrl
                   // eslint-disable-next-line @next/next/no-img-element
-                  ? <img src={track.coverUrl} alt={track.album} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                  ? <img src={exportMode ? proxySrc(track.coverUrl) : track.coverUrl} crossOrigin="anonymous" alt={track.album} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
                   : <div className="albumart" style={{ width: '100%', height: '100%', borderRadius: 0, ['--art-hue' as string]: hue }}>
                       <span style={{ position: 'relative', zIndex: 1, opacity: 0.85 }}>ART</span>
                     </div>
@@ -277,7 +282,7 @@ export default function CardCanvas({ track, config, cardRef, exportMode = false 
     return (
       <div ref={cardRef} style={{ ...glassCardStyle, display: 'flex', flexDirection: 'column' }}>
         {useBlur
-          ? <BlurBg hue={hue} coverUrl={track.coverUrl} />
+          ? <BlurBg hue={hue} coverUrl={track.coverUrl} exportMode={exportMode} />
           : <BgLayer config={config} />}
         {specularDiv}
         {refractionDiv}
@@ -295,7 +300,7 @@ export default function CardCanvas({ track, config, cardRef, exportMode = false 
             }}>
               {track.coverUrl
                 // eslint-disable-next-line @next/next/no-img-element
-                ? <img src={track.coverUrl} alt={track.album} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                ? <img src={exportMode ? proxySrc(track.coverUrl) : track.coverUrl} crossOrigin="anonymous" alt={track.album} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
                 : <div className="albumart" style={{ width: '100%', height: '100%', borderRadius: 0, ['--art-hue' as string]: hue }}>
                     <span style={{ position: 'relative', zIndex: 1, opacity: 0.85 }}>ART</span>
                   </div>
@@ -347,7 +352,7 @@ export default function CardCanvas({ track, config, cardRef, exportMode = false 
           <>
             {track.coverUrl
               // eslint-disable-next-line @next/next/no-img-element
-              ? <img src={track.coverUrl} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', zIndex: 0 }} />
+              ? <img src={exportMode ? proxySrc(track.coverUrl) : track.coverUrl} crossOrigin="anonymous" alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', zIndex: 0 }} />
               : <div className="albumart" style={{ position: 'absolute', inset: 0, borderRadius: 0, zIndex: 0, ['--art-hue' as string]: hue }} />
             }
             <div style={{
@@ -443,7 +448,7 @@ export default function CardCanvas({ track, config, cardRef, exportMode = false 
         borderRadius: r,
         boxShadow: CARD_SHADOW,
       }}>
-        <BlurBg hue={hue} coverUrl={track.coverUrl} />
+        <BlurBg hue={hue} coverUrl={track.coverUrl} exportMode={exportMode} />
         <div style={{
           position: 'relative', zIndex: 1, width: '100%', height: '100%', padding: p,
           display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'space-between',
@@ -482,7 +487,7 @@ export default function CardCanvas({ track, config, cardRef, exportMode = false 
       borderRadius: r,
       boxShadow: isDark ? CARD_SHADOW : '0 1px 0 rgba(255,255,255,1) inset,0 18px 48px rgba(0,0,0,0.12)',
     }}>
-      <BlurBg hue={hue} coverUrl={track.coverUrl} />
+      <BlurBg hue={hue} coverUrl={track.coverUrl} exportMode={exportMode} />
       <div style={{
         position: 'relative', zIndex: 1, width: '100%', height: '100%',
         padding: p * 0.85, display: 'flex', flexDirection: 'column', gap: 12,

@@ -37,6 +37,10 @@ const instrumentSerif = Instrument_Serif({
 export const metadata: Metadata = {
   title: 'FrameSound — Spotify Card Generator',
   description: 'Turn any Spotify track into a beautiful shareable card. Five presets, lyrics quotes, HD export.',
+  icons: {
+    icon: '/favicon.svg',
+    shortcut: '/favicon.svg',
+  },
   openGraph: {
     title: 'FrameSound',
     description: 'Turn Spotify tracks into beautiful cards',

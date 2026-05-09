@@ -36,19 +36,34 @@ function safe(s: string) {
   return s.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '')
 }
 
-function waitForImages(el: HTMLElement): Promise<void> {
-  const imgs = Array.from(el.querySelectorAll('img'))
-  if (imgs.length === 0) return Promise.resolve()
-  return Promise.all(
-    imgs.map(img =>
-      img.complete
-        ? Promise.resolve()
-        : new Promise<void>(resolve => {
-            img.onload = () => resolve()
-            img.onerror = () => resolve()
-          })
-    )
-  ).then(() => undefined)
+function blobToDataUrl(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(reader.result as string)
+    reader.onerror = reject
+    reader.readAsDataURL(blob)
+  })
+}
+
+// Pre-fetch every img in the element as a data URL so dom-to-image never
+// needs to make cross-origin requests (which silently produce white pixels).
+async function inlineImages(el: HTMLElement): Promise<() => void> {
+  const imgs = Array.from(el.querySelectorAll<HTMLImageElement>('img'))
+  const origSrcs = imgs.map(i => i.src)
+  await Promise.all(imgs.map(async (img) => {
+    const src = img.src
+    if (!src || src.startsWith('data:')) return
+    try {
+      const res = await fetch(src, { mode: 'cors', credentials: 'omit' })
+      const blob = await res.blob()
+      const dataUrl = await blobToDataUrl(blob)
+      img.src = dataUrl
+      if (!img.complete) await new Promise<void>(r => { img.onload = () => r(); img.onerror = () => r() })
+    } catch {
+      // leave src unchanged — better than white
+    }
+  }))
+  return () => imgs.forEach((img, i) => { img.src = origSrcs[i] })
 }
 
 const supportsClipboard = typeof window !== 'undefined' && typeof ClipboardItem !== 'undefined'
@@ -75,30 +90,30 @@ export default function ExportBar({ cardRef, track, config, onConfigChange }: Pr
     if (!cardRef.current || busy) return
     setBusy('png')
     showToast('Exporting 4K PNG…')
+    const restore = await inlineImages(cardRef.current)
     try {
-      await waitForImages(cardRef.current)
       const dti = (await import('dom-to-image-more')).default
       const url = await dti.toPng(cardRef.current, { scale: 4, bgcolor: resolvedBgColor })
       const a = document.createElement('a')
       a.href = url; a.download = `${filename}.png`; a.click()
       showToast('Saved ✓')
     } catch (e) { console.error(e); showToast('Export failed') }
-    finally { setBusy(null) }
+    finally { restore(); setBusy(null) }
   }, [cardRef, busy, filename, resolvedBgColor])
 
   const exportJPG = useCallback(async () => {
     if (!cardRef.current || busy) return
     setBusy('jpg')
     showToast('Exporting JPG…')
+    const restore = await inlineImages(cardRef.current)
     try {
-      await waitForImages(cardRef.current)
       const dti = (await import('dom-to-image-more')).default
       const url = await dti.toJpeg(cardRef.current, { quality: 0.97, scale: 3, bgcolor: resolvedBgColor })
       const a = document.createElement('a')
       a.href = url; a.download = `${filename}.jpg`; a.click()
       showToast('Saved ✓')
     } catch (e) { console.error(e); showToast('Export failed') }
-    finally { setBusy(null) }
+    finally { restore(); setBusy(null) }
   }, [cardRef, busy, filename, resolvedBgColor])
 
   const exportTransparent = useCallback(async () => {
@@ -108,8 +123,8 @@ export default function ExportBar({ cardRef, track, config, onConfigChange }: Pr
     const prevBgStyle = config.bgStyle
     onConfigChange({ bgStyle: 'transparent' })
     await new Promise(r => setTimeout(r, 140))
+    const restore = await inlineImages(cardRef.current)
     try {
-      await waitForImages(cardRef.current)
       const dti = (await import('dom-to-image-more')).default
       const blob = await dti.toBlob(cardRef.current, { scale: 3, bgcolor: 'transparent' })
       const url = URL.createObjectURL(blob)
@@ -119,6 +134,7 @@ export default function ExportBar({ cardRef, track, config, onConfigChange }: Pr
       showToast('Saved ✓')
     } catch (e) { console.error(e); showToast('Export failed') }
     finally {
+      restore()
       onConfigChange({ bgStyle: prevBgStyle })
       setBusy(null)
     }
@@ -127,14 +143,14 @@ export default function ExportBar({ cardRef, track, config, onConfigChange }: Pr
   const copyClipboard = useCallback(async () => {
     if (!cardRef.current || busy) return
     setBusy('clipboard')
+    const restore = await inlineImages(cardRef.current)
     try {
-      await waitForImages(cardRef.current)
       const dti = (await import('dom-to-image-more')).default
       const blob = await dti.toBlob(cardRef.current, { scale: 3, bgcolor: resolvedBgColor })
       await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })])
       showToast('Copied ✓')
     } catch (e) { console.error(e); showToast('Copy failed') }
-    finally { setBusy(null) }
+    finally { restore(); setBusy(null) }
   }, [cardRef, busy, resolvedBgColor])
 
   return (

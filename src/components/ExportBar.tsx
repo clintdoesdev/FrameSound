@@ -4,7 +4,7 @@ import React, { useState, useCallback } from 'react'
 import { TrackData, CardConfig } from '@/types'
 
 type Props = {
-  cardRef: React.RefObject<HTMLDivElement>
+  cardRef: React.RefObject<HTMLDivElement | null>
   track: TrackData
   config: CardConfig
   onConfigChange: (updates: Partial<CardConfig>) => void

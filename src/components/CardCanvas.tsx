@@ -1,16 +1,15 @@
 'use client'
 
-import React from 'react'
-import Image from 'next/image'
+import React, { forwardRef } from 'react'
 import { TrackData, CardConfig } from '@/types'
 
 type Props = {
   track: TrackData
   config: CardConfig
-  cardRef?: React.RefObject<HTMLDivElement | null>
   exportMode?: boolean
 }
 
+// Kept for any callers that still import it
 export const sizeMap: Record<CardConfig['size'], { width: number; height: number }> = {
   '1:1':  { width: 520, height: 520 },
   '16:9': { width: 640, height: 360 },
@@ -18,466 +17,294 @@ export const sizeMap: Record<CardConfig['size'], { width: number; height: number
   '9:16': { width: 360, height: 640 },
 }
 
-function fontFamily(font: CardConfig['font']): string {
-  switch (font) {
-    case 'syne':       return 'var(--font-syne)'
-    case 'dm-serif':   return 'var(--font-dm-serif)'
-    case 'playfair':   return 'var(--font-playfair)'
-    case 'bebas':      return 'var(--font-bebas)'
-    case 'instrument': return 'var(--font-instrument)'
-  }
-}
-
 function proxySrc(url: string) {
   return `/_next/image?url=${encodeURIComponent(url)}&w=640&q=85`
 }
 
-// Export-safe blurred background — proxied URL + crossOrigin in export mode
-function BlurBg({ hue, coverUrl, exportMode }: { hue: number; coverUrl: string | null; exportMode?: boolean }) {
-  if (coverUrl) {
-    return (
-      // eslint-disable-next-line @next/next/no-img-element
-      <img
-        src={exportMode ? proxySrc(coverUrl) : coverUrl}
-        crossOrigin="anonymous"
-        alt=""
-        style={{
-          position: 'absolute', inset: 0,
-          width: '100%', height: '100%',
-          objectFit: 'cover',
-          filter: 'blur(48px) saturate(140%)',
-          transform: 'scale(1.15)',
-          transformOrigin: 'center',
-          zIndex: 0,
-        }}
-      />
-    )
+function resolveTextColor(config: CardConfig): string {
+  if (config.textColor === 'black') return '#000000'
+  if (config.textColor === 'white') return '#ffffff'
+  // auto: derive from background
+  if (config.bgStyle === 'solid') {
+    const hex = config.bgColor.replace('#', '')
+    const r = parseInt(hex.slice(0, 2), 16)
+    const g = parseInt(hex.slice(2, 4), 16)
+    const b = parseInt(hex.slice(4, 6), 16)
+    return (0.299 * r + 0.587 * g + 0.114 * b) / 255 > 0.5 ? '#000000' : '#ffffff'
   }
-  return (
-    <div style={{
-      position: 'absolute', inset: 0, zIndex: 0,
-      transform: 'scale(1.15)',
-      transformOrigin: 'center',
-      background: `
-        radial-gradient(ellipse at 25% 20%, hsl(${hue},65%,50%) 0%, transparent 55%),
-        radial-gradient(ellipse at 80% 70%, hsl(${hue + 30},50%,32%) 0%, transparent 55%),
-        repeating-linear-gradient(135deg, hsl(${hue},30%,24%) 0 18px, hsl(${hue},20%,16%) 18px 36px)
-      `,
-    }} />
-  )
+  return '#ffffff'
 }
 
-// In export mode, use a proxied plain <img> so canvas access is never tainted
-function AlbumArtEl({ coverUrl, album, hue, size, radius = 6, exportMode = false }: {
-  coverUrl: string | null; album: string; hue: number; size: number; radius?: number; exportMode?: boolean
-}) {
-  if (coverUrl) {
-    if (exportMode) {
-      return (
+const CardCanvas = forwardRef<HTMLDivElement, Props>(function CardCanvas(
+  { track, config, exportMode = false },
+  ref
+) {
+  const textColor = resolveTextColor(config)
+
+  const fontFamilyMap: Record<CardConfig['font'], string> = {
+    syne:       'var(--font-syne)',
+    'dm-serif': 'var(--font-dm-sans)',
+    playfair:   '"Playfair Display", serif',
+    bebas:      '"Bebas Neue", sans-serif',
+    instrument: '"Instrument Serif", serif',
+  }
+  const fontFamily = fontFamilyMap[config.font]
+
+  const aspectRatioMap: Record<CardConfig['size'], string> = {
+    '1:1':  '1 / 1',
+    '16:9': '16 / 9',
+    '4:5':  '4 / 5',
+    '9:16': '9 / 16',
+  }
+
+  const cardWrapperStyle: React.CSSProperties = {
+    position: 'relative',
+    overflow: 'hidden',
+    width: '100%',
+    aspectRatio: aspectRatioMap[config.size],
+    borderRadius: `${config.borderRadius}px`,
+    fontFamily,
+    color: textColor,
+  }
+
+  const titleStyle: React.CSSProperties = {
+    fontSize: 'clamp(18px, 4vw, 32px)',
+    fontWeight: 700,
+    lineHeight: 1.1,
+    margin: 0,
+    color: textColor,
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+  }
+
+  const artistStyle: React.CSSProperties = {
+    fontSize: 'clamp(12px, 2.5vw, 18px)',
+    fontWeight: 400,
+    margin: 0,
+    color: textColor,
+    opacity: 0.75,
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+  }
+
+  const metaStyle: React.CSSProperties = {
+    fontSize: 'clamp(10px, 2vw, 14px)',
+    color: textColor,
+    opacity: 0.5,
+    margin: 0,
+  }
+
+  const lyricsStyle: React.CSSProperties = {
+    fontSize: 'clamp(11px, 2.2vw, 15px)',
+    fontStyle: 'italic',
+    color: textColor,
+    opacity: 0.85,
+    margin: 0,
+    lineHeight: 1.5,
+  }
+
+  // In export mode, use the /_next/image proxy so canvas access is CORS-safe
+  const coverSrc = exportMode && track.coverUrl
+    ? proxySrc(track.coverUrl)
+    : (track.coverUrl ?? '')
+
+  // Background element — position absolute, fills the card
+  let bgElement: React.ReactNode = null
+  if (config.bgStyle === 'solid') {
+    bgElement = <div style={{ position: 'absolute', inset: 0, background: config.bgColor }} />
+  } else if (config.bgStyle === 'gradient') {
+    bgElement = (
+      <div style={{
+        position: 'absolute', inset: 0,
+        background: `linear-gradient(160deg, hsl(${config.tintHue},35%,22%), hsl(${config.tintHue + 40},20%,10%))`,
+      }} />
+    )
+  } else if (config.bgStyle === 'blurred-art') {
+    if (track.coverUrl) {
+      bgElement = (
         // eslint-disable-next-line @next/next/no-img-element
         <img
-          src={proxySrc(coverUrl)}
+          src={coverSrc}
           crossOrigin="anonymous"
-          alt={album}
-          width={size} height={size}
-          style={{ borderRadius: radius, flexShrink: 0, display: 'block', objectFit: 'cover' }}
+          alt=""
+          style={{
+            position: 'absolute', inset: 0,
+            width: '100%', height: '100%',
+            objectFit: 'cover',
+            filter: `blur(32px) brightness(0.6) hue-rotate(${config.tintHue}deg)`,
+            transform: 'scale(1.15)',
+            transformOrigin: 'center',
+          }}
         />
       )
-    }
-    return (
-      <Image
-        src={coverUrl} alt={album}
-        width={size} height={size}
-        style={{ borderRadius: radius, flexShrink: 0, display: 'block' }}
-        unoptimized
-      />
-    )
-  }
-  return (
-    <div className="albumart" style={{
-      width: size, height: size, borderRadius: radius, flexShrink: 0,
-      ['--art-hue' as string]: hue,
-    }}>
-      <span style={{ position: 'relative', zIndex: 1, opacity: 0.85 }}>ART</span>
-    </div>
-  )
-}
-
-function BgLayer({ config }: { config: CardConfig }) {
-  if (config.bgStyle === 'solid') {
-    return <div style={{ position: 'absolute', inset: 0, background: config.bgColor, zIndex: 0 }} />
-  }
-  if (config.bgStyle === 'gradient') {
-    return (
-      <div style={{
-        position: 'absolute', inset: 0, zIndex: 0,
-        background: `linear-gradient(160deg, hsl(${config.tintHue},30%,18%), hsl(${config.tintHue + 30},15%,10%))`,
-      }} />
-    )
-  }
-  return null
-}
-
-// All rgba — no oklch, no CSS variables
-const GLASS_SHADOW =
-  '0 1px 0 rgba(255,255,255,0.5) inset,' +
-  '0 -1px 0 rgba(255,255,255,0.10) inset,' +
-  '0 30px 60px -20px rgba(0,0,0,0.50),' +
-  '0 10px 25px -10px rgba(0,0,0,0.35)'
-
-const CARD_SHADOW =
-  '0 1px 0 rgba(255,255,255,0.05) inset,' +
-  '0 24px 64px rgba(0,0,0,0.55)'
-
-function LyricQuote({ lyric, width, r }: { lyric: string; width: number; r: number }) {
-  return (
-    <div style={{
-      marginTop: 6, padding: '8px 10px',
-      background: 'rgba(0,0,0,0.30)',
-      border: '1px solid rgba(255,255,255,0.14)',
-      borderRadius: r * 0.4,
-      fontSize: width * 0.026, fontStyle: 'italic', opacity: 0.9, lineHeight: 1.45,
-    }}>
-      &ldquo;{lyric}&rdquo;
-    </div>
-  )
-}
-
-function GlassLyric({ lyric, fontSize, dark = false }: { lyric: string; fontSize: number; dark?: boolean }) {
-  return (
-    <div style={{
-      padding: '12px 16px', fontSize, fontStyle: 'italic', lineHeight: 1.4,
-      background: dark ? 'rgba(255,255,255,0.55)' : 'rgba(0,0,0,0.30)',
-      border: `1px solid ${dark ? 'rgba(255,255,255,0.7)' : 'rgba(255,255,255,0.18)'}`,
-      borderRadius: 14,
-    }}>
-      &ldquo;{lyric}&rdquo;
-    </div>
-  )
-}
-
-export default function CardCanvas({ track, config, cardRef, exportMode = false }: Props) {
-  const { width, height } = sizeMap[config.size]
-  const ff = fontFamily(config.font)
-  const hue = config.tintHue
-  const p = config.padding
-  const r = config.borderRadius
-  const lyric = config.lyricQuote
-  const useBlur = config.bgStyle === 'blurred-art'
-  const isDark = config.textColor !== 'black'
-  const textColor = isDark ? '#f5f4f2' : '#222220'
-  const textAlign = config.textAlign ?? 'left'
-
-  // Base styles shared across presets. In export mode, no decorative shadow/border/outline.
-  const baseStyle: React.CSSProperties = {
-    width, height,
-    fontFamily: ff,
-    ['--card-radius' as string]: `${r}px`,
-    transition: exportMode ? 'none' : 'opacity 150ms ease',
-  }
-
-  if (config.preset === 'glass') {
-    const artRadius = r * 0.7
-    const isLandscape = width > height * 1.15
-    const isTransparent = config.bgStyle === 'transparent'
-
-    // Export: clean opaque background, no border/shadow that bleed into canvas
-    // Browser: full frosted glass with backdrop-filter, border, specular overlays
-    const glassCardStyle: React.CSSProperties = exportMode ? {
-      ...baseStyle,
-      position: 'relative',
-      overflow: 'hidden',
-      flexShrink: 0,
-      color: 'white',
-      borderRadius: r,
-      background: isTransparent ? 'transparent' : 'rgba(14,14,14,0.92)',
-      // no border, no boxShadow, no outline
-    } : {
-      ...baseStyle,
-      position: 'relative',
-      overflow: 'hidden',
-      isolation: 'isolate',
-      flexShrink: 0,
-      color: 'white',
-      borderRadius: r,
-      border: '1px solid rgba(255,255,255,0.28)',
-      background: 'linear-gradient(135deg, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0.06) 45%, rgba(255,255,255,0.12) 100%)',
-      backdropFilter: 'blur(34px) saturate(180%)',
-      WebkitBackdropFilter: 'blur(34px) saturate(180%)',
-      boxShadow: GLASS_SHADOW,
-    }
-
-    // Specular/refraction overlays — browser only (cause white artifacts in exports)
-    const specularDiv = exportMode ? null : (
-      <div style={{
-        position: 'absolute', inset: 1, borderRadius: r - 1, zIndex: 2, pointerEvents: 'none',
-        background:
-          'radial-gradient(120% 60% at 20% 0%, rgba(255,255,255,0.14) 0%, rgba(255,255,255,0) 52%),' +
-          'radial-gradient(80% 40% at 80% 0%, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0) 58%)',
-      }} />
-    )
-    const refractionDiv = exportMode ? null : (
-      <div style={{
-        position: 'absolute', left: 1, right: 1, bottom: 1, height: '38%',
-        borderRadius: `0 0 ${r - 1}px ${r - 1}px`,
-        background: 'linear-gradient(to top, rgba(255,255,255,0.09), rgba(255,255,255,0))',
-        zIndex: 2, pointerEvents: 'none',
-      }} />
-    )
-
-    if (isLandscape) {
-      const artSize = Math.round(height - p * 2)
-      return (
-        <div ref={cardRef} style={{ ...glassCardStyle, display: 'flex', flexDirection: 'row' }}>
-          {useBlur
-            ? <BlurBg hue={hue} coverUrl={track.coverUrl} exportMode={exportMode} />
-            : <BgLayer config={config} />}
-          {specularDiv}
-          {refractionDiv}
-          <div style={{
-            position: 'relative', zIndex: 3, padding: p,
-            display: 'flex', flexDirection: 'row', gap: p * 0.8,
-            width: '100%', height: '100%', background: 'transparent',
-          }}>
-            {config.showAlbumArt && (
-              <div style={{
-                width: artSize, height: artSize, position: 'relative',
-                borderRadius: artRadius, overflow: 'hidden', flexShrink: 0,
-                boxShadow: '0 18px 40px -12px rgba(0,0,0,0.6),0 4px 12px -2px rgba(0,0,0,0.40),0 0 0 1px rgba(255,255,255,0.10) inset',
-                background: 'transparent',
-              }}>
-                {track.coverUrl
-                  // eslint-disable-next-line @next/next/no-img-element
-                  ? <img src={exportMode ? proxySrc(track.coverUrl) : track.coverUrl} crossOrigin="anonymous" alt={track.album} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-                  : <div className="albumart" style={{ width: '100%', height: '100%', borderRadius: 0, ['--art-hue' as string]: hue }}>
-                      <span style={{ position: 'relative', zIndex: 1, opacity: 0.85 }}>ART</span>
-                    </div>
-                }
-                <div style={{
-                  position: 'absolute', inset: 0, pointerEvents: 'none',
-                  background: 'linear-gradient(135deg, rgba(255,255,255,0.18), rgba(255,255,255,0) 35%)',
-                }} />
-              </div>
-            )}
-            <div style={{
-              display: 'flex', flexDirection: 'column', justifyContent: 'center',
-              gap: 4, flex: 1, minWidth: 0, paddingBottom: 2,
-              textAlign, background: 'transparent',
-            }}>
-              {config.showTitle && (
-                <div style={{ fontSize: width * 0.058, fontWeight: 700, letterSpacing: '-0.02em', lineHeight: 1.15 }}>
-                  {track.title}
-                </div>
-              )}
-              {config.showArtist && (
-                <div style={{ fontSize: width * 0.034, fontWeight: 500, opacity: 0.78, letterSpacing: '-0.01em' }}>
-                  {track.artist}
-                </div>
-              )}
-              {(config.showYear || config.showDuration) && (
-                <div style={{ fontFamily: 'var(--font-mono)', fontSize: width * 0.022, opacity: 0.55, letterSpacing: '0.04em', marginTop: 2 }}>
-                  {config.showYear && <span>{track.releaseYear}</span>}
-                  {config.showYear && config.showDuration && <span style={{ margin: '0 6px', opacity: 0.5 }}>·</span>}
-                  {config.showDuration && <span>{track.duration}</span>}
-                </div>
-              )}
-              {config.showLyrics && lyric && <LyricQuote lyric={lyric} width={width} r={r} />}
-            </div>
-          </div>
-        </div>
+    } else {
+      bgElement = (
+        <div style={{
+          position: 'absolute', inset: 0,
+          background: `
+            radial-gradient(ellipse at 25% 20%, hsl(${config.tintHue},60%,40%) 0%, transparent 55%),
+            radial-gradient(ellipse at 80% 70%, hsl(${config.tintHue + 30},45%,25%) 0%, transparent 55%),
+            hsl(${config.tintHue},20%,12%)
+          `,
+        }} />
       )
     }
+  }
+  // transparent: bgElement stays null
 
+  // ── GLASS ─────────────────────────────────────────────────────
+  if (config.preset === 'glass') {
     return (
-      <div ref={cardRef} style={{ ...glassCardStyle, display: 'flex', flexDirection: 'column' }}>
-        {useBlur
-          ? <BlurBg hue={hue} coverUrl={track.coverUrl} exportMode={exportMode} />
-          : <BgLayer config={config} />}
-        {specularDiv}
-        {refractionDiv}
+      <div ref={ref} style={cardWrapperStyle}>
+        {bgElement}
         <div style={{
-          position: 'relative', zIndex: 3, padding: p,
-          display: 'flex', flexDirection: 'column', height: '100%', gap: p * 0.6,
-          background: 'transparent',
+          position: 'relative', zIndex: 1,
+          display: 'flex', flexDirection: 'column',
+          alignItems: 'center', justifyContent: 'center',
+          height: '100%',
+          padding: `${config.padding}px`,
         }}>
-          {config.showAlbumArt && (
-            <div style={{
-              width: '100%', aspectRatio: '1 / 1',
-              borderRadius: artRadius, overflow: 'hidden', flexShrink: 0,
-              boxShadow: '0 18px 40px -12px rgba(0,0,0,0.6),0 4px 12px -2px rgba(0,0,0,0.40),0 0 0 1px rgba(255,255,255,0.10) inset',
-              position: 'relative', background: 'transparent',
-            }}>
-              {track.coverUrl
-                // eslint-disable-next-line @next/next/no-img-element
-                ? <img src={exportMode ? proxySrc(track.coverUrl) : track.coverUrl} crossOrigin="anonymous" alt={track.album} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-                : <div className="albumart" style={{ width: '100%', height: '100%', borderRadius: 0, ['--art-hue' as string]: hue }}>
-                    <span style={{ position: 'relative', zIndex: 1, opacity: 0.85 }}>ART</span>
-                  </div>
-              }
-              <div style={{
-                position: 'absolute', inset: 0, pointerEvents: 'none',
-                background: 'linear-gradient(135deg, rgba(255,255,255,0.18), rgba(255,255,255,0) 35%)',
-              }} />
-            </div>
-          )}
           <div style={{
-            display: 'flex', flexDirection: 'column', gap: 4, paddingBottom: 2,
-            textAlign, background: 'transparent',
+            background: 'rgba(255,255,255,0.08)',
+            backdropFilter: exportMode ? undefined : 'blur(12px)',
+            WebkitBackdropFilter: exportMode ? undefined : 'blur(12px)',
+            borderRadius: '12px',
+            padding: '24px',
+            display: 'flex', flexDirection: 'column',
+            alignItems: 'center', gap: '12px',
+            width: '100%', maxWidth: '320px',
+            border: exportMode ? 'none' : '1px solid rgba(255,255,255,0.2)',
+            textAlign: config.textAlign,
           }}>
-            {config.showTitle && (
-              <div style={{ fontSize: width * 0.058, fontWeight: 700, letterSpacing: '-0.02em', lineHeight: 1.15 }}>
-                {track.title}
-              </div>
+            {config.showAlbumArt && track.coverUrl && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={coverSrc}
+                crossOrigin="anonymous"
+                alt={track.title}
+                style={{ width: '100%', aspectRatio: '1/1', objectFit: 'cover', borderRadius: '8px', display: 'block' }}
+              />
             )}
-            {config.showArtist && (
-              <div style={{ fontSize: width * 0.034, fontWeight: 500, opacity: 0.78, letterSpacing: '-0.01em' }}>
-                {track.artist}
-              </div>
+            {config.showTitle    && <p style={titleStyle}>{track.title}</p>}
+            {config.showArtist   && <p style={artistStyle}>{track.artist}</p>}
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', justifyContent: 'center' }}>
+              {config.showYear     && <span style={metaStyle}>{track.releaseYear}</span>}
+              {config.showYear && config.showDuration && <span style={metaStyle}>·</span>}
+              {config.showDuration && <span style={metaStyle}>{track.duration}</span>}
+            </div>
+            {config.showLyrics && config.lyricQuote && (
+              <p style={lyricsStyle}>"{config.lyricQuote}"</p>
             )}
-            {(config.showYear || config.showDuration) && (
-              <div style={{ fontFamily: 'var(--font-mono)', fontSize: width * 0.022, opacity: 0.55, letterSpacing: '0.04em', marginTop: 2 }}>
-                {config.showYear && <span>{track.releaseYear}</span>}
-                {config.showYear && config.showDuration && <span style={{ margin: '0 6px', opacity: 0.5 }}>·</span>}
-                {config.showDuration && <span>{track.duration}</span>}
-              </div>
-            )}
-            {config.showLyrics && lyric && <LyricQuote lyric={lyric} width={width} r={r} />}
           </div>
         </div>
       </div>
     )
   }
 
+  // ── POSTER ────────────────────────────────────────────────────
   if (config.preset === 'poster') {
     return (
-      <div ref={cardRef} style={{
-        ...baseStyle,
-        position: 'relative', overflow: 'hidden', isolation: 'isolate',
-        flexShrink: 0, color: 'white',
-        borderRadius: r,
-        // no boxShadow in export — leaks as artifact around card edges
-        ...(exportMode ? {} : { boxShadow: CARD_SHADOW }),
-      }}>
-        {useBlur ? (
-          <>
-            {track.coverUrl
-              // eslint-disable-next-line @next/next/no-img-element
-              ? <img src={exportMode ? proxySrc(track.coverUrl) : track.coverUrl} crossOrigin="anonymous" alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', zIndex: 0 }} />
-              : <div className="albumart" style={{ position: 'absolute', inset: 0, borderRadius: 0, zIndex: 0, ['--art-hue' as string]: hue }} />
-            }
-            <div style={{
-              position: 'absolute', inset: 0, zIndex: 1,
-              background: 'linear-gradient(180deg, transparent 30%, rgba(0,0,0,0.5) 65%, rgba(0,0,0,0.92) 100%)',
-            }} />
-          </>
-        ) : (
-          <BgLayer config={config} />
+      <div ref={ref} style={cardWrapperStyle}>
+        {config.showAlbumArt && track.coverUrl
+          // eslint-disable-next-line @next/next/no-img-element
+          ? <img src={coverSrc} crossOrigin="anonymous" alt={track.title}
+              style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+          : bgElement}
+        <div style={{
+          position: 'absolute', bottom: 0, left: 0, right: 0, height: '55%',
+          background: 'linear-gradient(to top, rgba(0,0,0,0.95) 0%, transparent 100%)',
+        }} />
+        <div style={{
+          position: 'absolute', bottom: 0, left: 0, right: 0,
+          padding: `${config.padding}px`,
+          display: 'flex', flexDirection: 'column', gap: '4px',
+          textAlign: config.textAlign,
+        }}>
+          {config.showLyrics && config.lyricQuote && (
+            <p style={{ ...lyricsStyle, marginBottom: '8px' }}>"{config.lyricQuote}"</p>
+          )}
+          {config.showTitle    && <p style={titleStyle}>{track.title}</p>}
+          {config.showArtist   && <p style={artistStyle}>{track.artist}</p>}
+          <div style={{ display: 'flex', gap: '8px' }}>
+            {config.showYear     && <span style={metaStyle}>{track.releaseYear}</span>}
+            {config.showDuration && <span style={metaStyle}>{track.duration}</span>}
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // ── MINIMAL ───────────────────────────────────────────────────
+  if (config.preset === 'minimal') {
+    const minBg = config.bgStyle === 'solid'
+      ? config.bgColor
+      : textColor === '#000000' ? '#f5f4f2' : '#111111'
+    return (
+      <div ref={ref} style={{ ...cardWrapperStyle, display: 'flex', flexDirection: 'row', alignItems: 'stretch', backgroundColor: minBg }}>
+        {config.showAlbumArt && track.coverUrl && (
+          <div style={{ width: '40%', flexShrink: 0, position: 'relative', overflow: 'hidden' }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={coverSrc}
+              crossOrigin="anonymous"
+              alt={track.title}
+              style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+            />
+          </div>
         )}
         <div style={{
-          position: 'absolute', left: 0, right: 0, bottom: 0, padding: p, zIndex: 2,
-          display: 'flex', flexDirection: 'column', gap: 6,
-          textAlign,
+          flex: 1, display: 'flex', flexDirection: 'column',
+          justifyContent: 'center', padding: `${config.padding}px`,
+          gap: '8px', overflow: 'hidden',
+          textAlign: config.textAlign,
         }}>
-          {config.showLyrics && lyric && (
-            <div style={{ fontSize: width * 0.028, fontStyle: 'italic', opacity: 0.85, lineHeight: 1.4, marginBottom: 10, maxWidth: '82%' }}>
-              &ldquo;{lyric}&rdquo;
-            </div>
-          )}
-          {config.showTitle && (
-            <div style={{ fontSize: width * 0.07, fontWeight: 700, lineHeight: 1, letterSpacing: '-0.03em' }}>{track.title}</div>
-          )}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 4 }}>
-            {config.showArtist && <div style={{ fontSize: width * 0.030, fontWeight: 500 }}>{track.artist}</div>}
-            <div style={{ fontFamily: 'var(--font-mono)', fontSize: width * 0.020, opacity: 0.65, letterSpacing: '0.04em' }}>
-              {config.showYear && <span>{track.releaseYear}</span>}
-              {config.showYear && config.showDuration && <span style={{ margin: '0 6px', opacity: 0.5 }}>—</span>}
-              {config.showDuration && <span>{track.duration}</span>}
-            </div>
+          {config.showTitle    && <p style={titleStyle}>{track.title}</p>}
+          {config.showArtist   && <p style={artistStyle}>{track.artist}</p>}
+          <div style={{ display: 'flex', gap: '8px' }}>
+            {config.showYear     && <span style={metaStyle}>{track.releaseYear}</span>}
+            {config.showDuration && <span style={metaStyle}>{track.duration}</span>}
           </div>
+          {config.showLyrics && config.lyricQuote && (
+            <p style={lyricsStyle}>"{config.lyricQuote}"</p>
+          )}
         </div>
       </div>
     )
   }
 
-  if (config.preset === 'minimal') {
-    const artSize = height - p * 2
-    const bgColor = config.bgStyle === 'solid' ? config.bgColor
-      : isDark ? '#1f1e1c' : '#f5f4f2'
-    return (
-      <div ref={cardRef} style={{
-        ...baseStyle,
-        position: 'relative', overflow: 'hidden', isolation: 'isolate',
-        flexShrink: 0,
-        color: textColor,
-        borderRadius: r,
-        background: bgColor,
-        ...(exportMode ? {} : { boxShadow: isDark ? CARD_SHADOW : '0 1px 0 rgba(255,255,255,1) inset,0 18px 48px rgba(0,0,0,0.12)' }),
-      }}>
-        <div style={{
-          position: 'relative', zIndex: 1, width: '100%', height: '100%', padding: p,
-          display: 'flex', alignItems: 'center', gap: p * 0.9,
-        }}>
-          {config.showAlbumArt && (
-            <AlbumArtEl coverUrl={track.coverUrl} album={track.album} hue={hue} size={artSize} radius={4} exportMode={exportMode} />
-          )}
-          <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 8, textAlign }}>
-            <div style={{ fontFamily: 'var(--font-mono)', fontSize: width * 0.020, letterSpacing: '0.08em', opacity: 0.55, textTransform: 'uppercase' }}>
-              FrameSound · {track.album}
-            </div>
-            {config.showTitle && (
-              <div style={{ fontSize: width * 0.060, fontWeight: 600, lineHeight: 1.05, letterSpacing: '-0.025em' }}>{track.title}</div>
-            )}
-            {config.showArtist && (
-              <div style={{ fontSize: width * 0.030, fontWeight: 500, opacity: 0.78 }}>{track.artist}</div>
-            )}
-            <div style={{ marginTop: 6, height: 1, background: isDark ? 'rgba(255,255,255,0.14)' : 'rgba(0,0,0,0.12)' }} />
-            <div style={{ fontFamily: 'var(--font-mono)', fontSize: width * 0.022, opacity: 0.6, letterSpacing: '0.04em', display: 'flex', gap: 14 }}>
-              {config.showYear && <span>{track.releaseYear}</span>}
-              {config.showDuration && <span>{track.duration}</span>}
-            </div>
-            {config.showLyrics && lyric && (
-              <div style={{ fontSize: width * 0.026, fontStyle: 'italic', opacity: 0.7, lineHeight: 1.45, marginTop: 10 }}>
-                &ldquo;{lyric}&rdquo;
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-    )
-  }
-
+  // ── STORY ─────────────────────────────────────────────────────
   if (config.preset === 'story') {
-    const sw = width
-    const sh = config.size === '9:16' ? height : Math.round(width * 16 / 9)
-    const artSize = sw * 0.62
     return (
-      <div ref={cardRef} style={{
-        ...baseStyle, width: sw, height: sh,
-        position: 'relative', overflow: 'hidden', isolation: 'isolate',
-        flexShrink: 0, color: 'white',
-        borderRadius: r,
-        ...(exportMode ? {} : { boxShadow: CARD_SHADOW }),
-      }}>
-        <BlurBg hue={hue} coverUrl={track.coverUrl} exportMode={exportMode} />
+      <div ref={ref} style={cardWrapperStyle}>
+        {bgElement}
         <div style={{
-          position: 'relative', zIndex: 1, width: '100%', height: '100%', padding: p,
-          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'space-between',
+          position: 'relative', zIndex: 1,
+          display: 'flex', flexDirection: 'column',
+          alignItems: 'center', justifyContent: 'space-between',
+          height: '100%',
+          padding: `${config.padding}px`,
           textAlign: 'center',
         }}>
-          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, opacity: 0.7, letterSpacing: '0.16em' }}>FRAMESOUND · STORY</div>
-          {config.showAlbumArt && (
-            <AlbumArtEl coverUrl={track.coverUrl} album={track.album} hue={hue} size={artSize} radius={8} exportMode={exportMode} />
+          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, opacity: 0.6, letterSpacing: '0.16em', color: textColor }}>
+            FRAMESOUND · STORY
+          </div>
+          {config.showAlbumArt && track.coverUrl && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={coverSrc}
+              crossOrigin="anonymous"
+              alt={track.title}
+              style={{ width: '62%', aspectRatio: '1/1', objectFit: 'cover', borderRadius: '12px', display: 'block' }}
+            />
           )}
-          <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'center', textAlign }}>
-            {config.showTitle && (
-              <div style={{ fontSize: sw * 0.085, fontWeight: 700, lineHeight: 1, letterSpacing: '-0.03em' }}>{track.title}</div>
-            )}
-            {config.showArtist && (
-              <div style={{ fontSize: sw * 0.038, opacity: 0.85 }}>{track.artist}</div>
-            )}
-            {config.showLyrics && lyric && (
-              <div style={{ marginTop: 8, maxWidth: '92%' }}>
-                <GlassLyric lyric={lyric} fontSize={sw * 0.034} />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', alignItems: 'center', width: '100%' }}>
+            {config.showTitle  && <p style={{ ...titleStyle,  whiteSpace: 'normal', textAlign: 'center' }}>{track.title}</p>}
+            {config.showArtist && <p style={{ ...artistStyle, textAlign: 'center' }}>{track.artist}</p>}
+            {config.showLyrics && config.lyricQuote && (
+              <div style={{ background: 'rgba(0,0,0,0.35)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '10px', padding: '10px 14px', maxWidth: '92%' }}>
+                <p style={{ ...lyricsStyle, textAlign: 'center' }}>"{config.lyricQuote}"</p>
               </div>
             )}
           </div>
@@ -486,47 +313,45 @@ export default function CardCanvas({ track, config, cardRef, exportMode = false 
     )
   }
 
-  // square
-  const artSize = Math.min(width, height) * 0.36
+  // ── SQUARE (default) ──────────────────────────────────────────
   return (
-    <div ref={cardRef} style={{
-      ...baseStyle, width, height: width,
-      position: 'relative', overflow: 'hidden', isolation: 'isolate',
-      flexShrink: 0,
-      color: isDark ? 'white' : '#222220',
-      borderRadius: r,
-      ...(exportMode ? {} : { boxShadow: isDark ? CARD_SHADOW : '0 1px 0 rgba(255,255,255,1) inset,0 18px 48px rgba(0,0,0,0.12)' }),
-    }}>
-      <BlurBg hue={hue} coverUrl={track.coverUrl} exportMode={exportMode} />
+    <div ref={ref} style={cardWrapperStyle}>
+      {bgElement}
       <div style={{
-        position: 'relative', zIndex: 1, width: '100%', height: '100%',
-        padding: p * 0.85, display: 'flex', flexDirection: 'column', gap: 12,
-        textAlign,
+        position: 'relative', zIndex: 1,
+        display: 'flex', flexDirection: 'column',
+        alignItems: config.textAlign === 'center' ? 'center' : config.textAlign === 'right' ? 'flex-end' : 'flex-start',
+        justifyContent: 'center',
+        height: '100%',
+        padding: `${config.padding}px`,
+        gap: '12px',
+        textAlign: config.textAlign,
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-          {config.showAlbumArt && (
-            <AlbumArtEl coverUrl={track.coverUrl} album={track.album} hue={hue} size={artSize} radius={4} exportMode={exportMode} />
-          )}
-          <div style={{ flex: 1, minWidth: 0 }}>
-            {config.showTitle && (
-              <div style={{ fontSize: width * 0.052, fontWeight: 600, lineHeight: 1.05, letterSpacing: '-0.02em' }}>{track.title}</div>
-            )}
-            {config.showArtist && (
-              <div style={{ fontSize: width * 0.028, opacity: 0.8, marginTop: 4 }}>{track.artist}</div>
-            )}
-            <div style={{ fontFamily: 'var(--font-mono)', fontSize: width * 0.020, opacity: 0.6, marginTop: 4, letterSpacing: '0.04em' }}>
-              {config.showYear && track.releaseYear}
-              {config.showYear && config.showDuration && ' · '}
-              {config.showDuration && track.duration}
-            </div>
-          </div>
+        {config.showAlbumArt && track.coverUrl && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={coverSrc}
+            crossOrigin="anonymous"
+            alt={track.title}
+            style={{ width: '55%', maxWidth: '200px', aspectRatio: '1/1', objectFit: 'cover', borderRadius: '8px', display: 'block' }}
+          />
+        )}
+        {config.showTitle    && <p style={titleStyle}>{track.title}</p>}
+        {config.showArtist   && <p style={artistStyle}>{track.artist}</p>}
+        <div style={{ display: 'flex', gap: '8px' }}>
+          {config.showYear     && <span style={metaStyle}>{track.releaseYear}</span>}
+          {config.showYear && config.showDuration && <span style={metaStyle}>·</span>}
+          {config.showDuration && <span style={metaStyle}>{track.duration}</span>}
         </div>
-        {config.showLyrics && lyric && (
-          <div style={{ marginTop: 'auto' }}>
-            <GlassLyric lyric={lyric} fontSize={width * 0.028} dark={!isDark} />
+        {config.showLyrics && config.lyricQuote && (
+          <div style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '10px', padding: '10px 14px', width: '100%' }}>
+            <p style={lyricsStyle}>"{config.lyricQuote}"</p>
           </div>
         )}
       </div>
     </div>
   )
-}
+})
+
+CardCanvas.displayName = 'CardCanvas'
+export default CardCanvas

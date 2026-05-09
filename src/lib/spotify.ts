@@ -2,8 +2,12 @@ const TOKEN_ENDPOINT = 'https://accounts.spotify.com/api/token'
 const API_BASE = 'https://api.spotify.com/v1'
 
 export async function getAccessToken(): Promise<string> {
-  const clientId = process.env.SPOTIFY_CLIENT_ID!
-  const clientSecret = process.env.SPOTIFY_CLIENT_SECRET!
+  const clientId = process.env.SPOTIFY_CLIENT_ID
+  const clientSecret = process.env.SPOTIFY_CLIENT_SECRET
+  if (!clientId || clientId === 'your_spotify_client_id_here' ||
+      !clientSecret || clientSecret === 'your_spotify_client_secret_here') {
+    throw new Error('SPOTIFY_CREDENTIALS_MISSING')
+  }
   const res = await fetch(TOKEN_ENDPOINT, {
     method: 'POST',
     headers: {

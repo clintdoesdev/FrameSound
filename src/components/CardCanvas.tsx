@@ -18,7 +18,7 @@ export const sizeMap: Record<CardConfig['size'], { width: number; height: number
 }
 
 function proxySrc(url: string) {
-  return `/_next/image?url=${encodeURIComponent(url)}&w=640&q=85`
+  return `/api/proxy-image?url=${encodeURIComponent(url)}`
 }
 
 function resolveTextColor(config: CardConfig): string {
@@ -73,6 +73,7 @@ const CardCanvas = forwardRef<HTMLDivElement, Props>(function CardCanvas(
     lineHeight: 1.1,
     margin: 0,
     color: textColor,
+    backgroundColor: 'transparent',
     whiteSpace: 'nowrap',
     overflow: 'hidden',
     textOverflow: 'ellipsis',
@@ -83,6 +84,7 @@ const CardCanvas = forwardRef<HTMLDivElement, Props>(function CardCanvas(
     fontWeight: 400,
     margin: 0,
     color: textColor,
+    backgroundColor: 'transparent',
     opacity: 0.75,
     whiteSpace: 'nowrap',
     overflow: 'hidden',
@@ -92,6 +94,7 @@ const CardCanvas = forwardRef<HTMLDivElement, Props>(function CardCanvas(
   const metaStyle: React.CSSProperties = {
     fontSize: 'clamp(10px, 2vw, 14px)',
     color: textColor,
+    backgroundColor: 'transparent',
     opacity: 0.5,
     margin: 0,
   }
@@ -100,12 +103,13 @@ const CardCanvas = forwardRef<HTMLDivElement, Props>(function CardCanvas(
     fontSize: 'clamp(11px, 2.2vw, 15px)',
     fontStyle: 'italic',
     color: textColor,
+    backgroundColor: 'transparent',
     opacity: 0.85,
     margin: 0,
     lineHeight: 1.5,
   }
 
-  // In export mode, use the /_next/image proxy so canvas access is CORS-safe
+  // In export mode, route through /api/proxy-image so inlineImages can fetch same-origin
   const coverSrc = exportMode && track.coverUrl
     ? proxySrc(track.coverUrl)
     : (track.coverUrl ?? '')

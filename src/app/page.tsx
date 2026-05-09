@@ -5,7 +5,7 @@ import Image from 'next/image'
 import { getTrackFromUrl } from '@/actions/spotify'
 import { getLyrics } from '@/actions/lyrics'
 import { TrackData, CardConfig, defaultConfig } from '@/types'
-import CardCanvas from '@/components/CardCanvas'
+import CardCanvas, { sizeMap } from '@/components/CardCanvas'
 import LyricsPanel from '@/components/LyricsPanel'
 import CustomizePanel from '@/components/CustomizePanel'
 import ExportBar from '@/components/ExportBar'
@@ -450,12 +450,15 @@ export default function Home() {
             )}
           </div>
 
-          {/* Hidden export card — fixed 520px container gives consistent export resolution */}
-          {track && (
-            <div aria-hidden style={{ position: 'fixed', left: -10000, top: -10000, pointerEvents: 'none', width: 520 }}>
-              <CardCanvas ref={cardRef} track={track} config={config} exportMode />
-            </div>
-          )}
+          {/* Hidden export card — explicit w/h so dom-to-image resolves dimensions without CSS aspectRatio */}
+          {track && (() => {
+            const { width: exportW, height: exportH } = sizeMap[config.size]
+            return (
+              <div aria-hidden style={{ position: 'fixed', left: -10000, top: -10000, pointerEvents: 'none', width: exportW, height: exportH }}>
+                <CardCanvas ref={cardRef} track={track} config={config} exportMode />
+              </div>
+            )
+          })()}
 
           {/* Card preview — fills container, aspect ratio maintained by the card itself */}
           <div style={{

@@ -8,8 +8,8 @@ type Props = {
   onQuoteChange: (quote: string) => void
 }
 
-const MusicNoteIcon = () => (
-  <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.35 }}>
+const MusicIcon = () => (
+  <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.3 }}>
     <path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>
   </svg>
 )
@@ -18,19 +18,10 @@ export default function LyricsPanel({ lines, loading, onQuoteChange }: Props) {
   const [selected, setSelected] = useState<string[]>([])
   const [custom, setCustom] = useState('')
 
-  // Reset when lines change (new track)
-  useEffect(() => {
-    setSelected([])
-    setCustom('')
-  }, [lines])
+  useEffect(() => { setSelected([]); setCustom('') }, [lines])
 
-  // Propagate quote to parent
   useEffect(() => {
-    if (custom.trim()) {
-      onQuoteChange(custom.trim())
-    } else {
-      onQuoteChange(selected.join('\n'))
-    }
+    onQuoteChange(custom.trim() || selected.join('\n'))
   }, [selected, custom, onQuoteChange])
 
   const toggleLine = (line: string) => {
@@ -41,158 +32,130 @@ export default function LyricsPanel({ lines, loading, onQuoteChange }: Props) {
     )
   }
 
-  const clearSelection = () => { setSelected([]); setCustom('') }
-
-  const showLines = lines.length > 0
-  const previewText = custom.trim() || (selected.length > 0 ? selected.join('\n') : '')
+  const clearAll = () => { setSelected([]); setCustom('') }
+  const activeQuote = custom.trim() || selected.join('\n')
+  const hasSelection = selected.length > 0 || !!custom.trim()
 
   if (loading) {
     return (
-      <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 8 }}>
-        {Array.from({ length: 6 }).map((_, i) => (
+      <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+        {Array.from({ length: 5 }).map((_, i) => (
           <div key={i} className="animate-pulse-slow" style={{
             height: 14, background: 'var(--bg-2)', borderRadius: 4,
-            width: i % 3 === 0 ? '60%' : i % 3 === 1 ? '85%' : '72%',
+            width: i % 3 === 0 ? '55%' : i % 3 === 1 ? '82%' : '68%',
           }} />
         ))}
       </div>
     )
   }
 
+  const showLines = lines.length > 0
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column' }}>
 
       {/* Header */}
       <div style={{
-        padding: '12px 20px 10px',
+        padding: '11px 20px 10px',
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        flexShrink: 0,
-        borderBottom: showLines ? '1px solid var(--line-soft)' : undefined,
+        borderBottom: '1px solid var(--line-soft)', flexShrink: 0,
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
           <span className="mono" style={{ fontSize: 11, color: 'var(--fg-3)', letterSpacing: '0.06em' }}>LYRICS</span>
           {showLines && (
             <>
-              <span style={{ color: 'var(--fg-4)', fontSize: 10 }}>·</span>
-              <span className="mono" style={{ fontSize: 10, color: 'var(--fg-4)', letterSpacing: '0.04em' }}>{lines.length} lines</span>
+              <span style={{ width: 3, height: 3, borderRadius: '50%', background: 'var(--fg-4)', display: 'inline-block' }} />
+              <span className="mono" style={{ fontSize: 11, color: 'var(--fg-4)' }}>{selected.length}/2</span>
             </>
           )}
         </div>
-        {(selected.length > 0 || custom) && (
-          <button onClick={clearSelection} style={{
+        {hasSelection && (
+          <button onClick={clearAll} style={{
             background: 'none', border: 0, cursor: 'pointer',
-            fontSize: 12, color: 'var(--accent)', padding: 0,
+            fontSize: 12, color: 'var(--accent)', padding: '2px 0',
             fontFamily: 'inherit', fontWeight: 500,
-          }}>
-            Clear
-          </button>
+          }}>Clear</button>
         )}
       </div>
 
       {/* Quote preview */}
-      {previewText && (
+      {hasSelection && (
         <div style={{
-          margin: '10px 20px 0',
+          margin: '10px 16px 2px',
+          padding: '10px 14px',
           background: 'var(--bg-1)',
           border: '1px solid var(--line)',
-          borderRadius: 8,
-          padding: '10px 14px 12px',
-          flexShrink: 0,
+          borderLeft: '3px solid var(--accent)',
+          borderRadius: '0 8px 8px 0',
+          animation: 'fadeIn 0.2s ease both',
         }}>
-          <span style={{
-            fontSize: 24, lineHeight: 1, color: 'var(--accent)',
-            display: 'block', marginBottom: 2, fontFamily: 'Georgia, serif',
-          }}>&ldquo;</span>
-          <div style={{
-            fontSize: 13, color: 'var(--fg-1)', fontStyle: 'italic', lineHeight: 1.55,
-            whiteSpace: 'pre-line',
-          }}>
-            {previewText}
+          <div style={{ fontSize: 20, color: 'var(--accent)', lineHeight: 1, marginBottom: 3, fontFamily: 'Georgia, serif' }}>&ldquo;</div>
+          <div style={{ fontSize: 13, color: 'var(--fg-1)', lineHeight: 1.55, fontStyle: 'italic', whiteSpace: 'pre-line' }}>
+            {activeQuote}
           </div>
         </div>
       )}
 
-      {/* Lyric lines */}
-      {showLines ? (
-        <div className="scroll" style={{
-          maxHeight: 220, overflowY: 'auto',
-          marginTop: 8,
-          flexShrink: 0,
-        }}>
+      {/* Lyric lines list */}
+      {showLines && (
+        <div className="scroll" style={{ maxHeight: 210, overflowY: 'auto' }}>
           {lines.map((line, i) => {
             const isSel = selected.includes(line)
-            const disabled = !isSel && selected.length >= 2
+            const isMaxed = !isSel && selected.length >= 2
+            if (!line.trim()) return null
             return (
               <button
                 key={i}
-                disabled={disabled}
+                disabled={isMaxed}
                 onClick={() => toggleLine(line)}
                 style={{
-                  display: 'block',
-                  width: '100%',
-                  textAlign: 'left',
+                  display: 'block', width: '100%', textAlign: 'left',
                   padding: '10px 20px',
-                  minHeight: 40,
                   background: isSel ? 'var(--accent-quiet)' : 'transparent',
                   border: 'none',
-                  borderLeft: isSel ? '3px solid var(--accent)' : '3px solid transparent',
-                  color: disabled ? 'var(--fg-4)' : isSel ? 'var(--accent)' : 'var(--fg-1)',
-                  cursor: disabled ? 'not-allowed' : 'pointer',
+                  borderLeft: `3px solid ${isSel ? 'var(--accent)' : 'transparent'}`,
+                  color: isSel ? 'var(--fg)' : isMaxed ? 'var(--fg-4)' : 'var(--fg-2)',
+                  cursor: isMaxed ? 'not-allowed' : 'pointer',
                   fontSize: 13.5, lineHeight: 1.5,
-                  transition: 'background 120ms, color 120ms, border-color 120ms',
+                  transition: 'background 100ms, color 100ms',
+                  fontWeight: isSel ? 500 : 400,
                 }}
-                onMouseEnter={e => {
-                  if (!isSel && !disabled) (e.currentTarget as HTMLButtonElement).style.background = 'var(--bg-1)'
-                }}
-                onMouseLeave={e => {
-                  if (!isSel) (e.currentTarget as HTMLButtonElement).style.background = 'transparent'
-                }}
+                onMouseEnter={e => { if (!isSel && !isMaxed) (e.currentTarget as HTMLButtonElement).style.background = 'var(--bg-1)' }}
+                onMouseLeave={e => { if (!isSel) (e.currentTarget as HTMLButtonElement).style.background = 'transparent' }}
               >
                 {line}
               </button>
             )
           })}
         </div>
-      ) : (
-        /* Empty state */
-        <div style={{
-          padding: '24px 20px',
-          display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
-          textAlign: 'center',
-          flexShrink: 0,
-        }}>
-          <MusicNoteIcon />
-          <div style={{ fontSize: 12.5, color: 'var(--fg-3)', lineHeight: 1.5 }}>No lyrics found</div>
+      )}
+
+      {/* Empty state */}
+      {!showLines && (
+        <div style={{ padding: '20px 20px 6px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, color: 'var(--fg-3)' }}>
+          <MusicIcon />
+          <span style={{ fontSize: 12.5 }}>No lyrics found for this track</span>
         </div>
       )}
 
-      {/* Divider */}
-      <hr style={{
-        margin: '10px 20px 0',
-        border: 'none',
-        borderTop: '1px solid var(--line-soft)',
-        flexShrink: 0,
-      }} />
-
-      {/* Custom quote textarea */}
-      <div style={{ padding: '10px 20px 16px', flexShrink: 0 }}>
-        <div className="mono" style={{ fontSize: 10.5, color: 'var(--fg-3)', letterSpacing: '0.06em', marginBottom: 7 }}>
-          CUSTOM QUOTE
+      {/* Custom quote */}
+      <div style={{ padding: '10px 16px 14px', borderTop: showLines ? '1px solid var(--line-soft)' : 'none' }}>
+        <div className="mono" style={{ fontSize: 10.5, color: 'var(--fg-4)', letterSpacing: '0.05em', marginBottom: 7 }}>
+          {showLines ? 'OR CUSTOM' : 'TYPE QUOTE'}
         </div>
         <textarea
           value={custom}
           onChange={e => setCustom(e.target.value)}
-          placeholder={showLines ? 'Override with your own…' : 'Type your lyric quote…'}
+          placeholder={showLines ? 'Override with your own text…' : 'Type your lyric quote…'}
           rows={2}
           style={{
             width: '100%', resize: 'none',
             background: 'var(--bg-inset)',
             border: '1px solid var(--line)',
-            borderRadius: 'var(--r-3)',
-            padding: '8px 10px',
-            fontSize: 12.5, color: 'var(--fg)', fontFamily: 'inherit',
+            borderRadius: 8, padding: '9px 11px',
+            fontSize: 13, color: 'var(--fg)', fontFamily: 'inherit',
             outline: 'none', lineHeight: 1.5,
-            boxSizing: 'border-box',
+            transition: 'border-color 150ms',
           }}
           onFocus={e => { e.currentTarget.style.borderColor = 'var(--accent)' }}
           onBlur={e => { e.currentTarget.style.borderColor = 'var(--line)' }}

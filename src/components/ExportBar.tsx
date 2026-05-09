@@ -45,8 +45,8 @@ function blobToDataUrl(blob: Blob): Promise<string> {
   })
 }
 
-// Pre-fetch every img as a data URL so dom-to-image never makes cross-origin
-// requests (which silently produce white pixels on the canvas).
+// Convert every <img> src to a data URL so html-to-image never makes
+// cross-origin requests during capture (which produce blank pixels).
 async function inlineImages(el: HTMLElement): Promise<() => void> {
   const imgs = Array.from(el.querySelectorAll<HTMLImageElement>('img'))
   const origSrcs = imgs.map(i => i.src)
@@ -54,23 +54,31 @@ async function inlineImages(el: HTMLElement): Promise<() => void> {
     const src = img.src
     if (!src || src.startsWith('data:')) return
     try {
-      const res = await fetch(src, { mode: 'cors', credentials: 'omit' })
+      const res = await fetch(src, { credentials: 'omit' })
       const blob = await res.blob()
       const dataUrl = await blobToDataUrl(blob)
       img.src = dataUrl
       if (!img.complete) await new Promise<void>(r => { img.onload = () => r(); img.onerror = () => r() })
     } catch {
-      // leave src unchanged — better than white
+      // leave src unchanged — proxy route usually prevents this path
     }
   }))
   return () => imgs.forEach((img, i) => { img.src = origSrcs[i] })
 }
 
-// Double rAF ensures React has fully painted before capture runs.
+// Double rAF ensures React has fully committed and painted.
 function waitForPaint(): Promise<void> {
   return new Promise(resolve => {
     requestAnimationFrame(() => requestAnimationFrame(() => resolve()))
   })
+}
+
+// Full readiness gate: paint + fonts + image decodes.
+async function waitReady(el: HTMLElement): Promise<void> {
+  await waitForPaint()
+  await document.fonts.ready
+  const imgs = Array.from(el.querySelectorAll<HTMLImageElement>('img'))
+  await Promise.all(imgs.map(img => img.decode().catch(() => {})))
 }
 
 const supportsClipboard = typeof window !== 'undefined' && typeof ClipboardItem !== 'undefined'
@@ -81,21 +89,6 @@ export default function ExportBar({ cardRef, track, config, onConfigChange }: Pr
 
   const filename = `${safe(track.artist)}-${safe(track.title)}-framesound`
 
-  const resolvedBgColor = config.bgStyle === 'solid'
-    ? config.bgColor
-    : config.textColor === 'black'
-    ? '#f5f5f5'
-    : '#0a0a0a'
-
-  // Style override passed to every dom-to-image call to strip any residual
-  // border/shadow that the cardRef div might have in its computed styles.
-  const cleanStyle = {
-    border: 'none',
-    outline: 'none',
-    boxShadow: 'none',
-    borderRadius: `${config.borderRadius}px`,
-  }
-
   const showToast = (msg: string) => {
     setToast(msg)
     setTimeout(() => setToast(null), 2400)
@@ -105,42 +98,37 @@ export default function ExportBar({ cardRef, track, config, onConfigChange }: Pr
     if (!cardRef.current || busy) return
     setBusy('png')
     showToast('Exporting PNG…')
-    await waitForPaint()
-    const restore = await inlineImages(cardRef.current)
+    const el = cardRef.current
+    await waitReady(el)
+    const restore = await inlineImages(el)
     try {
-      const dti = (await import('dom-to-image-more')).default
-      const url = await dti.toPng(cardRef.current, {
-        scale: 3,
-        bgcolor: resolvedBgColor,
-        style: cleanStyle,
-      })
+      const { toPng } = await import('html-to-image')
+      // No backgroundColor override — let the card render its own background naturally.
+      const url = await toPng(el, { pixelRatio: 3 })
       const a = document.createElement('a')
       a.href = url; a.download = `${filename}.png`; a.click()
       showToast('Saved ✓')
     } catch (e) { console.error(e); showToast('Export failed') }
     finally { restore(); setBusy(null) }
-  }, [cardRef, busy, filename, resolvedBgColor, cleanStyle])
+  }, [cardRef, busy, filename])
 
   const exportJPG = useCallback(async () => {
     if (!cardRef.current || busy) return
     setBusy('jpg')
     showToast('Exporting JPG…')
-    await waitForPaint()
-    const restore = await inlineImages(cardRef.current)
+    const el = cardRef.current
+    await waitReady(el)
+    const restore = await inlineImages(el)
     try {
-      const dti = (await import('dom-to-image-more')).default
-      const url = await dti.toJpeg(cardRef.current, {
-        quality: 0.95,
-        scale: 2,
-        bgcolor: '#000000',
-        style: cleanStyle,
-      })
+      const { toJpeg } = await import('html-to-image')
+      // JPEG has no alpha channel — flatten transparent areas to black.
+      const url = await toJpeg(el, { quality: 0.95, pixelRatio: 2, backgroundColor: '#000000' })
       const a = document.createElement('a')
       a.href = url; a.download = `${filename}.jpg`; a.click()
       showToast('Saved ✓')
     } catch (e) { console.error(e); showToast('Export failed') }
     finally { restore(); setBusy(null) }
-  }, [cardRef, busy, filename, cleanStyle])
+  }, [cardRef, busy, filename])
 
   const exportTransparent = useCallback(async () => {
     if (!cardRef.current || busy) return
@@ -148,16 +136,14 @@ export default function ExportBar({ cardRef, track, config, onConfigChange }: Pr
     showToast('Exporting Alpha PNG…')
     const prevBgStyle = config.bgStyle
     onConfigChange({ bgStyle: 'transparent' })
-    await new Promise(r => setTimeout(r, 140))
-    await waitForPaint()
-    const restore = await inlineImages(cardRef.current)
+    // Give React time to re-render with the transparent background
+    await new Promise(r => setTimeout(r, 160))
+    const el = cardRef.current
+    await waitReady(el)
+    const restore = await inlineImages(el)
     try {
-      const dti = (await import('dom-to-image-more')).default
-      const url = await dti.toPng(cardRef.current, {
-        scale: 1,
-        bgcolor: undefined,
-        style: cleanStyle,
-      })
+      const { toPng } = await import('html-to-image')
+      const url = await toPng(el, { pixelRatio: 2 })
       const a = document.createElement('a')
       a.href = url; a.download = `${filename}-alpha.png`; a.click()
       showToast('Saved ✓')
@@ -167,26 +153,24 @@ export default function ExportBar({ cardRef, track, config, onConfigChange }: Pr
       onConfigChange({ bgStyle: prevBgStyle })
       setBusy(null)
     }
-  }, [cardRef, busy, filename, config.bgStyle, onConfigChange, cleanStyle])
+  }, [cardRef, busy, filename, config.bgStyle, onConfigChange])
 
   const copyClipboard = useCallback(async () => {
     if (!cardRef.current || busy) return
     setBusy('clipboard')
-    await waitForPaint()
-    const restore = await inlineImages(cardRef.current)
+    const el = cardRef.current
+    await waitReady(el)
+    const restore = await inlineImages(el)
     try {
-      const dti = (await import('dom-to-image-more')).default
-      const url = await dti.toPng(cardRef.current, {
-        scale: 2,
-        style: cleanStyle,
-      })
+      const { toPng } = await import('html-to-image')
+      const url = await toPng(el, { pixelRatio: 2 })
       const res = await fetch(url)
       const blob = await res.blob()
       await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })])
       showToast('Copied ✓')
     } catch (e) { console.error(e); showToast('Copy failed') }
     finally { restore(); setBusy(null) }
-  }, [cardRef, busy, cleanStyle])
+  }, [cardRef, busy])
 
   return (
     <div style={{

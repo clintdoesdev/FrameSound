@@ -1,11 +1,11 @@
 'use client'
 
-import { useState, useRef, useCallback, useEffect, useLayoutEffect } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
 import Image from 'next/image'
 import { getTrackFromUrl } from '@/actions/spotify'
 import { getLyrics } from '@/actions/lyrics'
 import { TrackData, CardConfig, defaultConfig } from '@/types'
-import CardCanvas, { sizeMap } from '@/components/CardCanvas'
+import CardCanvas from '@/components/CardCanvas'
 import LyricsPanel from '@/components/LyricsPanel'
 import CustomizePanel from '@/components/CustomizePanel'
 import ExportBar from '@/components/ExportBar'
@@ -120,10 +120,8 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null)
   const [accentColor, setAccentColor] = useState<string | null>(null)
 
-  // cardRef → hidden off-screen export card (what dom-to-image captures, no white artifacts)
+  // cardRef → hidden off-screen export card (what dom-to-image captures)
   const cardRef = useRef<HTMLDivElement>(null!)
-  const previewRef = useRef<HTMLDivElement>(null)
-  const [previewScale, setPreviewScale] = useState(0.72)
 
   const updateConfig = useCallback((updates: Partial<CardConfig>) => {
     setConfig(prev => ({ ...prev, ...updates }))
@@ -146,21 +144,6 @@ export default function Home() {
       img.src = `/_next/image?url=${encodeURIComponent(coverUrl)}&w=64&q=75`
     }).catch(() => {/* ignore */ })
   }, [track?.coverUrl])
-
-  // Compute scale before first paint so there's no overflow flash on mobile
-  const { width: cardW, height: cardH } = sizeMap[config.size]
-  useLayoutEffect(() => {
-    const el = previewRef.current
-    if (!el) return
-    const update = () => {
-      const available = el.clientWidth - 40 // 20px padding on each side
-      if (available > 0) setPreviewScale(Math.min(0.72, available / cardW))
-    }
-    update()
-    const ro = new ResizeObserver(update)
-    ro.observe(el)
-    return () => ro.disconnect()
-  }, [cardW])
 
   const fetchTrack = useCallback(async (rawUrl: string) => {
     setLoading(true)
@@ -467,37 +450,20 @@ export default function Home() {
             )}
           </div>
 
-          {/* Hidden export-safe card — off-screen, no white glass artifacts, dom-to-image captures this */}
+          {/* Hidden export card — fixed 520px container gives consistent export resolution */}
           {track && (
-            <div aria-hidden style={{ position: 'fixed', left: -10000, top: -10000, pointerEvents: 'none' }}>
-              <CardCanvas track={track} config={config} cardRef={cardRef} exportMode />
+            <div aria-hidden style={{ position: 'fixed', left: -10000, top: -10000, pointerEvents: 'none', width: 520 }}>
+              <CardCanvas ref={cardRef} track={track} config={config} exportMode />
             </div>
           )}
 
-          {/* Card preview — display only, scales to fit any container width */}
-          <div ref={previewRef} style={{
-            display: 'flex', justifyContent: 'center',
+          {/* Card preview — fills container, aspect ratio maintained by the card itself */}
+          <div style={{
             background: 'var(--bg-1)', borderRadius: 12,
             border: '1px solid var(--line)',
             padding: 20, overflow: 'hidden',
           }}>
-            {track && (
-              <div style={{
-                position: 'relative',
-                width: Math.round(cardW * previewScale),
-                height: Math.round(cardH * previewScale),
-                flexShrink: 0,
-              }}>
-                <div style={{
-                  position: 'absolute', top: 0, left: 0,
-                  transform: `scale(${previewScale})`,
-                  transformOrigin: 'top left',
-                  transition: 'opacity 150ms ease',
-                }}>
-                  <CardCanvas track={track} config={config} />
-                </div>
-              </div>
-            )}
+            {track && <CardCanvas track={track} config={config} />}
           </div>
 
           {/* Audio preview */}

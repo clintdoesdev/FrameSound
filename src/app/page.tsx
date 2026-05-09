@@ -51,6 +51,7 @@ type DemoCard = {
   pos: { top?: string; left?: string; right?: string; bottom?: string }
 }
 
+// Glass-panel floating cards (4 corners + 2 center sides)
 const DEMO_CARDS: DemoCard[] = [
   { title: 'Blinding Lights', artist: 'The Weeknd',
     gradient: 'linear-gradient(145deg,#3d0066 0%,#c0003e 100%)',
@@ -68,7 +69,65 @@ const DEMO_CARDS: DemoCard[] = [
     gradient: 'linear-gradient(145deg,#b34400 0%,#fbbf24 100%)',
     rotate: '-8deg', anim: 'float1', dur: '6.5s', delay: '-2s',
     pos: { bottom: '12%', right: '2.5%' } },
+  { title: 'MONTERO', artist: 'Lil Nas X',
+    gradient: 'linear-gradient(145deg,#1a0040 0%,#7c3aed 100%)',
+    rotate: '6deg', anim: 'float2', dur: '7.5s', delay: '-4.5s',
+    pos: { top: '47%', left: '1%' } },
+  { title: 'bad guy', artist: 'Billie Eilish',
+    gradient: 'linear-gradient(145deg,#012817 0%,#16a34a 100%)',
+    rotate: '-7deg', anim: 'float3', dur: '8s', delay: '-1.5s',
+    pos: { top: '45%', right: '1%' } },
 ]
+
+// Poster-style cards — full-bleed gradient art, text at bottom
+type DemoPosterCard = {
+  title: string; artist: string; gradient: string
+  rotate: string; anim: string; dur: string; delay: string
+  pos: { top?: string; left?: string; right?: string; bottom?: string }
+}
+
+const DEMO_POSTER_CARDS: DemoPosterCard[] = [
+  { title: 'Kill Bill', artist: 'SZA',
+    gradient: 'linear-gradient(160deg,#1e0f33 0%,#9333ea 55%,#db2777 100%)',
+    rotate: '-11deg', anim: 'float1', dur: '9s', delay: '-6s',
+    pos: { top: '20%', left: '19%' } },
+  { title: 'Cruel Summer', artist: 'Taylor Swift',
+    gradient: 'linear-gradient(160deg,#172554 0%,#2563eb 50%,#06b6d4 100%)',
+    rotate: '9deg', anim: 'float2', dur: '10s', delay: '-3s',
+    pos: { top: '18%', right: '19%' } },
+  { title: 'Espresso', artist: 'Sabrina Carpenter',
+    gradient: 'linear-gradient(160deg,#431407 0%,#ea580c 60%,#fbbf24 100%)',
+    rotate: '-5deg', anim: 'float3', dur: '8.5s', delay: '-7.5s',
+    pos: { bottom: '22%', left: '19%' } },
+  { title: 'vampire', artist: 'Olivia Rodrigo',
+    gradient: 'linear-gradient(160deg,#27141d 0%,#9f1239 55%,#f43f5e 100%)',
+    rotate: '7deg', anim: 'float1', dur: '9.5s', delay: '-4s',
+    pos: { bottom: '20%', right: '19%' } },
+]
+
+// Minimal horizontal cards — dark panel, coloured side thumbnail
+type DemoMinCard = {
+  title: string; artist: string; color: string
+  rotate: string; anim: string; dur: string; delay: string
+  pos: { top?: string; left?: string; right?: string; bottom?: string }
+}
+
+const DEMO_MIN_CARDS: DemoMinCard[] = [
+  { title: 'INDUSTRY BABY', artist: 'Lil Nas X',
+    color: 'linear-gradient(135deg,#0f172a 0%,#1e3a5f 100%)',
+    rotate: '-4deg', anim: 'float2', dur: '8s', delay: '-5.5s',
+    pos: { top: '70%', left: '3.5%' } },
+  { title: 'About Damn Time', artist: 'Lizzo',
+    color: 'linear-gradient(135deg,#3d1a00 0%,#b91c1c 100%)',
+    rotate: '3deg', anim: 'float3', dur: '7.5s', delay: '-2.5s',
+    pos: { top: '68%', right: '3.5%' } },
+]
+
+const MusicNote = () => (
+  <svg viewBox="0 0 24 24" width="36" height="36" fill="rgba(255,255,255,0.28)">
+    <path d="M9 18V5l12-2v13M9 18c0 1.657-1.343 3-3 3s-3-1.343-3-3 1.343-3 3-3 3 1.343 3 3zM21 16c0 1.657-1.343 3-3 3s-3-1.343-3-3 1.343-3 3-3 3 1.343 3 3z"/>
+  </svg>
+)
 
 function DemoBgCard({ title, artist, gradient, rotate, anim, dur, delay, pos }: DemoCard) {
   return (
@@ -88,25 +147,96 @@ function DemoBgCard({ title, artist, gradient, rotate, anim, dur, delay, pos }: 
         ...pos,
       }}
     >
-      {/* Specular highlight */}
       <div style={{
         position: 'absolute', inset: 1, borderRadius: 21, pointerEvents: 'none',
         background: 'radial-gradient(110% 50% at 20% 0%,rgba(255,255,255,0.30) 0%,rgba(255,255,255,0) 50%)',
         mixBlendMode: 'screen' as React.CSSProperties['mixBlendMode'],
       }} />
-      {/* Album art */}
       <div style={{
         width: '100%', aspectRatio: '1/1', borderRadius: 13,
         background: gradient, marginBottom: 11,
         boxShadow: '0 12px 32px -6px rgba(0,0,0,0.52)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
       }}>
-        <svg viewBox="0 0 24 24" width="36" height="36" fill="rgba(255,255,255,0.28)">
-          <path d="M9 18V5l12-2v13M9 18c0 1.657-1.343 3-3 3s-3-1.343-3-3 1.343-3 3-3 3 1.343 3 3zM21 16c0 1.657-1.343 3-3 3s-3-1.343-3-3 1.343-3 3-3 3 1.343 3 3z"/>
-        </svg>
+        <MusicNote />
       </div>
       <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '-0.01em', lineHeight: 1.2 }}>{title}</div>
       <div style={{ fontSize: 11, opacity: 0.65, marginTop: 3 }}>{artist}</div>
+    </div>
+  )
+}
+
+function DemoPosterCardView({ title, artist, gradient, rotate, anim, dur, delay, pos }: DemoPosterCard) {
+  return (
+    <div
+      className="demo-bg-card"
+      style={{
+        position: 'absolute', width: 148, height: 198,
+        borderRadius: 18, overflow: 'hidden',
+        boxShadow: '0 24px 52px -10px rgba(0,0,0,0.55),0 8px 18px -6px rgba(0,0,0,0.30)',
+        pointerEvents: 'none', zIndex: 2,
+        ['--card-transform' as string]: `rotate(${rotate})`,
+        animation: `${anim} ${dur} ease-in-out ${delay} infinite`,
+        ...pos,
+      }}
+    >
+      {/* Full-bleed art */}
+      <div style={{ position: 'absolute', inset: 0, background: gradient }} />
+      {/* Music note */}
+      <div style={{ position: 'absolute', top: '38%', left: '50%', transform: 'translate(-50%,-50%)' }}>
+        <svg viewBox="0 0 24 24" width="30" height="30" fill="rgba(255,255,255,0.22)">
+          <path d="M9 18V5l12-2v13M9 18c0 1.657-1.343 3-3 3s-3-1.343-3-3 1.343-3 3-3 3 1.343 3 3zM21 16c0 1.657-1.343 3-3 3s-3-1.343-3-3 1.343-3 3-3 3 1.343 3 3z"/>
+        </svg>
+      </div>
+      {/* Bottom gradient + text */}
+      <div style={{
+        position: 'absolute', bottom: 0, left: 0, right: 0,
+        background: 'linear-gradient(to top, rgba(0,0,0,0.88) 0%, transparent 100%)',
+        padding: '28px 12px 12px',
+        color: 'white',
+      }}>
+        <div style={{ fontSize: 11, fontWeight: 700, lineHeight: 1.25, letterSpacing: '-0.01em' }}>{title}</div>
+        <div style={{ fontSize: 10, opacity: 0.6, marginTop: 2 }}>{artist}</div>
+      </div>
+      {/* Specular */}
+      <div style={{
+        position: 'absolute', inset: 0, pointerEvents: 'none',
+        background: 'radial-gradient(100% 45% at 30% 0%,rgba(255,255,255,0.22) 0%,transparent 55%)',
+      }} />
+    </div>
+  )
+}
+
+function DemoMinCardView({ title, artist, color, rotate, anim, dur, delay, pos }: DemoMinCard) {
+  return (
+    <div
+      className="demo-bg-card"
+      style={{
+        position: 'absolute', width: 196, height: 68,
+        borderRadius: 14, overflow: 'hidden',
+        background: 'rgba(14,14,18,0.82)',
+        backdropFilter: 'blur(18px)',
+        WebkitBackdropFilter: 'blur(18px)',
+        border: '1px solid rgba(255,255,255,0.10)',
+        boxShadow: '0 14px 32px -8px rgba(0,0,0,0.50)',
+        display: 'flex', alignItems: 'stretch',
+        pointerEvents: 'none', zIndex: 2, color: 'white',
+        ['--card-transform' as string]: `rotate(${rotate})`,
+        animation: `${anim} ${dur} ease-in-out ${delay} infinite`,
+        ...pos,
+      }}
+    >
+      {/* Colour strip */}
+      <div style={{ width: 68, flexShrink: 0, background: color, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="rgba(255,255,255,0.30)">
+          <path d="M9 18V5l12-2v13M9 18c0 1.657-1.343 3-3 3s-3-1.343-3-3 1.343-3 3-3 3 1.343 3 3zM21 16c0 1.657-1.343 3-3 3s-3-1.343-3-3 1.343-3 3-3 3 1.343 3 3z"/>
+        </svg>
+      </div>
+      {/* Text */}
+      <div style={{ flex: 1, padding: '0 12px', display: 'flex', flexDirection: 'column', justifyContent: 'center', overflow: 'hidden' }}>
+        <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '-0.01em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{title}</div>
+        <div style={{ fontSize: 10, opacity: 0.5, marginTop: 2 }}>{artist}</div>
+      </div>
     </div>
   )
 }
@@ -276,6 +406,8 @@ export default function Home() {
 
         {/* Floating demo music cards */}
         {DEMO_CARDS.map((card, i) => <DemoBgCard key={i} {...card} />)}
+        {DEMO_POSTER_CARDS.map((card, i) => <DemoPosterCardView key={i} {...card} />)}
+        {DEMO_MIN_CARDS.map((card, i) => <DemoMinCardView key={i} {...card} />)}
 
         {/* Frosted nav */}
         <nav style={{
@@ -350,7 +482,7 @@ export default function Home() {
           flexShrink: 0,
         }}>
           <div style={{ fontSize: 12, color: 'var(--fg-3)', letterSpacing: '0.04em' }}>
-            created by <span style={{ color: 'var(--fg-1)', fontWeight: 700, letterSpacing: '0.06em' }}>CLINTDOESDEV</span>
+            created by <span style={{ color: 'var(--fg-1)', fontWeight: 700, letterSpacing: '0.06em' }}>CLINTDOESDEV.</span>
           </div>
           <div style={{ fontSize: 12, color: 'var(--fg-3)' }}>
             want to work with him?{' '}

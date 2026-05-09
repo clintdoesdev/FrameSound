@@ -7,7 +7,8 @@ import { TrackData, CardConfig } from '@/types'
 type Props = {
   track: TrackData
   config: CardConfig
-  cardRef: React.RefObject<HTMLDivElement>
+  cardRef?: React.RefObject<HTMLDivElement | null>
+  exportMode?: boolean
 }
 
 export const sizeMap: Record<CardConfig['size'], { width: number; height: number }> = {
@@ -140,7 +141,7 @@ function GlassLyric({ lyric, fontSize, dark = false }: { lyric: string; fontSize
   )
 }
 
-export default function CardCanvas({ track, config, cardRef }: Props) {
+export default function CardCanvas({ track, config, cardRef, exportMode = false }: Props) {
   const { width, height } = sizeMap[config.size]
   const ff = fontFamily(config.font)
   const hue = config.tintHue
@@ -163,8 +164,20 @@ export default function CardCanvas({ track, config, cardRef }: Props) {
     const artRadius = r * 0.7
     const isLandscape = width > height * 1.15
 
-    // All glass styles inline — no className, no CSS variable oklch references
-    const glassCardStyle: React.CSSProperties = {
+    // In the browser: full frosted glass effect with backdrop-filter
+    // In export (exportMode): clean dark overlay — backdrop-filter not supported by dom-to-image,
+    // and white borders/gradients create visible white outline artifacts in exported PNGs
+    const isTransparent = config.bgStyle === 'transparent'
+    const glassCardStyle: React.CSSProperties = exportMode ? {
+      ...baseStyle,
+      position: 'relative',
+      overflow: 'hidden',
+      flexShrink: 0,
+      color: 'white',
+      borderRadius: r,
+      background: isTransparent ? 'transparent' : 'rgba(0,0,0,0.55)',
+      boxShadow: isTransparent ? 'none' : '0 24px 64px rgba(0,0,0,0.6)',
+    } : {
       ...baseStyle,
       position: 'relative',
       overflow: 'hidden',
@@ -179,9 +192,8 @@ export default function CardCanvas({ track, config, cardRef }: Props) {
       boxShadow: GLASS_SHADOW,
     }
 
-    // Specular highlight — reduced opacity so it works WITHOUT mix-blend-mode: screen
-    // mix-blend-mode: screen is not supported by dom-to-image and causes white overlay artifacts
-    const specularDiv = (
+    // Specular + refraction overlays — browser only (cause white artifacts in dom-to-image exports)
+    const specularDiv = exportMode ? null : (
       <div style={{
         position: 'absolute', inset: 1, borderRadius: r - 1, zIndex: 2, pointerEvents: 'none',
         background:
@@ -190,7 +202,7 @@ export default function CardCanvas({ track, config, cardRef }: Props) {
       }} />
     )
 
-    const refractionDiv = (
+    const refractionDiv = exportMode ? null : (
       <div style={{
         position: 'absolute', left: 1, right: 1, bottom: 1, height: '38%',
         borderRadius: `0 0 ${r - 1}px ${r - 1}px`,

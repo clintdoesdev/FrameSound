@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useCallback, useEffect } from 'react'
+import { useState, useRef, useCallback, useEffect, useLayoutEffect } from 'react'
 import Image from 'next/image'
 import { getTrackFromUrl } from '@/actions/spotify'
 import { getLyrics } from '@/actions/lyrics'
@@ -120,6 +120,7 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null)
   const [accentColor, setAccentColor] = useState<string | null>(null)
 
+  // cardRef → hidden off-screen export card (what dom-to-image captures, no white artifacts)
   const cardRef = useRef<HTMLDivElement>(null!)
   const previewRef = useRef<HTMLDivElement>(null)
   const [previewScale, setPreviewScale] = useState(0.72)
@@ -146,9 +147,9 @@ export default function Home() {
     }).catch(() => {/* ignore */ })
   }, [track?.coverUrl])
 
-  // Compute scale so card preview always fits within its container — no overflow on any screen size
+  // Compute scale before first paint so there's no overflow flash on mobile
   const { width: cardW, height: cardH } = sizeMap[config.size]
-  useEffect(() => {
+  useLayoutEffect(() => {
     const el = previewRef.current
     if (!el) return
     const update = () => {
@@ -356,6 +357,30 @@ export default function Home() {
             <RecentTracks onSelect={loadFromRecent} />
           </div>
         </div>
+
+        {/* Footer */}
+        <footer style={{
+          position: 'relative', zIndex: 10,
+          padding: '18px 24px 22px',
+          borderTop: '1px solid var(--line-soft)',
+          display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5,
+          flexShrink: 0,
+        }}>
+          <div style={{ fontSize: 12, color: 'var(--fg-3)', letterSpacing: '0.04em' }}>
+            created by <span style={{ color: 'var(--fg-1)', fontWeight: 700, letterSpacing: '0.06em' }}>CLINTDOESDEV</span>
+          </div>
+          <div style={{ fontSize: 12, color: 'var(--fg-3)' }}>
+            want to work with him?{' '}
+            <a
+              href="https://clintdoesdev.site"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ color: 'var(--accent)', textDecoration: 'none', fontWeight: 500 }}
+            >
+              check out his portfolio ↗
+            </a>
+          </div>
+        </footer>
       </div>
     )
   }
@@ -442,12 +467,19 @@ export default function Home() {
             )}
           </div>
 
-          {/* Card preview — sized wrapper prevents layout overflow at any screen width */}
+          {/* Hidden export-safe card — off-screen, no white glass artifacts, dom-to-image captures this */}
+          {track && (
+            <div aria-hidden style={{ position: 'fixed', left: -10000, top: -10000, pointerEvents: 'none' }}>
+              <CardCanvas track={track} config={config} cardRef={cardRef} exportMode />
+            </div>
+          )}
+
+          {/* Card preview — display only, scales to fit any container width */}
           <div ref={previewRef} style={{
             display: 'flex', justifyContent: 'center',
             background: 'var(--bg-1)', borderRadius: 12,
             border: '1px solid var(--line)',
-            padding: 20,
+            padding: 20, overflow: 'hidden',
           }}>
             {track && (
               <div style={{
@@ -462,7 +494,7 @@ export default function Home() {
                   transformOrigin: 'top left',
                   transition: 'opacity 150ms ease',
                 }}>
-                  <CardCanvas track={track} config={config} cardRef={cardRef} />
+                  <CardCanvas track={track} config={config} />
                 </div>
               </div>
             )}

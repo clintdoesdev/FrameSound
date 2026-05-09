@@ -32,7 +32,7 @@ function proxySrc(url: string) {
   return `/_next/image?url=${encodeURIComponent(url)}&w=640&q=85`
 }
 
-// Export-safe: hsl() instead of oklch() so dom-to-image can parse it
+// Export-safe blurred background — proxied URL + crossOrigin in export mode
 function BlurBg({ hue, coverUrl, exportMode }: { hue: number; coverUrl: string | null; exportMode?: boolean }) {
   if (coverUrl) {
     return (
@@ -67,10 +67,23 @@ function BlurBg({ hue, coverUrl, exportMode }: { hue: number; coverUrl: string |
   )
 }
 
-function AlbumArtEl({ coverUrl, album, hue, size, radius = 6 }: {
-  coverUrl: string | null; album: string; hue: number; size: number; radius?: number
+// In export mode, use a proxied plain <img> so canvas access is never tainted
+function AlbumArtEl({ coverUrl, album, hue, size, radius = 6, exportMode = false }: {
+  coverUrl: string | null; album: string; hue: number; size: number; radius?: number; exportMode?: boolean
 }) {
   if (coverUrl) {
+    if (exportMode) {
+      return (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={proxySrc(coverUrl)}
+          crossOrigin="anonymous"
+          alt={album}
+          width={size} height={size}
+          style={{ borderRadius: radius, flexShrink: 0, display: 'block', objectFit: 'cover' }}
+        />
+      )
+    }
     return (
       <Image
         src={coverUrl} alt={album}
@@ -90,7 +103,6 @@ function AlbumArtEl({ coverUrl, album, hue, size, radius = 6 }: {
   )
 }
 
-// Export-safe: hsl() instead of oklch()
 function BgLayer({ config }: { config: CardConfig }) {
   if (config.bgStyle === 'solid') {
     return <div style={{ position: 'absolute', inset: 0, background: config.bgColor, zIndex: 0 }} />
@@ -106,7 +118,7 @@ function BgLayer({ config }: { config: CardConfig }) {
   return null
 }
 
-// All rgba — no oklch, no CSS variables that resolve to oklch
+// All rgba — no oklch, no CSS variables
 const GLASS_SHADOW =
   '0 1px 0 rgba(255,255,255,0.5) inset,' +
   '0 -1px 0 rgba(255,255,255,0.10) inset,' +
@@ -117,7 +129,6 @@ const CARD_SHADOW =
   '0 1px 0 rgba(255,255,255,0.05) inset,' +
   '0 24px 64px rgba(0,0,0,0.55)'
 
-// Lyric box for glass preset — no backdropFilter (not supported by dom-to-image)
 function LyricQuote({ lyric, width, r }: { lyric: string; width: number; r: number }) {
   return (
     <div style={{
@@ -132,7 +143,6 @@ function LyricQuote({ lyric, width, r }: { lyric: string; width: number; r: numb
   )
 }
 
-// Story/Square lyric box — replaces .glass className (whose oklch computed style may cause issues)
 function GlassLyric({ lyric, fontSize, dark = false }: { lyric: string; fontSize: number; dark?: boolean }) {
   return (
     <div style={{
@@ -158,21 +168,21 @@ export default function CardCanvas({ track, config, cardRef, exportMode = false 
   const textColor = isDark ? '#f5f4f2' : '#222220'
   const textAlign = config.textAlign ?? 'left'
 
+  // Base styles shared across presets. In export mode, no decorative shadow/border/outline.
   const baseStyle: React.CSSProperties = {
     width, height,
     fontFamily: ff,
     ['--card-radius' as string]: `${r}px`,
-    transition: 'opacity 150ms ease',
+    transition: exportMode ? 'none' : 'opacity 150ms ease',
   }
 
   if (config.preset === 'glass') {
     const artRadius = r * 0.7
     const isLandscape = width > height * 1.15
-
-    // In the browser: full frosted glass effect with backdrop-filter
-    // In export (exportMode): clean dark overlay — backdrop-filter not supported by dom-to-image,
-    // and white borders/gradients create visible white outline artifacts in exported PNGs
     const isTransparent = config.bgStyle === 'transparent'
+
+    // Export: clean opaque background, no border/shadow that bleed into canvas
+    // Browser: full frosted glass with backdrop-filter, border, specular overlays
     const glassCardStyle: React.CSSProperties = exportMode ? {
       ...baseStyle,
       position: 'relative',
@@ -181,7 +191,7 @@ export default function CardCanvas({ track, config, cardRef, exportMode = false 
       color: 'white',
       borderRadius: r,
       background: isTransparent ? 'transparent' : 'rgba(14,14,14,0.92)',
-      boxShadow: isTransparent ? 'none' : '0 24px 64px rgba(0,0,0,0.6)',
+      // no border, no boxShadow, no outline
     } : {
       ...baseStyle,
       position: 'relative',
@@ -197,7 +207,7 @@ export default function CardCanvas({ track, config, cardRef, exportMode = false 
       boxShadow: GLASS_SHADOW,
     }
 
-    // Specular + refraction overlays — browser only (cause white artifacts in dom-to-image exports)
+    // Specular/refraction overlays — browser only (cause white artifacts in exports)
     const specularDiv = exportMode ? null : (
       <div style={{
         position: 'absolute', inset: 1, borderRadius: r - 1, zIndex: 2, pointerEvents: 'none',
@@ -206,7 +216,6 @@ export default function CardCanvas({ track, config, cardRef, exportMode = false 
           'radial-gradient(80% 40% at 80% 0%, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0) 58%)',
       }} />
     )
-
     const refractionDiv = exportMode ? null : (
       <div style={{
         position: 'absolute', left: 1, right: 1, bottom: 1, height: '38%',
@@ -346,7 +355,8 @@ export default function CardCanvas({ track, config, cardRef, exportMode = false 
         position: 'relative', overflow: 'hidden', isolation: 'isolate',
         flexShrink: 0, color: 'white',
         borderRadius: r,
-        boxShadow: CARD_SHADOW,
+        // no boxShadow in export — leaks as artifact around card edges
+        ...(exportMode ? {} : { boxShadow: CARD_SHADOW }),
       }}>
         {useBlur ? (
           <>
@@ -401,14 +411,14 @@ export default function CardCanvas({ track, config, cardRef, exportMode = false 
         color: textColor,
         borderRadius: r,
         background: bgColor,
-        boxShadow: isDark ? CARD_SHADOW : '0 1px 0 rgba(255,255,255,1) inset,0 18px 48px rgba(0,0,0,0.12)',
+        ...(exportMode ? {} : { boxShadow: isDark ? CARD_SHADOW : '0 1px 0 rgba(255,255,255,1) inset,0 18px 48px rgba(0,0,0,0.12)' }),
       }}>
         <div style={{
           position: 'relative', zIndex: 1, width: '100%', height: '100%', padding: p,
           display: 'flex', alignItems: 'center', gap: p * 0.9,
         }}>
           {config.showAlbumArt && (
-            <AlbumArtEl coverUrl={track.coverUrl} album={track.album} hue={hue} size={artSize} radius={4} />
+            <AlbumArtEl coverUrl={track.coverUrl} album={track.album} hue={hue} size={artSize} radius={4} exportMode={exportMode} />
           )}
           <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 8, textAlign }}>
             <div style={{ fontFamily: 'var(--font-mono)', fontSize: width * 0.020, letterSpacing: '0.08em', opacity: 0.55, textTransform: 'uppercase' }}>
@@ -446,7 +456,7 @@ export default function CardCanvas({ track, config, cardRef, exportMode = false 
         position: 'relative', overflow: 'hidden', isolation: 'isolate',
         flexShrink: 0, color: 'white',
         borderRadius: r,
-        boxShadow: CARD_SHADOW,
+        ...(exportMode ? {} : { boxShadow: CARD_SHADOW }),
       }}>
         <BlurBg hue={hue} coverUrl={track.coverUrl} exportMode={exportMode} />
         <div style={{
@@ -456,7 +466,7 @@ export default function CardCanvas({ track, config, cardRef, exportMode = false 
         }}>
           <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, opacity: 0.7, letterSpacing: '0.16em' }}>FRAMESOUND · STORY</div>
           {config.showAlbumArt && (
-            <AlbumArtEl coverUrl={track.coverUrl} album={track.album} hue={hue} size={artSize} radius={8} />
+            <AlbumArtEl coverUrl={track.coverUrl} album={track.album} hue={hue} size={artSize} radius={8} exportMode={exportMode} />
           )}
           <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'center', textAlign }}>
             {config.showTitle && (
@@ -485,7 +495,7 @@ export default function CardCanvas({ track, config, cardRef, exportMode = false 
       flexShrink: 0,
       color: isDark ? 'white' : '#222220',
       borderRadius: r,
-      boxShadow: isDark ? CARD_SHADOW : '0 1px 0 rgba(255,255,255,1) inset,0 18px 48px rgba(0,0,0,0.12)',
+      ...(exportMode ? {} : { boxShadow: isDark ? CARD_SHADOW : '0 1px 0 rgba(255,255,255,1) inset,0 18px 48px rgba(0,0,0,0.12)' }),
     }}>
       <BlurBg hue={hue} coverUrl={track.coverUrl} exportMode={exportMode} />
       <div style={{
@@ -495,7 +505,7 @@ export default function CardCanvas({ track, config, cardRef, exportMode = false 
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
           {config.showAlbumArt && (
-            <AlbumArtEl coverUrl={track.coverUrl} album={track.album} hue={hue} size={artSize} radius={4} />
+            <AlbumArtEl coverUrl={track.coverUrl} album={track.album} hue={hue} size={artSize} radius={4} exportMode={exportMode} />
           )}
           <div style={{ flex: 1, minWidth: 0 }}>
             {config.showTitle && (

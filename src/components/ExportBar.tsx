@@ -36,6 +36,21 @@ function safe(s: string) {
   return s.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '')
 }
 
+function waitForImages(el: HTMLElement): Promise<void> {
+  const imgs = Array.from(el.querySelectorAll('img'))
+  if (imgs.length === 0) return Promise.resolve()
+  return Promise.all(
+    imgs.map(img =>
+      img.complete
+        ? Promise.resolve()
+        : new Promise<void>(resolve => {
+            img.onload = () => resolve()
+            img.onerror = () => resolve()
+          })
+    )
+  ).then(() => undefined)
+}
+
 const supportsClipboard = typeof window !== 'undefined' && typeof ClipboardItem !== 'undefined'
 
 export default function ExportBar({ cardRef, track, config, onConfigChange }: Props) {
@@ -61,6 +76,7 @@ export default function ExportBar({ cardRef, track, config, onConfigChange }: Pr
     setBusy('png')
     showToast('Exporting 4K PNG…')
     try {
+      await waitForImages(cardRef.current)
       const dti = (await import('dom-to-image-more')).default
       const url = await dti.toPng(cardRef.current, { scale: 4, bgcolor: resolvedBgColor })
       const a = document.createElement('a')
@@ -75,6 +91,7 @@ export default function ExportBar({ cardRef, track, config, onConfigChange }: Pr
     setBusy('jpg')
     showToast('Exporting JPG…')
     try {
+      await waitForImages(cardRef.current)
       const dti = (await import('dom-to-image-more')).default
       const url = await dti.toJpeg(cardRef.current, { quality: 0.97, scale: 3, bgcolor: resolvedBgColor })
       const a = document.createElement('a')
@@ -92,6 +109,7 @@ export default function ExportBar({ cardRef, track, config, onConfigChange }: Pr
     onConfigChange({ bgStyle: 'transparent' })
     await new Promise(r => setTimeout(r, 140))
     try {
+      await waitForImages(cardRef.current)
       const dti = (await import('dom-to-image-more')).default
       const blob = await dti.toBlob(cardRef.current, { scale: 3, bgcolor: 'transparent' })
       const url = URL.createObjectURL(blob)
@@ -110,6 +128,7 @@ export default function ExportBar({ cardRef, track, config, onConfigChange }: Pr
     if (!cardRef.current || busy) return
     setBusy('clipboard')
     try {
+      await waitForImages(cardRef.current)
       const dti = (await import('dom-to-image-more')).default
       const blob = await dti.toBlob(cardRef.current, { scale: 3, bgcolor: resolvedBgColor })
       await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })])

@@ -5,7 +5,7 @@ import Image from 'next/image'
 import { getTrackFromUrl } from '@/actions/spotify'
 import { getLyrics } from '@/actions/lyrics'
 import { TrackData, CardConfig, defaultConfig } from '@/types'
-import CardCanvas from '@/components/CardCanvas'
+import CardCanvas, { sizeMap } from '@/components/CardCanvas'
 import LyricsPanel from '@/components/LyricsPanel'
 import CustomizePanel from '@/components/CustomizePanel'
 import ExportBar from '@/components/ExportBar'
@@ -121,6 +121,8 @@ export default function Home() {
   const [accentColor, setAccentColor] = useState<string | null>(null)
 
   const cardRef = useRef<HTMLDivElement>(null!)
+  const previewRef = useRef<HTMLDivElement>(null)
+  const [previewScale, setPreviewScale] = useState(0.72)
 
   const updateConfig = useCallback((updates: Partial<CardConfig>) => {
     setConfig(prev => ({ ...prev, ...updates }))
@@ -143,6 +145,21 @@ export default function Home() {
       img.src = `/_next/image?url=${encodeURIComponent(coverUrl)}&w=64&q=75`
     }).catch(() => {/* ignore */ })
   }, [track?.coverUrl])
+
+  // Compute scale so card preview always fits within its container — no overflow on any screen size
+  const { width: cardW, height: cardH } = sizeMap[config.size]
+  useEffect(() => {
+    const el = previewRef.current
+    if (!el) return
+    const update = () => {
+      const available = el.clientWidth - 40 // 20px padding on each side
+      if (available > 0) setPreviewScale(Math.min(0.72, available / cardW))
+    }
+    update()
+    const ro = new ResizeObserver(update)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [cardW])
 
   const fetchTrack = useCallback(async (rawUrl: string) => {
     setLoading(true)
@@ -425,8 +442,8 @@ export default function Home() {
             )}
           </div>
 
-          {/* Card preview */}
-          <div style={{
+          {/* Card preview — sized wrapper prevents layout overflow at any screen width */}
+          <div ref={previewRef} style={{
             display: 'flex', justifyContent: 'center',
             background: 'var(--bg-1)', borderRadius: 12,
             border: '1px solid var(--line)',
@@ -434,10 +451,19 @@ export default function Home() {
           }}>
             {track && (
               <div style={{
-                transform: 'scale(0.72)', transformOrigin: 'top center',
-                transition: 'opacity 150ms ease',
+                position: 'relative',
+                width: Math.round(cardW * previewScale),
+                height: Math.round(cardH * previewScale),
+                flexShrink: 0,
               }}>
-                <CardCanvas track={track} config={config} cardRef={cardRef} />
+                <div style={{
+                  position: 'absolute', top: 0, left: 0,
+                  transform: `scale(${previewScale})`,
+                  transformOrigin: 'top left',
+                  transition: 'opacity 150ms ease',
+                }}>
+                  <CardCanvas track={track} config={config} cardRef={cardRef} />
+                </div>
               </div>
             )}
           </div>

@@ -67,6 +67,12 @@ const CardCanvas = forwardRef<HTMLDivElement, Props>(function CardCanvas(
     color: textColor,
   }
 
+  // In export mode, strip overflow:hidden + textOverflow:ellipsis — dom-to-image's
+  // SVG foreignObject renderer draws a white clip rect for any overflow:hidden element.
+  const clip: React.CSSProperties = exportMode
+    ? {}
+    : { overflow: 'hidden', textOverflow: 'ellipsis' }
+
   const titleStyle: React.CSSProperties = {
     fontSize: 'clamp(18px, 4vw, 32px)',
     fontWeight: 700,
@@ -75,8 +81,7 @@ const CardCanvas = forwardRef<HTMLDivElement, Props>(function CardCanvas(
     color: textColor,
     backgroundColor: 'transparent',
     whiteSpace: 'nowrap',
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
+    ...clip,
   }
 
   const artistStyle: React.CSSProperties = {
@@ -87,8 +92,7 @@ const CardCanvas = forwardRef<HTMLDivElement, Props>(function CardCanvas(
     backgroundColor: 'transparent',
     opacity: 0.75,
     whiteSpace: 'nowrap',
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
+    ...clip,
   }
 
   const metaStyle: React.CSSProperties = {
@@ -137,6 +141,7 @@ const CardCanvas = forwardRef<HTMLDivElement, Props>(function CardCanvas(
             position: 'absolute', inset: 0,
             width: '100%', height: '100%',
             objectFit: 'cover',
+            border: 'none', outline: 'none',
             filter: `blur(32px) brightness(0.6) hue-rotate(${config.tintHue}deg)`,
             transform: 'scale(1.15)',
             transformOrigin: 'center',
@@ -169,9 +174,12 @@ const CardCanvas = forwardRef<HTMLDivElement, Props>(function CardCanvas(
           alignItems: 'center', justifyContent: 'center',
           height: '100%',
           padding: `${config.padding}px`,
+          backgroundColor: 'transparent',
         }}>
           <div style={{
-            background: 'rgba(255,255,255,0.08)',
+            // In export mode use a dark panel — backdrop-filter doesn't work in dom-to-image,
+            // and rgba(white,0.08) at the img corners creates a visible white ring artifact.
+            background: exportMode ? 'rgba(0,0,0,0.40)' : 'rgba(255,255,255,0.08)',
             backdropFilter: exportMode ? undefined : 'blur(12px)',
             WebkitBackdropFilter: exportMode ? undefined : 'blur(12px)',
             borderRadius: '12px',
@@ -181,6 +189,7 @@ const CardCanvas = forwardRef<HTMLDivElement, Props>(function CardCanvas(
             width: '100%', maxWidth: '320px',
             border: exportMode ? 'none' : '1px solid rgba(255,255,255,0.2)',
             textAlign: config.textAlign,
+            backgroundColor: exportMode ? 'rgba(0,0,0,0.40)' : undefined,
           }}>
             {config.showAlbumArt && track.coverUrl && (
               // eslint-disable-next-line @next/next/no-img-element
@@ -188,12 +197,12 @@ const CardCanvas = forwardRef<HTMLDivElement, Props>(function CardCanvas(
                 src={coverSrc}
                 crossOrigin="anonymous"
                 alt={track.title}
-                style={{ width: '100%', aspectRatio: '1/1', objectFit: 'cover', borderRadius: '8px', display: 'block' }}
+                style={{ width: '100%', aspectRatio: '1/1', objectFit: 'cover', borderRadius: '8px', display: 'block', border: 'none', outline: 'none' }}
               />
             )}
             {config.showTitle    && <p style={titleStyle}>{track.title}</p>}
             {config.showArtist   && <p style={artistStyle}>{track.artist}</p>}
-            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', justifyContent: 'center' }}>
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', justifyContent: 'center', backgroundColor: 'transparent' }}>
               {config.showYear     && <span style={metaStyle}>{track.releaseYear}</span>}
               {config.showYear && config.showDuration && <span style={metaStyle}>·</span>}
               {config.showDuration && <span style={metaStyle}>{track.duration}</span>}
@@ -214,24 +223,26 @@ const CardCanvas = forwardRef<HTMLDivElement, Props>(function CardCanvas(
         {config.showAlbumArt && track.coverUrl
           // eslint-disable-next-line @next/next/no-img-element
           ? <img src={coverSrc} crossOrigin="anonymous" alt={track.title}
-              style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+              style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', display: 'block', border: 'none', outline: 'none' }} />
           : bgElement}
         <div style={{
           position: 'absolute', bottom: 0, left: 0, right: 0, height: '55%',
           background: 'linear-gradient(to top, rgba(0,0,0,0.95) 0%, transparent 100%)',
+          backgroundColor: 'transparent',
         }} />
         <div style={{
           position: 'absolute', bottom: 0, left: 0, right: 0,
           padding: `${config.padding}px`,
           display: 'flex', flexDirection: 'column', gap: '4px',
           textAlign: config.textAlign,
+          backgroundColor: 'transparent',
         }}>
           {config.showLyrics && config.lyricQuote && (
             <p style={{ ...lyricsStyle, marginBottom: '8px' }}>"{config.lyricQuote}"</p>
           )}
           {config.showTitle    && <p style={titleStyle}>{track.title}</p>}
           {config.showArtist   && <p style={artistStyle}>{track.artist}</p>}
-          <div style={{ display: 'flex', gap: '8px' }}>
+          <div style={{ display: 'flex', gap: '8px', backgroundColor: 'transparent' }}>
             {config.showYear     && <span style={metaStyle}>{track.releaseYear}</span>}
             {config.showDuration && <span style={metaStyle}>{track.duration}</span>}
           </div>
@@ -254,19 +265,22 @@ const CardCanvas = forwardRef<HTMLDivElement, Props>(function CardCanvas(
               src={coverSrc}
               crossOrigin="anonymous"
               alt={track.title}
-              style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+              style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', display: 'block', border: 'none', outline: 'none' }}
             />
           </div>
         )}
         <div style={{
           flex: 1, display: 'flex', flexDirection: 'column',
           justifyContent: 'center', padding: `${config.padding}px`,
-          gap: '8px', overflow: 'hidden',
+          gap: '8px',
+          // strip overflow:hidden on the text column in export mode
+          ...(exportMode ? {} : { overflow: 'hidden' }),
           textAlign: config.textAlign,
+          backgroundColor: 'transparent',
         }}>
           {config.showTitle    && <p style={titleStyle}>{track.title}</p>}
           {config.showArtist   && <p style={artistStyle}>{track.artist}</p>}
-          <div style={{ display: 'flex', gap: '8px' }}>
+          <div style={{ display: 'flex', gap: '8px', backgroundColor: 'transparent' }}>
             {config.showYear     && <span style={metaStyle}>{track.releaseYear}</span>}
             {config.showDuration && <span style={metaStyle}>{track.duration}</span>}
           </div>
@@ -290,8 +304,9 @@ const CardCanvas = forwardRef<HTMLDivElement, Props>(function CardCanvas(
           height: '100%',
           padding: `${config.padding}px`,
           textAlign: 'center',
+          backgroundColor: 'transparent',
         }}>
-          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, opacity: 0.6, letterSpacing: '0.16em', color: textColor }}>
+          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, opacity: 0.6, letterSpacing: '0.16em', color: textColor, backgroundColor: 'transparent' }}>
             FRAMESOUND · STORY
           </div>
           {config.showAlbumArt && track.coverUrl && (
@@ -300,10 +315,10 @@ const CardCanvas = forwardRef<HTMLDivElement, Props>(function CardCanvas(
               src={coverSrc}
               crossOrigin="anonymous"
               alt={track.title}
-              style={{ width: '62%', aspectRatio: '1/1', objectFit: 'cover', borderRadius: '12px', display: 'block' }}
+              style={{ width: '62%', aspectRatio: '1/1', objectFit: 'cover', borderRadius: '12px', display: 'block', border: 'none', outline: 'none' }}
             />
           )}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', alignItems: 'center', width: '100%' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', alignItems: 'center', width: '100%', backgroundColor: 'transparent' }}>
             {config.showTitle  && <p style={{ ...titleStyle,  whiteSpace: 'normal', textAlign: 'center' }}>{track.title}</p>}
             {config.showArtist && <p style={{ ...artistStyle, textAlign: 'center' }}>{track.artist}</p>}
             {config.showLyrics && config.lyricQuote && (
@@ -330,6 +345,7 @@ const CardCanvas = forwardRef<HTMLDivElement, Props>(function CardCanvas(
         padding: `${config.padding}px`,
         gap: '12px',
         textAlign: config.textAlign,
+        backgroundColor: 'transparent',
       }}>
         {config.showAlbumArt && track.coverUrl && (
           // eslint-disable-next-line @next/next/no-img-element
@@ -337,12 +353,12 @@ const CardCanvas = forwardRef<HTMLDivElement, Props>(function CardCanvas(
             src={coverSrc}
             crossOrigin="anonymous"
             alt={track.title}
-            style={{ width: '55%', maxWidth: '200px', aspectRatio: '1/1', objectFit: 'cover', borderRadius: '8px', display: 'block' }}
+            style={{ width: '55%', maxWidth: '200px', aspectRatio: '1/1', objectFit: 'cover', borderRadius: '8px', display: 'block', border: 'none', outline: 'none' }}
           />
         )}
         {config.showTitle    && <p style={titleStyle}>{track.title}</p>}
         {config.showArtist   && <p style={artistStyle}>{track.artist}</p>}
-        <div style={{ display: 'flex', gap: '8px' }}>
+        <div style={{ display: 'flex', gap: '8px', backgroundColor: 'transparent' }}>
           {config.showYear     && <span style={metaStyle}>{track.releaseYear}</span>}
           {config.showYear && config.showDuration && <span style={metaStyle}>·</span>}
           {config.showDuration && <span style={metaStyle}>{track.duration}</span>}

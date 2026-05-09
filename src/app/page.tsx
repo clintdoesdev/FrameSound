@@ -45,6 +45,72 @@ function Logo() {
   )
 }
 
+type DemoCard = {
+  title: string; artist: string; gradient: string
+  rotate: string; anim: string; dur: string; delay: string
+  pos: { top?: string; left?: string; right?: string; bottom?: string }
+}
+
+const DEMO_CARDS: DemoCard[] = [
+  { title: 'Blinding Lights', artist: 'The Weeknd',
+    gradient: 'linear-gradient(145deg,#3d0066 0%,#c0003e 100%)',
+    rotate: '-13deg', anim: 'float1', dur: '7s', delay: '0s',
+    pos: { top: '13%', left: '3%' } },
+  { title: 'As It Was', artist: 'Harry Styles',
+    gradient: 'linear-gradient(145deg,#8b003f 0%,#f472b6 100%)',
+    rotate: '10deg', anim: 'float2', dur: '8.5s', delay: '-3s',
+    pos: { top: '10%', right: '3%' } },
+  { title: 'Heat Waves', artist: 'Glass Animals',
+    gradient: 'linear-gradient(145deg,#004a59 0%,#00bcd4 100%)',
+    rotate: '7deg', anim: 'float3', dur: '9s', delay: '-5s',
+    pos: { bottom: '15%', left: '2.5%' } },
+  { title: 'Levitating', artist: 'Dua Lipa',
+    gradient: 'linear-gradient(145deg,#b34400 0%,#fbbf24 100%)',
+    rotate: '-8deg', anim: 'float1', dur: '6.5s', delay: '-2s',
+    pos: { bottom: '12%', right: '2.5%' } },
+]
+
+function DemoBgCard({ title, artist, gradient, rotate, anim, dur, delay, pos }: DemoCard) {
+  return (
+    <div
+      className="demo-bg-card"
+      style={{
+        position: 'absolute', width: 178,
+        background: 'linear-gradient(135deg,rgba(255,255,255,0.18) 0%,rgba(255,255,255,0.06) 48%,rgba(255,255,255,0.12) 100%)',
+        backdropFilter: 'blur(20px) saturate(160%)',
+        WebkitBackdropFilter: 'blur(20px) saturate(160%)',
+        border: '1px solid rgba(255,255,255,0.24)',
+        borderRadius: 22, padding: 12,
+        boxShadow: '0 1px 0 rgba(255,255,255,0.50) inset,0 22px 48px -12px rgba(0,0,0,0.42),0 8px 18px -6px rgba(0,0,0,0.25)',
+        pointerEvents: 'none', color: 'white', zIndex: 2,
+        ['--card-transform' as string]: `rotate(${rotate})`,
+        animation: `${anim} ${dur} ease-in-out ${delay} infinite`,
+        ...pos,
+      }}
+    >
+      {/* Specular highlight */}
+      <div style={{
+        position: 'absolute', inset: 1, borderRadius: 21, pointerEvents: 'none',
+        background: 'radial-gradient(110% 50% at 20% 0%,rgba(255,255,255,0.30) 0%,rgba(255,255,255,0) 50%)',
+        mixBlendMode: 'screen' as React.CSSProperties['mixBlendMode'],
+      }} />
+      {/* Album art */}
+      <div style={{
+        width: '100%', aspectRatio: '1/1', borderRadius: 13,
+        background: gradient, marginBottom: 11,
+        boxShadow: '0 12px 32px -6px rgba(0,0,0,0.52)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+      }}>
+        <svg viewBox="0 0 24 24" width="36" height="36" fill="rgba(255,255,255,0.28)">
+          <path d="M9 18V5l12-2v13M9 18c0 1.657-1.343 3-3 3s-3-1.343-3-3 1.343-3 3-3 3 1.343 3 3zM21 16c0 1.657-1.343 3-3 3s-3-1.343-3-3 1.343-3 3-3 3 1.343 3 3z"/>
+        </svg>
+      </div>
+      <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '-0.01em', lineHeight: 1.2 }}>{title}</div>
+      <div style={{ fontSize: 11, opacity: 0.65, marginTop: 3 }}>{artist}</div>
+    </div>
+  )
+}
+
 export default function Home() {
   const [url, setUrl] = useState('')
   const [track, setTrack] = useState<TrackData | null>(null)
@@ -146,36 +212,120 @@ export default function Home() {
     </div>
   )
 
+  const heroUrlBar = (
+    <div style={{ position: 'relative', width: '100%' }}>
+      <div className="input" style={{
+        height: 62, paddingLeft: 20, paddingRight: 8, fontSize: 16,
+        borderRadius: 16, border: '1px solid var(--line)',
+        boxShadow: '0 4px 24px oklch(from var(--accent) l c h / 0.08)',
+      }}>
+        <span style={{ color: 'var(--fg-3)', flexShrink: 0 }}><LinkIcon /></span>
+        <input
+          value={url}
+          onChange={e => handleUrlInput(e.target.value)}
+          onPaste={handlePaste}
+          placeholder="Paste a Spotify track link…"
+          spellCheck={false}
+          autoFocus
+          style={{ fontSize: 16 }}
+        />
+        <button
+          className="btn btn-glow"
+          data-variant="primary"
+          data-size="sm"
+          onClick={() => url && fetchTrack(url)}
+          style={{ flexShrink: 0, borderRadius: 10, height: 44 }}
+        >
+          Generate →
+        </button>
+      </div>
+    </div>
+  )
+
   // ── EMPTY STATE ──────────────────────────────────────────────
   if (!track && !loading) {
     return (
-      <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--bg)' }}>
+      <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--hero-bg)', position: 'relative', overflow: 'hidden' }}>
         {accentColor && <style>{`:root { --accent: ${accentColor}; }`}</style>}
+        <style>{`
+          .demo-bg-card { display: block; }
+          @media (max-width: 700px) { .demo-bg-card { display: none; } }
+        `}</style>
 
-        {/* Minimal nav */}
+        {/* Dot-grid background */}
+        <div className="hero-grid" style={{ position: 'absolute', inset: 0, zIndex: 0 }} />
+
+        {/* Ambient color blobs — give glass cards something to blur */}
+        <div style={{ position: 'absolute', top: '5%', left: '-8%', width: 460, height: 460,
+          borderRadius: '50%', background: 'radial-gradient(circle,oklch(0.55 0.22 300 / 0.20) 0%,transparent 65%)',
+          filter: 'blur(90px)', zIndex: 1, pointerEvents: 'none' }} />
+        <div style={{ position: 'absolute', top: '-8%', right: '-6%', width: 400, height: 400,
+          borderRadius: '50%', background: 'radial-gradient(circle,oklch(0.60 0.22 340 / 0.18) 0%,transparent 65%)',
+          filter: 'blur(80px)', zIndex: 1, pointerEvents: 'none' }} />
+        <div style={{ position: 'absolute', bottom: '4%', left: '-6%', width: 380, height: 380,
+          borderRadius: '50%', background: 'radial-gradient(circle,oklch(0.65 0.18 195 / 0.18) 0%,transparent 65%)',
+          filter: 'blur(80px)', zIndex: 1, pointerEvents: 'none' }} />
+        <div style={{ position: 'absolute', bottom: '2%', right: '-8%', width: 420, height: 420,
+          borderRadius: '50%', background: 'radial-gradient(circle,oklch(0.72 0.18 75 / 0.16) 0%,transparent 65%)',
+          filter: 'blur(85px)', zIndex: 1, pointerEvents: 'none' }} />
+        {/* Center accent glow behind hero content */}
+        <div style={{ position: 'absolute', top: '30%', left: '50%', transform: 'translateX(-50%)', width: 640, height: 300,
+          borderRadius: '50%', background: 'radial-gradient(ellipse,oklch(from var(--accent) l c h / 0.10) 0%,transparent 70%)',
+          filter: 'blur(60px)', zIndex: 1, pointerEvents: 'none' }} />
+
+        {/* Floating demo music cards */}
+        {DEMO_CARDS.map((card, i) => <DemoBgCard key={i} {...card} />)}
+
+        {/* Frosted nav */}
         <nav style={{
+          position: 'relative', zIndex: 10,
           height: 56, display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           padding: '0 24px', borderBottom: '1px solid var(--line-soft)',
-          background: 'var(--bg)', flexShrink: 0,
+          background: 'oklch(from var(--hero-bg) l c h / 0.75)',
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+          flexShrink: 0,
         }}>
-          <Logo />
+          <div className="slide-down"><Logo /></div>
           <a href="https://github.com/clintdoesdev/FrameSound" target="_blank" rel="noopener noreferrer"
-            style={{ color: 'var(--fg-2)', display: 'flex', alignItems: 'center' }}>
+            className="slide-down"
+            style={{ color: 'var(--fg-2)', display: 'flex', alignItems: 'center', animationDelay: '0.05s' }}>
             <GithubIcon />
           </a>
         </nav>
 
-        {/* Centered empty state */}
+        {/* Hero center content */}
         <div style={{
           flex: 1, display: 'flex', flexDirection: 'column',
           alignItems: 'center', justifyContent: 'center',
-          padding: '40px 24px',
+          padding: '48px 24px 64px',
+          position: 'relative', zIndex: 10,
         }}>
-          <div style={{ marginBottom: 40, textAlign: 'center' }}>
+          {/* Logo mark */}
+          <div className="scale-in" style={{ marginBottom: 20 }}>
             <Logo />
           </div>
-          <div style={{ width: '100%', maxWidth: 560 }}>
-            {urlBar}
+
+          {/* Headline */}
+          <h1 className="fade-up" style={{
+            fontFamily: 'var(--font-display)', fontWeight: 700,
+            fontSize: 'clamp(38px, 6.5vw, 68px)', letterSpacing: '-0.038em',
+            lineHeight: 1.06, color: 'var(--fg)', textAlign: 'center',
+            margin: '0 0 14px', animationDelay: '0.10s',
+          }}>
+            Turn Spotify<br />into art.
+          </h1>
+          <p className="fade-up" style={{
+            fontSize: 16, color: 'var(--fg-2)', textAlign: 'center',
+            maxWidth: 380, marginBottom: 40, lineHeight: 1.65,
+            animationDelay: '0.18s',
+          }}>
+            Paste a track link to generate a beautiful shareable card in seconds.
+          </p>
+
+          {/* Hero URL input with glowing CTA */}
+          <div className="fade-up" style={{ width: '100%', maxWidth: 560, animationDelay: '0.26s' }}>
+            {heroUrlBar}
             {error && (
               <div style={{ marginTop: 10, fontSize: 13, color: 'var(--danger)', textAlign: 'center' }}>{error}</div>
             )}
@@ -183,7 +333,11 @@ export default function Home() {
               spotify.com/track/… links only
             </div>
           </div>
-          <RecentTracks onSelect={loadFromRecent} />
+
+          {/* Recent tracks */}
+          <div className="fade-in" style={{ animationDelay: '0.38s' }}>
+            <RecentTracks onSelect={loadFromRecent} />
+          </div>
         </div>
       </div>
     )
@@ -198,25 +352,22 @@ export default function Home() {
           padding: '0 24px', borderBottom: '1px solid var(--line-soft)',
           background: 'var(--bg)', flexShrink: 0,
         }}>
-          <Logo />
-          <a href="https://github.com/clintdoesdev/FrameSound" target="_blank" rel="noopener noreferrer"
-            style={{ color: 'var(--fg-2)', display: 'flex', alignItems: 'center' }}>
-            <GithubIcon />
-          </a>
+          <div className="slide-down"><Logo /></div>
         </nav>
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px 24px' }}>
-          <div style={{ width: '100%', maxWidth: 560, marginBottom: 40 }}>{urlBar}</div>
-          <div style={{ display: 'flex', gap: 32, flexWrap: 'wrap', justifyContent: 'center' }}>
+          <div className="fade-up" style={{ width: '100%', maxWidth: 560, marginBottom: 48 }}>{urlBar}</div>
+          <div className="scale-in" style={{ display: 'flex', gap: 32, flexWrap: 'wrap', justifyContent: 'center', animationDelay: '0.08s' }}>
             {/* Card skeleton */}
             <div className="animate-pulse-slow" style={{
-              width: 340, height: 340, borderRadius: 18,
+              width: 340, height: 340, borderRadius: 22,
               background: 'var(--bg-1)', border: '1px solid var(--line)',
             }} />
             {/* Controls skeleton */}
-            <div style={{ width: 280, display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <div style={{ width: 280, display: 'flex', flexDirection: 'column', gap: 12 }}>
               {[80, 60, 100, 70, 90, 55].map((w, i) => (
                 <div key={i} className="animate-pulse-slow" style={{
-                  height: 14, width: `${w}%`, borderRadius: 4, background: 'var(--bg-2)',
+                  height: 14, width: `${w}%`, borderRadius: 6, background: 'var(--bg-2)',
+                  animationDelay: `${i * 0.08}s`,
                 }} />
               ))}
             </div>
@@ -251,6 +402,7 @@ export default function Home() {
         alignItems: 'flex-start',
         maxWidth: 1280, margin: '0 auto', width: '100%',
         padding: '0',
+        animation: 'fadeIn 0.35s ease both',
       }}
         className="editor-layout"
       >

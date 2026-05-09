@@ -35,10 +35,12 @@ function BlurBg({ hue, coverUrl }: { hue: number; coverUrl: string | null }) {
         src={coverUrl}
         alt=""
         style={{
-          position: 'absolute', inset: '-10%',
-          width: '120%', height: '120%',
+          position: 'absolute', inset: 0,
+          width: '100%', height: '100%',
           objectFit: 'cover',
           filter: 'blur(48px) saturate(140%)',
+          transform: 'scale(1.15)',
+          transformOrigin: 'center',
           zIndex: 0,
         }}
       />
@@ -46,7 +48,9 @@ function BlurBg({ hue, coverUrl }: { hue: number; coverUrl: string | null }) {
   }
   return (
     <div style={{
-      position: 'absolute', inset: '-10%', zIndex: 0,
+      position: 'absolute', inset: 0, zIndex: 0,
+      transform: 'scale(1.15)',
+      transformOrigin: 'center',
       background: `radial-gradient(ellipse at 25% 20%, oklch(0.62 0.18 ${hue}) 0%, transparent 55%),
                    radial-gradient(ellipse at 80% 70%, oklch(0.40 0.16 ${hue + 30}) 0%, transparent 55%),
                    repeating-linear-gradient(135deg, oklch(0.32 0.10 ${hue}) 0 18px, oklch(0.22 0.08 ${hue}) 18px 36px)`,
@@ -105,6 +109,7 @@ export default function CardCanvas({ track, config, cardRef }: Props) {
   const useBlur = config.bgStyle === 'blurred-art'
   const isDark = config.textColor !== 'black'
   const textClass = config.textColor === 'black' ? 'fcard text-dark' : 'fcard'
+  const textAlign = config.textAlign ?? 'left'
 
   const baseStyle: React.CSSProperties = {
     width, height,
@@ -116,10 +121,112 @@ export default function CardCanvas({ track, config, cardRef }: Props) {
   if (config.preset === 'glass') {
     // Liquid glass preset — iOS-style frosted card, artwork at top, meta below
     const artRadius = r * 0.7
+    const isLandscape = width > height * 1.15
+
+    if (isLandscape) {
+      // Side-by-side layout for landscape
+      const artSize = Math.round(height - p * 2)
+      return (
+        <div ref={cardRef} className="fcard liquid-glass" style={{
+          ...baseStyle, color: 'white',
+          display: 'flex', flexDirection: 'row',
+          overflow: 'hidden',
+          background: 'transparent',
+        }}>
+          {useBlur
+            ? <BlurBg hue={hue} coverUrl={track.coverUrl} />
+            : <BgLayer config={config} />}
+
+          <div style={{
+            position: 'absolute', inset: 1, borderRadius: r - 1,
+            background:
+              'radial-gradient(120% 60% at 20% 0%, rgba(255,255,255,0.40) 0%, rgba(255,255,255,0) 52%),' +
+              'radial-gradient(80% 40% at 80% 0%, rgba(255,255,255,0.16) 0%, rgba(255,255,255,0) 58%)',
+            mixBlendMode: 'screen', zIndex: 2, pointerEvents: 'none',
+          }} />
+
+          <div style={{
+            position: 'absolute', left: 1, right: 1, bottom: 1, height: '38%',
+            borderRadius: `0 0 ${r - 1}px ${r - 1}px`,
+            background: 'linear-gradient(to top, rgba(255,255,255,0.09), rgba(255,255,255,0))',
+            zIndex: 2, pointerEvents: 'none',
+          }} />
+
+          <div style={{
+            position: 'relative', zIndex: 3, padding: p,
+            display: 'flex', flexDirection: 'row', gap: p * 0.8,
+            width: '100%', height: '100%',
+            background: 'transparent',
+          }}>
+            {config.showAlbumArt && (
+              <div style={{
+                width: artSize, height: artSize, position: 'relative',
+                borderRadius: artRadius, overflow: 'hidden', flexShrink: 0,
+                boxShadow: '0 18px 40px -12px rgba(0,0,0,0.6), 0 4px 12px -2px rgba(0,0,0,0.40), 0 0 0 1px rgba(255,255,255,0.10) inset',
+                background: 'transparent',
+              }}>
+                {track.coverUrl
+                  // eslint-disable-next-line @next/next/no-img-element
+                  ? <img src={track.coverUrl} alt={track.album} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                  : <div className="albumart" style={{ width: '100%', height: '100%', borderRadius: 0, ['--art-hue' as string]: hue }}>
+                      <span style={{ position: 'relative', zIndex: 1, opacity: 0.85 }}>ART</span>
+                    </div>
+                }
+                <div style={{
+                  position: 'absolute', inset: 0, pointerEvents: 'none',
+                  background: 'linear-gradient(135deg, rgba(255,255,255,0.18), rgba(255,255,255,0) 35%)',
+                }} />
+              </div>
+            )}
+
+            <div style={{
+              display: 'flex', flexDirection: 'column', justifyContent: 'center',
+              gap: 4, flex: 1, minWidth: 0, paddingBottom: 2,
+              textAlign: textAlign,
+              background: 'transparent',
+            }}>
+              {config.showTitle && (
+                <div style={{ fontSize: width * 0.058, fontWeight: 700, letterSpacing: '-0.02em', lineHeight: 1.15 }}>
+                  {track.title}
+                </div>
+              )}
+              {config.showArtist && (
+                <div style={{ fontSize: width * 0.034, fontWeight: 500, opacity: 0.78, letterSpacing: '-0.01em' }}>
+                  {track.artist}
+                </div>
+              )}
+              {(config.showYear || config.showDuration) && (
+                <div className="mono" style={{ fontSize: width * 0.022, opacity: 0.55, letterSpacing: '0.04em', marginTop: 2 }}>
+                  {config.showYear && <span>{track.releaseYear}</span>}
+                  {config.showYear && config.showDuration && <span style={{ margin: '0 6px', opacity: 0.5 }}>·</span>}
+                  {config.showDuration && <span>{track.duration}</span>}
+                </div>
+              )}
+              {config.showLyrics && lyric && (
+                <div style={{
+                  marginTop: 6, padding: '8px 10px',
+                  background: 'rgba(0,0,0,0.22)',
+                  backdropFilter: 'blur(8px)',
+                  WebkitBackdropFilter: 'blur(8px)',
+                  border: '1px solid rgba(255,255,255,0.14)',
+                  borderRadius: r * 0.4,
+                  fontSize: width * 0.026, fontStyle: 'italic', opacity: 0.9, lineHeight: 1.45,
+                }}>
+                  &ldquo;{lyric}&rdquo;
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )
+    }
+
     return (
       <div ref={cardRef} className="fcard liquid-glass" style={{
         ...baseStyle, color: 'white',
         display: 'flex', flexDirection: 'column',
+        overflow: 'hidden',
+        background: 'transparent',
       }}>
         {/* Blurred art or colour background fills the entire card behind everything */}
         {useBlur
@@ -144,13 +251,19 @@ export default function CardCanvas({ track, config, cardRef }: Props) {
         }} />
 
         {/* Content layer */}
-        <div style={{ position: 'relative', zIndex: 3, padding: p, display: 'flex', flexDirection: 'column', height: '100%', gap: p * 0.6 }}>
+        <div style={{
+          position: 'relative', zIndex: 3, padding: p,
+          display: 'flex', flexDirection: 'column', height: '100%', gap: p * 0.6,
+          background: 'transparent',
+        }}>
           {/* Artwork — full width, square */}
           {config.showAlbumArt && (
             <div style={{
               width: '100%', aspectRatio: '1 / 1',
               borderRadius: artRadius, overflow: 'hidden', flexShrink: 0,
               boxShadow: '0 18px 40px -12px rgba(0,0,0,0.6), 0 4px 12px -2px rgba(0,0,0,0.40), 0 0 0 1px rgba(255,255,255,0.10) inset',
+              position: 'relative',
+              background: 'transparent',
             }}>
               {track.coverUrl
                 // eslint-disable-next-line @next/next/no-img-element
@@ -168,7 +281,11 @@ export default function CardCanvas({ track, config, cardRef }: Props) {
           )}
 
           {/* Metadata */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 4, paddingBottom: 2 }}>
+          <div style={{
+            display: 'flex', flexDirection: 'column', gap: 4, paddingBottom: 2,
+            textAlign: textAlign,
+            background: 'transparent',
+          }}>
             {config.showTitle && (
               <div style={{ fontSize: width * 0.058, fontWeight: 700, letterSpacing: '-0.02em', lineHeight: 1.15 }}>
                 {track.title}
@@ -222,7 +339,11 @@ export default function CardCanvas({ track, config, cardRef }: Props) {
         ) : (
           <BgLayer config={config} />
         )}
-        <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, padding: p, zIndex: 2, display: 'flex', flexDirection: 'column', gap: 6 }}>
+        <div style={{
+          position: 'absolute', left: 0, right: 0, bottom: 0, padding: p, zIndex: 2,
+          display: 'flex', flexDirection: 'column', gap: 6,
+          textAlign: textAlign,
+        }}>
           {config.showLyrics && lyric && (
             <div style={{ fontSize: width * 0.028, fontStyle: 'italic', opacity: 0.85, lineHeight: 1.4, marginBottom: 10, maxWidth: '82%' }}>
               &ldquo;{lyric}&rdquo;
@@ -258,7 +379,7 @@ export default function CardCanvas({ track, config, cardRef }: Props) {
           {config.showAlbumArt && (
             <AlbumArtEl coverUrl={track.coverUrl} album={track.album} hue={hue} size={artSize} radius={4} />
           )}
-          <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 8, textAlign: textAlign }}>
             <div className="mono" style={{ fontSize: width * 0.020, letterSpacing: '0.08em', opacity: 0.55, textTransform: 'uppercase' }}>
               FrameSound · {track.album}
             </div>
@@ -300,7 +421,7 @@ export default function CardCanvas({ track, config, cardRef }: Props) {
           {config.showAlbumArt && (
             <AlbumArtEl coverUrl={track.coverUrl} album={track.album} hue={hue} size={artSize} radius={8} />
           )}
-          <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'center' }}>
+          <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'center', textAlign: textAlign }}>
             {config.showTitle && (
               <div style={{ fontSize: sw * 0.085, fontWeight: 700, lineHeight: 1, letterSpacing: '-0.03em' }}>{track.title}</div>
             )}
@@ -326,6 +447,7 @@ export default function CardCanvas({ track, config, cardRef }: Props) {
       <div style={{
         position: 'relative', zIndex: 1, width: '100%', height: '100%',
         padding: p * 0.85, display: 'flex', flexDirection: 'column', gap: 12,
+        textAlign: textAlign,
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
           {config.showAlbumArt && (

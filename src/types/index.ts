@@ -26,6 +26,7 @@ export type CardConfig = {
   borderRadius: number
   size: '1:1' | '16:9' | '4:5' | '9:16'
   lyricQuote: string
+  textAlign: 'left' | 'center' | 'right'
 }
 
 export const defaultConfig: CardConfig = {
@@ -45,4 +46,5 @@ export const defaultConfig: CardConfig = {
   borderRadius: 16,
   size: '1:1',
   lyricQuote: '',
+  textAlign: 'left',
 }

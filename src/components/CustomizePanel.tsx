@@ -560,6 +560,13 @@ export default function CustomizePanel({ config, onChange, accentColor }: Props)
           <ToggleItem icon={<IconClock />}    label="Duration"   value={config.showDuration} onChange={v => onChange({ showDuration: v })} accent={act} />
           <ToggleItem icon={<IconQuote />}    label="Lyrics"     value={config.showLyrics}   onChange={v => onChange({ showLyrics: v })}   accent={act} />
         </div>
+        {config.preset === 'glass' && (
+          <StyledSlider
+            value={config.artPadding} min={0} max={100} step={4}
+            onChange={v => onChange({ artPadding: v })}
+            label="Art Size" suffix="px"
+          />
+        )}
       </Section>
 
       {/* ── EXPERIMENTAL ── */}

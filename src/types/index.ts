@@ -24,6 +24,7 @@ export type CardConfig = {
   showLyrics: boolean
   lyricQuote: string
   textAlign: 'left' | 'center' | 'right'
+  artPadding: number       // 0–100 px, glass preset only
   // Experimental
   glowEnabled: boolean
   glowStrength: number    // 0–100
@@ -46,6 +47,7 @@ export const defaultConfig: CardConfig = {
   showLyrics: true,
   lyricQuote: '',
   textAlign: 'left',
+  artPadding: 12,
   glowEnabled: false,
   glowStrength: 50,
   grainEnabled: false,

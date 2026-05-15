@@ -6,6 +6,7 @@ type Props = {
   lines: string[]
   loading: boolean
   onQuoteChange: (quote: string) => void
+  accentColor?: string | null
 }
 
 const MusicIcon = () => (
@@ -14,7 +15,8 @@ const MusicIcon = () => (
   </svg>
 )
 
-export default function LyricsPanel({ lines, loading, onQuoteChange }: Props) {
+export default function LyricsPanel({ lines, loading, onQuoteChange, accentColor }: Props) {
+  const ac = accentColor ?? 'var(--accent)'
   const [selected, setSelected] = useState<string[]>([])
   const [custom, setCustom] = useState('')
 
@@ -73,7 +75,7 @@ export default function LyricsPanel({ lines, loading, onQuoteChange }: Props) {
         {hasSelection && (
           <button onClick={clearAll} style={{
             background: 'none', border: 0, cursor: 'pointer',
-            fontSize: 12, color: 'var(--accent)', padding: '2px 0',
+            fontSize: 12, color: ac, padding: '2px 0',
             fontFamily: 'inherit', fontWeight: 500,
           }}>Clear</button>
         )}
@@ -86,11 +88,11 @@ export default function LyricsPanel({ lines, loading, onQuoteChange }: Props) {
           padding: '10px 14px',
           background: 'var(--bg-1)',
           border: '1px solid var(--line)',
-          borderLeft: '3px solid var(--accent)',
+          borderLeft: `3px solid ${ac}`,
           borderRadius: '0 8px 8px 0',
           animation: 'fadeIn 0.2s ease both',
         }}>
-          <div style={{ fontSize: 20, color: 'var(--accent)', lineHeight: 1, marginBottom: 3, fontFamily: 'Georgia, serif' }}>&ldquo;</div>
+          <div style={{ fontSize: 20, color: ac, lineHeight: 1, marginBottom: 3, fontFamily: 'Georgia, serif' }}>&ldquo;</div>
           <div style={{ fontSize: 13, color: 'var(--fg-1)', lineHeight: 1.55, fontStyle: 'italic', whiteSpace: 'pre-line' }}>
             {activeQuote}
           </div>
@@ -112,10 +114,10 @@ export default function LyricsPanel({ lines, loading, onQuoteChange }: Props) {
                 style={{
                   display: 'block', width: '100%', textAlign: 'left',
                   padding: '10px 20px',
-                  background: isSel ? 'var(--accent-quiet)' : 'transparent',
+                  background: isSel ? `${ac}18` : 'transparent',
                   border: 'none',
-                  borderLeft: `3px solid ${isSel ? 'var(--accent)' : 'transparent'}`,
-                  color: isSel ? 'var(--fg)' : isMaxed ? 'var(--fg-3)' : 'var(--fg-1)',
+                  borderLeft: `3px solid ${isSel ? ac : 'transparent'}`,
+                  color: isSel ? '#ffffff' : isMaxed ? 'rgba(255,255,255,0.3)' : 'rgba(255,255,255,0.65)',
                   cursor: isMaxed ? 'not-allowed' : 'pointer',
                   fontSize: 13.5, lineHeight: 1.5,
                   transition: 'background 100ms, color 100ms',
@@ -158,7 +160,7 @@ export default function LyricsPanel({ lines, loading, onQuoteChange }: Props) {
             outline: 'none', lineHeight: 1.5,
             transition: 'border-color 150ms',
           }}
-          onFocus={e => { e.currentTarget.style.borderColor = 'var(--accent)' }}
+          onFocus={e => { e.currentTarget.style.borderColor = ac }}
           onBlur={e => { e.currentTarget.style.borderColor = 'var(--line)' }}
         />
       </div>

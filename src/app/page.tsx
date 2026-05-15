@@ -262,14 +262,34 @@ export default function Home() {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     if (!track?.coverUrl) { setAccentColor(null); return }
     const coverUrl = track.coverUrl
-    import('colorthief').then(({ getColorSync }) => {
+    import('colorthief').then(({ getColorSync, getPaletteSync }) => {
       const img = new window.Image()
       img.crossOrigin = 'anonymous'
       img.onload = () => {
         try {
           const color = getColorSync(img)
-          if (color) setAccentColor(color.hex())
-        } catch { /* CORS or extraction failure — keep default */ }
+          if (!color) return
+          const { r, g, b } = color.rgb()
+          const lum = (0.299 * r + 0.587 * g + 0.114 * b) / 255
+          if (lum >= 0.15 && lum <= 0.85) {
+            setAccentColor(color.hex()); return
+          }
+          if (lum < 0.15) {
+            // dominant color too dark — scan palette for most vibrant bright color
+            try {
+              const palette = getPaletteSync(img, { colorCount: 8 })
+              const viable = (palette ?? [])
+                .map(c => { const { r: pr, g: pg, b: pb } = c.rgb(); return { hex: c.hex(), lum: (0.299*pr+0.587*pg+0.114*pb)/255, sat: Math.max(pr,pg,pb)-Math.min(pr,pg,pb) } })
+                .filter(c => c.lum > 0.2 && c.sat > 30)
+                .sort((a,b) => b.sat - a.sat)
+              setAccentColor(viable.length > 0 ? viable[0].hex : '#1db954')
+            } catch { setAccentColor('#1db954') }
+            return
+          }
+          // too light — darken 30%
+          const { r: r2, g: g2, b: b2 } = color.rgb()
+          setAccentColor(`#${[r2,g2,b2].map(v=>Math.round(v*0.7).toString(16).padStart(2,'0')).join('')}`)
+        } catch { }
       }
       // Use Next.js image proxy to avoid Spotify CDN CORS issues
       img.src = `/_next/image?url=${encodeURIComponent(coverUrl)}&w=64&q=75`
@@ -651,7 +671,7 @@ export default function Home() {
             const { width: exportW, height: exportH } = sizeMap[config.size]
             return (
               <div aria-hidden style={{ position: 'fixed', left: -10000, top: -10000, pointerEvents: 'none', width: exportW, height: exportH }}>
-                <CardCanvas ref={cardRef} track={track} config={config} exportMode />
+                <CardCanvas ref={cardRef} track={track} config={config} exportMode accentColor={accentColor} />
               </div>
             )
           })()}
@@ -661,12 +681,38 @@ export default function Home() {
             background: 'var(--bg-1)', borderRadius: 12,
             border: '1px solid var(--line)',
             padding: 20, overflow: 'hidden',
+            ...(config.preset === 'glass' ? { perspective: '900px', perspectiveOrigin: '50% 50%' } : {}),
           }}>
-            {track && <CardCanvas track={track} config={config} />}
+            {track && (() => {
+              const canvas = <CardCanvas track={track} config={config} accentColor={accentColor} />
+              if (config.preset !== 'glass') return canvas
+              return (
+                <div
+                  style={{
+                    transform: 'rotateX(4deg) rotateY(-8deg)',
+                    transformStyle: 'preserve-3d',
+                    boxShadow: '0 32px 80px rgba(0,0,0,0.7), 0 8px 24px rgba(0,0,0,0.5)',
+                    borderRadius: `${config.borderRadius}px`,
+                    transition: 'transform 0.3s ease',
+                  }}
+                  onMouseMove={(e) => {
+                    const rect = e.currentTarget.getBoundingClientRect()
+                    const x = (e.clientX - rect.left) / rect.width - 0.5
+                    const y = (e.clientY - rect.top) / rect.height - 0.5
+                    e.currentTarget.style.transform = `rotateX(${-y * 10}deg) rotateY(${x * 10}deg)`
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = 'rotateX(4deg) rotateY(-8deg)'
+                  }}
+                >
+                  {canvas}
+                </div>
+              )
+            })()}
           </div>
 
           {/* Audio preview */}
-          {track?.previewUrl && <AudioPreview previewUrl={track.previewUrl} trackId={track.id} />}
+          {track?.previewUrl && <AudioPreview previewUrl={track.previewUrl} trackId={track.id} accentColor={accentColor} />}
 
           {/* Recent tracks */}
           <RecentTracks onSelect={loadFromRecent} />
@@ -710,6 +756,7 @@ export default function Home() {
               lines={lyrics ?? []}
               loading={false}
               onQuoteChange={q => updateConfig({ lyricQuote: q })}
+              accentColor={accentColor}
             />
           </div>
 

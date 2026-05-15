@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import Image from 'next/image'
 import { TrackData } from '@/types'
 
@@ -19,14 +19,13 @@ export function addRecentTrack(track: TrackData) {
 }
 
 export default function RecentTracks({ onSelect }: Props) {
-  const [recent, setRecent] = useState<TrackData[]>([])
-
-  useEffect(() => {
+  const [recent] = useState<TrackData[]>(() => {
+    if (typeof window === 'undefined') return []
     try {
       const raw = localStorage.getItem(STORAGE_KEY)
-      if (raw) setRecent(JSON.parse(raw))
-    } catch { /* localStorage unavailable */ }
-  }, [])
+      return raw ? JSON.parse(raw) : []
+    } catch { return [] }
+  })
 
   if (recent.length === 0) return null
 

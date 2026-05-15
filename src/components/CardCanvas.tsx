@@ -218,7 +218,7 @@ const CardCanvas = forwardRef<HTMLDivElement, Props>(function CardCanvas(
               {config.showDuration && <span style={metaStyle}>{track.duration}</span>}
             </div>
             {config.showLyrics && config.lyricQuote && (
-              <p style={lyricsStyle}>"{config.lyricQuote}"</p>
+              <p style={lyricsStyle}>{`“${config.lyricQuote}”`}</p>
             )}
           </div>
         </div>
@@ -249,7 +249,7 @@ const CardCanvas = forwardRef<HTMLDivElement, Props>(function CardCanvas(
           background: 'none',
         }}>
           {config.showLyrics && config.lyricQuote && (
-            <p style={{ ...lyricsStyle, marginBottom: '8px' }}>"{config.lyricQuote}"</p>
+            <p style={{ ...lyricsStyle, marginBottom: '8px' }}>{`"${config.lyricQuote}"`}</p>
           )}
           {config.showTitle  && <p style={titleStyle}>{track.title}</p>}
           {config.showArtist && <p style={artistStyle}>{track.artist}</p>}
@@ -295,7 +295,7 @@ const CardCanvas = forwardRef<HTMLDivElement, Props>(function CardCanvas(
             {config.showDuration && <span style={metaStyle}>{track.duration}</span>}
           </div>
           {config.showLyrics && config.lyricQuote && (
-            <p style={lyricsStyle}>"{config.lyricQuote}"</p>
+            <p style={lyricsStyle}>{`"${config.lyricQuote}"`}</p>
           )}
         </div>
       </div>
@@ -334,7 +334,7 @@ const CardCanvas = forwardRef<HTMLDivElement, Props>(function CardCanvas(
             {config.showArtist && <p style={{ ...artistStyle, textAlign: 'center' }}>{track.artist}</p>}
             {config.showLyrics && config.lyricQuote && (
               <div style={{ position: 'relative', background: 'rgba(0,0,0,0.35)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '10px', padding: '10px 14px', maxWidth: '92%' }}>
-                <p style={{ ...lyricsStyle, textAlign: 'center' }}>"{config.lyricQuote}"</p>
+                <p style={{ ...lyricsStyle, textAlign: 'center' }}>{`"${config.lyricQuote}"`}</p>
               </div>
             )}
           </div>
@@ -377,7 +377,7 @@ const CardCanvas = forwardRef<HTMLDivElement, Props>(function CardCanvas(
         </div>
         {config.showLyrics && config.lyricQuote && (
           <div style={{ position: 'relative', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '10px', padding: '10px 14px', width: '100%' }}>
-            <p style={lyricsStyle}>"{config.lyricQuote}"</p>
+            <p style={lyricsStyle}>{`"${config.lyricQuote}"`}</p>
           </div>
         )}
       </div>

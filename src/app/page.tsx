@@ -668,7 +668,7 @@ export default function Home() {
 
           {/* Hidden export card — explicit w/h so dom-to-image resolves dimensions without CSS aspectRatio */}
           {track && (
-            <div aria-hidden style={{ position: 'fixed', left: -10000, top: -10000, pointerEvents: 'none', width: 520, height: 520 }}>
+            <div aria-hidden style={{ position: 'fixed', left: -10000, top: -10000, pointerEvents: 'none', width: 520, height: 800 }}>
               <CardCanvas ref={cardRef} track={track} config={config} exportMode accentColor={accentColor} />
             </div>
           )}

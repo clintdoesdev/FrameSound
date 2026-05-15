@@ -9,6 +9,18 @@ type Props = {
   accentColor?: string | null
 }
 
+// Returns accent as a text-safe color. If the extracted album color is too dark
+// to read against a near-black panel (#0d0d0d), fall back to the CSS default.
+function textAccent(hex: string | null | undefined): string {
+  if (!hex || !/^#[0-9a-f]{6}$/i.test(hex)) return 'var(--accent)'
+  const r = parseInt(hex.slice(1, 3), 16) / 255
+  const g = parseInt(hex.slice(3, 5), 16) / 255
+  const b = parseInt(hex.slice(5, 7), 16) / 255
+  const lin = (c: number) => c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4
+  const lum = 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b)
+  return lum >= 0.18 ? hex : 'var(--accent)'
+}
+
 // ── Icons ──────────────────────────────────────────────────────
 const IconImage = () => (
   <svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -144,13 +156,17 @@ const PRESET_SVG: Record<string, React.ReactNode> = {
   square: <PresetSquareSVG />,
 }
 
-// ── Font map for rendering pills in their own typeface ─────────
+// ── Font map for rendering cards in their own typeface ─────────
 const FONT_CSS_VAR: Record<CardConfig['font'], string> = {
-  syne: 'var(--font-syne)',
-  'dm-serif': 'var(--font-dm-serif)',
-  playfair: 'var(--font-playfair)',
-  bebas: 'var(--font-bebas)',
-  instrument: 'var(--font-instrument)',
+  syne:             'var(--font-syne)',
+  'dm-serif':       'var(--font-dm-serif)',
+  playfair:         'var(--font-playfair)',
+  bebas:            'var(--font-bebas)',
+  instrument:       'var(--font-instrument)',
+  'space-grotesk':  'var(--font-space-grotesk)',
+  raleway:          'var(--font-raleway)',
+  cormorant:        'var(--font-cormorant)',
+  oswald:           'var(--font-oswald)',
 }
 
 // ── Section accordion ──────────────────────────────────────────
@@ -212,7 +228,7 @@ function PillRow<T extends string>({ value, options, onChange, accent }: {
           <button key={i} onClick={() => onChange(o.value)} style={{
             flex: 1, height: 36, borderRadius: 999, border: 0, cursor: 'pointer',
             fontSize: 12, fontWeight: 500,
-            background: selected ? (accent ? `${accent}33` : 'var(--accent-quiet)') : '#1a1a1a',
+            background: selected ? (accent?.startsWith('#') ? `${accent}33` : 'var(--accent-quiet)') : '#1a1a1a',
             color: selected ? (accent ?? 'var(--accent)') : 'rgba(255,255,255,0.5)',
             outline: selected ? `1px solid ${accentRgb}` : '1px solid rgba(255,255,255,0.08)',
             transition: 'all 120ms',
@@ -285,7 +301,7 @@ function ToggleItem({ label, value, onChange, icon, accent }: {
         display: 'flex', alignItems: 'center', gap: 8,
         height: 40, padding: '0 10px',
         borderRadius: 8, cursor: 'pointer',
-        background: value ? (accent ? `${accent}26` : 'var(--accent-quiet)') : 'transparent',
+        background: value ? (accent?.startsWith('#') ? `${accent}26` : 'var(--accent-quiet)') : 'transparent',
         borderLeft: value ? `2px solid ${accent ?? 'var(--accent)'}` : '2px solid transparent',
         transition: 'all 150ms',
       }}
@@ -294,7 +310,7 @@ function ToggleItem({ label, value, onChange, icon, accent }: {
       <span style={{ flex: 1, fontSize: 12, color: value ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.45)' }}>{label}</span>
       <div style={{
         width: 36, height: 20, borderRadius: 999, flexShrink: 0,
-        background: value ? (accent ? `${accent}99` : 'var(--accent)') : '#2a2a2a',
+        background: value ? (accent?.startsWith('#') ? `${accent}99` : 'var(--accent)') : '#2a2a2a',
         position: 'relative', transition: 'background 150ms',
       }}>
         <span style={{
@@ -318,18 +334,23 @@ const PRESETS = [
   { id: 'square',  name: 'Square'  },
 ] as const
 
-const FONTS: { value: CardConfig['font']; label: string }[] = [
-  { value: 'syne',       label: 'Syne'       },
-  { value: 'dm-serif',   label: 'DM Serif'   },
-  { value: 'playfair',   label: 'Playfair'   },
-  { value: 'bebas',      label: 'Bebas'      },
-  { value: 'instrument', label: 'Instrument' },
+const FONTS: { value: CardConfig['font']; label: string; tag: string; weight: number; size: number }[] = [
+  { value: 'syne',            label: 'Syne',         tag: 'Geometric',  weight: 700, size: 18 },
+  { value: 'space-grotesk',   label: 'Space Grotesk',tag: 'Modern',     weight: 600, size: 16 },
+  { value: 'raleway',         label: 'Raleway',      tag: 'Elegant',    weight: 300, size: 18 },
+  { value: 'oswald',          label: 'Oswald',       tag: 'Condensed',  weight: 500, size: 18 },
+  { value: 'bebas',           label: 'Bebas Neue',   tag: 'Display',    weight: 400, size: 22 },
+  { value: 'playfair',        label: 'Playfair',     tag: 'Serif',      weight: 700, size: 17 },
+  { value: 'dm-serif',        label: 'DM Serif',     tag: 'Serif',      weight: 400, size: 18 },
+  { value: 'cormorant',       label: 'Cormorant',    tag: 'Luxury',     weight: 600, size: 20 },
+  { value: 'instrument',      label: 'Instrument',   tag: 'Italic',     weight: 400, size: 18 },
 ]
 
 const HUE_GRADIENT = 'linear-gradient(to right, hsl(0,80%,50%), hsl(45,80%,50%), hsl(90,80%,50%), hsl(135,80%,50%), hsl(180,80%,50%), hsl(225,80%,50%), hsl(270,80%,50%), hsl(315,80%,50%), hsl(360,80%,50%))'
 
 export default function CustomizePanel({ config, onChange, accentColor }: Props) {
-  const ac = accentColor ?? undefined
+  const ac = accentColor ?? undefined          // raw hex — safe for bg tints
+  const act = textAccent(accentColor)          // luminance-checked — safe for text/border
 
   return (
     <div style={{ background: '#0d0d0d', flex: 1 }}>
@@ -345,7 +366,7 @@ export default function CustomizePanel({ config, onChange, accentColor }: Props)
                 onClick={() => onChange({ preset: p.id })}
                 style={{
                   background: sel ? (ac ? `${ac}26` : 'var(--accent-quiet)') : '#1a1a1a',
-                  border: `1.5px solid ${sel ? (ac ?? 'var(--accent)') : 'rgba(255,255,255,0.08)'}`,
+                  border: `1.5px solid ${sel ? act : 'rgba(255,255,255,0.08)'}`,
                   borderRadius: 10, cursor: 'pointer', padding: '10px 8px 8px',
                   display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
                   transition: 'border-color 120ms, background 120ms',
@@ -358,7 +379,7 @@ export default function CustomizePanel({ config, onChange, accentColor }: Props)
                 <span style={{
                   fontFamily: 'var(--font-syne)', fontSize: 10, fontWeight: 600,
                   letterSpacing: '0.08em', textTransform: 'uppercase',
-                  color: sel ? (ac ?? 'var(--accent)') : 'rgba(255,255,255,0.55)',
+                  color: sel ? act : 'rgba(255,255,255,0.55)',
                 }}>{p.name}</span>
               </button>
             )
@@ -371,7 +392,7 @@ export default function CustomizePanel({ config, onChange, accentColor }: Props)
         <PillRow
           value={config.bgStyle}
           onChange={v => onChange({ bgStyle: v })}
-          accent={ac}
+          accent={act}
           options={[
             { value: 'blurred-art', label: 'Blurred' },
             { value: 'gradient',    label: 'Grad' },
@@ -411,21 +432,46 @@ export default function CustomizePanel({ config, onChange, accentColor }: Props)
 
       {/* ── TYPOGRAPHY ── */}
       <Section icon={<IconType />} label="Typography">
-        {/* Font pills — scrollable row, each in its own face */}
-        <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 2 }}>
+        {/* Font grid — 3 columns, each card shows font name in its own face */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 6 }}>
           {FONTS.map(f => {
             const sel = config.font === f.value
             return (
-              <button key={f.value} onClick={() => onChange({ font: f.value })} style={{
-                flexShrink: 0, width: 80, height: 36, borderRadius: 999,
-                border: `1.5px solid ${sel ? (ac ?? 'var(--accent)') : 'rgba(255,255,255,0.10)'}`,
-                background: sel ? (ac ? `${ac}26` : 'var(--accent-quiet)') : '#1a1a1a',
-                fontFamily: FONT_CSS_VAR[f.value],
-                fontSize: f.value === 'bebas' ? 15 : 12,
-                fontWeight: f.value === 'bebas' ? 400 : 600,
-                color: sel ? (ac ?? 'var(--accent)') : 'rgba(255,255,255,0.55)',
-                cursor: 'pointer', transition: 'all 120ms',
-              }}>{f.label}</button>
+              <button
+                key={f.value}
+                onClick={() => onChange({ font: f.value })}
+                style={{
+                  height: 72, borderRadius: 10, border: 0,
+                  background: sel ? (ac ? `${ac}22` : 'rgba(100,120,255,0.12)') : '#161616',
+                  outline: sel ? `1.5px solid ${act}` : '1.5px solid rgba(255,255,255,0.07)',
+                  cursor: 'pointer',
+                  display: 'flex', flexDirection: 'column',
+                  alignItems: 'flex-start', justifyContent: 'flex-end',
+                  padding: '0 10px 9px',
+                  transition: 'outline-color 120ms, background 120ms',
+                  overflow: 'hidden',
+                  position: 'relative',
+                }}
+              >
+                {/* Font name rendered in its own typeface */}
+                <span style={{
+                  fontFamily: FONT_CSS_VAR[f.value],
+                  fontSize: f.size,
+                  fontWeight: f.weight,
+                  lineHeight: 1,
+                  color: sel ? act : 'rgba(255,255,255,0.80)',
+                  letterSpacing: f.value === 'bebas' || f.value === 'oswald' ? '0.04em' : f.value === 'raleway' ? '0.06em' : '0',
+                  display: 'block', width: '100%',
+                  whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                }}>{f.label}</span>
+                {/* Category tag */}
+                <span style={{
+                  fontFamily: 'var(--font-mono)', fontSize: 9,
+                  color: sel ? act : 'rgba(255,255,255,0.25)',
+                  letterSpacing: '0.08em', textTransform: 'uppercase',
+                  marginTop: 4,
+                }}>{f.tag}</span>
+              </button>
             )
           })}
         </div>
@@ -434,7 +480,7 @@ export default function CustomizePanel({ config, onChange, accentColor }: Props)
         <PillRow
           value={config.textColor}
           onChange={v => onChange({ textColor: v })}
-          accent={ac}
+          accent={act}
           options={[
             { value: 'white', label: 'Light' },
             { value: 'black', label: 'Dark' },
@@ -454,8 +500,8 @@ export default function CustomizePanel({ config, onChange, accentColor }: Props)
               <button key={o.value} onClick={() => onChange({ textAlign: o.value })} style={{
                 width: 40, height: 40, borderRadius: 8, border: 0, cursor: 'pointer',
                 background: sel ? (ac ? `${ac}33` : 'var(--accent-quiet)') : '#1a1a1a',
-                color: sel ? (ac ?? 'var(--accent)') : 'rgba(255,255,255,0.4)',
-                outline: sel ? `1.5px solid ${ac ?? 'var(--accent)'}` : '1.5px solid rgba(255,255,255,0.08)',
+                color: sel ? act : 'rgba(255,255,255,0.4)',
+                outline: sel ? `1.5px solid ${act}` : '1.5px solid rgba(255,255,255,0.08)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 transition: 'all 120ms',
               }}>{o.icon}</button>
@@ -479,17 +525,17 @@ export default function CustomizePanel({ config, onChange, accentColor }: Props)
               <button key={s} onClick={() => onChange({ size: s })} style={{
                 height: 52, borderRadius: 10,
                 background: sel ? (ac ? `${ac}26` : 'var(--accent-quiet)') : '#1a1a1a',
-                border: `1.5px solid ${sel ? (ac ?? 'var(--accent)') : 'rgba(255,255,255,0.08)'}`,
+                border: `1.5px solid ${sel ? act : 'rgba(255,255,255,0.08)'}`,
                 cursor: 'pointer', transition: 'all 120ms',
                 display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4,
               }}>
                 <svg viewBox={`0 0 ${w} ${h}`} width={w} height={h}>
                   <rect x="0.75" y="0.75" width={w - 1.5} height={h - 1.5} rx="1.5"
-                    fill={sel ? (ac ? `${ac}40` : 'rgba(100,120,255,0.3)') : 'rgba(255,255,255,0.12)'}
-                    stroke={sel ? (ac ?? 'var(--accent)') : 'rgba(255,255,255,0.35)'} strokeWidth="1.5"
+                    fill={sel ? (act.startsWith('#') ? `${act}40` : 'rgba(100,120,255,0.3)') : 'rgba(255,255,255,0.12)'}
+                    stroke={sel ? act : 'rgba(255,255,255,0.35)'} strokeWidth="1.5"
                   />
                 </svg>
-                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: sel ? (ac ?? 'var(--accent)') : 'rgba(255,255,255,0.4)' }}>{s}</span>
+                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: sel ? act : 'rgba(255,255,255,0.4)' }}>{s}</span>
               </button>
             )
           })}
@@ -510,12 +556,12 @@ export default function CustomizePanel({ config, onChange, accentColor }: Props)
       {/* ── VISIBILITY ── */}
       <Section icon={<IconEye />} label="Visibility">
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4 }}>
-          <ToggleItem icon={<IconImage />}    label="Album art"  value={config.showAlbumArt} onChange={v => onChange({ showAlbumArt: v })} accent={ac} />
-          <ToggleItem icon={<IconText />}     label="Title"      value={config.showTitle}    onChange={v => onChange({ showTitle: v })}    accent={ac} />
-          <ToggleItem icon={<IconUser />}     label="Artist"     value={config.showArtist}   onChange={v => onChange({ showArtist: v })}   accent={ac} />
-          <ToggleItem icon={<IconCalendar />} label="Year"       value={config.showYear}     onChange={v => onChange({ showYear: v })}     accent={ac} />
-          <ToggleItem icon={<IconClock />}    label="Duration"   value={config.showDuration} onChange={v => onChange({ showDuration: v })} accent={ac} />
-          <ToggleItem icon={<IconQuote />}    label="Lyrics"     value={config.showLyrics}   onChange={v => onChange({ showLyrics: v })}   accent={ac} />
+          <ToggleItem icon={<IconImage />}    label="Album art"  value={config.showAlbumArt} onChange={v => onChange({ showAlbumArt: v })} accent={act} />
+          <ToggleItem icon={<IconText />}     label="Title"      value={config.showTitle}    onChange={v => onChange({ showTitle: v })}    accent={act} />
+          <ToggleItem icon={<IconUser />}     label="Artist"     value={config.showArtist}   onChange={v => onChange({ showArtist: v })}   accent={act} />
+          <ToggleItem icon={<IconCalendar />} label="Year"       value={config.showYear}     onChange={v => onChange({ showYear: v })}     accent={act} />
+          <ToggleItem icon={<IconClock />}    label="Duration"   value={config.showDuration} onChange={v => onChange({ showDuration: v })} accent={act} />
+          <ToggleItem icon={<IconQuote />}    label="Lyrics"     value={config.showLyrics}   onChange={v => onChange({ showLyrics: v })}   accent={act} />
         </div>
       </Section>
 

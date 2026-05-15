@@ -15,7 +15,7 @@ export type CardConfig = {
   bgColor: string
   tintHue: number
   textColor: 'white' | 'black' | 'auto'
-  font: 'syne' | 'dm-serif' | 'playfair' | 'bebas' | 'instrument'
+  font: 'syne' | 'dm-serif' | 'playfair' | 'bebas' | 'instrument' | 'space-grotesk' | 'raleway' | 'cormorant' | 'oswald'
   showAlbumArt: boolean
   showTitle: boolean
   showArtist: boolean

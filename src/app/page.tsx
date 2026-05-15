@@ -681,38 +681,37 @@ export default function Home() {
           }}>
             {track && (() => {
               const canvas = <CardCanvas track={track} config={config} accentColor={accentColor} />
-              if (config.preset !== 'minimal') return canvas
-              const ghost1Bg = accentColor
-                ? `linear-gradient(135deg, ${accentColor}18 0%, ${accentColor}08 100%)`
-                : 'linear-gradient(135deg, #222 0%, #333 100%)'
-              const ghost2Bg = accentColor
-                ? `linear-gradient(135deg, ${accentColor}10 0%, ${accentColor}05 100%)`
-                : 'linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%)'
+              const needsGhost = config.preset === 'minimal' || config.preset === 'story'
+              if (!needsGhost) return canvas
+
+              const isStory = config.preset === 'story'
+              const radius = isStory ? '24px' : '20px'
+              const ghostDeepBg = accentColor
+                ? `linear-gradient(135deg, ${accentColor}14 0%, ${accentColor}06 100%)`
+                : 'linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 60%, #1a1a1a 100%)'
+              const ghostMidBg = accentColor
+                ? `linear-gradient(135deg, ${accentColor}20 0%, ${accentColor}10 100%)`
+                : 'linear-gradient(135deg, #222 0%, #333 55%, #222 100%)'
+
               return (
                 <div style={{ position: 'relative' }}>
                   <div style={{
-                    position: 'absolute', inset: 0,
-                    borderRadius: '28px',
-                    background: ghost2Bg,
-                    opacity: 0.4,
-                    filter: 'blur(4px)',
-                    transform: 'translateY(14px) scaleX(0.96)',
-                    transformOrigin: 'bottom center',
-                    zIndex: 0,
+                    position: 'absolute', inset: 0, borderRadius: radius,
+                    background: ghostDeepBg,
+                    opacity: isStory ? 0.45 : 0.4,
+                    filter: `blur(${isStory ? 5 : 4}px)`,
+                    transform: isStory ? 'translateY(14px) scaleY(0.96)' : 'translateY(14px) scaleX(0.96)',
+                    transformOrigin: 'bottom center', zIndex: 0,
                   }} />
                   <div style={{
-                    position: 'absolute', inset: 0,
-                    borderRadius: '28px',
-                    background: ghost1Bg,
-                    opacity: 0.55,
-                    filter: 'blur(2px)',
-                    transform: 'translateY(8px) scaleX(0.98)',
-                    transformOrigin: 'bottom center',
-                    zIndex: 0,
+                    position: 'absolute', inset: 0, borderRadius: radius,
+                    background: ghostMidBg,
+                    opacity: 0.6,
+                    filter: `blur(${isStory ? 2.5 : 2}px)`,
+                    transform: isStory ? 'translateY(7px) scaleY(0.98)' : 'translateY(8px) scaleX(0.98)',
+                    transformOrigin: 'bottom center', zIndex: 0,
                   }} />
-                  <div style={{ position: 'relative', zIndex: 1 }}>
-                    {canvas}
-                  </div>
+                  <div style={{ position: 'relative', zIndex: 1 }}>{canvas}</div>
                 </div>
               )
             })()}

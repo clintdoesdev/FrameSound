@@ -131,35 +131,39 @@ const CardCanvas = forwardRef<HTMLDivElement, Props>(function CardCanvas(
         {accentTint}
         {grainOverlay}
 
-        {/* Bezel padding + art */}
-        <div style={{ padding: '12px 12px 0' }}>
-          {config.showAlbumArt && (
-            <div style={{
-              width: '100%', aspectRatio: '1 / 1', borderRadius: '14px',
-              overflow: 'hidden', position: 'relative',
-              boxShadow: 'inset 0 3px 10px rgba(0,0,0,0.65)',
-              background: '#111',
-            }}>
-              {track.coverUrl && (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={coverSrc} crossOrigin="anonymous" loading="eager" alt=""
-                  style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', display: 'block', border: 'none', outline: 'none', zIndex: 1 }}
-                />
-              )}
-              <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '40%', background: 'linear-gradient(180deg, rgba(255,255,255,0.08) 0%, transparent 100%)', zIndex: 2, pointerEvents: 'none' }} />
-            </div>
-          )}
-        </div>
+        {/* Art block — flex:1 fills remaining height, never overflows */}
+        {config.showAlbumArt && (
+          <div style={{
+            flex: 1, minHeight: 0,
+            margin: '12px 12px 0',
+            borderRadius: '14px',
+            overflow: 'hidden', position: 'relative',
+            boxShadow: 'inset 0 3px 10px rgba(0,0,0,0.65)',
+            background: '#111',
+          }}>
+            {track.coverUrl && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={coverSrc} crossOrigin="anonymous" loading="eager" alt=""
+                style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', display: 'block', border: 'none', outline: 'none' }}
+              />
+            )}
+            <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '40%', background: 'linear-gradient(180deg, rgba(255,255,255,0.08) 0%, transparent 100%)', zIndex: 2, pointerEvents: 'none' }} />
+          </div>
+        )}
 
-        {/* Text area */}
-        <div style={{ padding: '14px 16px 18px', display: 'flex', flexDirection: 'column', gap: 3, textAlign: config.textAlign, color: textColor }}>
+        {/* Text area — never shrinks, always visible at bottom */}
+        <div style={{
+          flexShrink: 0, position: 'relative', zIndex: 6,
+          padding: '14px 16px 18px', display: 'flex', flexDirection: 'column', gap: 3,
+          textAlign: config.textAlign,
+        }}>
           {config.showTitle && (
             <p style={{ margin: 0, fontSize: 26, fontWeight: 800, color: '#fff', letterSpacing: '-0.03em', lineHeight: 1.15 }}>{track.title}</p>
           )}
           {config.showArtist && (
             <p style={{ margin: 0, fontSize: 15, fontWeight: 400, color: 'rgba(255,255,255,0.38)' }}>{track.artist}</p>
           )}
-          <MetaRow color="rgba(255,255,255,0.17)" size={11} gap={5} />
+          <MetaRow color="rgba(255,255,255,0.22)" size={11} gap={5} />
           {config.showLyrics && config.lyricQuote && (
             <p style={{
               margin: 0, marginTop: 6, fontSize: 12, fontStyle: 'italic',

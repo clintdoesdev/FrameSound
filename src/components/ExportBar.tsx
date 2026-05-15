@@ -174,7 +174,6 @@ export default function ExportBar({ cardRef, track, config, onConfigChange, acce
     letterSpacing: '0.08em', textTransform: 'uppercase',
   }
 
-  const toastBg = accentColor ?? 'var(--accent)'
 
   return (
     <div style={{
@@ -189,24 +188,35 @@ export default function ExportBar({ cardRef, track, config, onConfigChange, acce
       <style>{`
         @keyframes exportSpin { to { transform: rotate(360deg); } }
         @keyframes slideUpToast {
-          from { opacity: 0; transform: translateX(-50%) translateY(8px); }
+          from { opacity: 0; transform: translateX(-50%) translateY(10px); }
           to   { opacity: 1; transform: translateX(-50%) translateY(0); }
         }
       `}</style>
 
       {toast && (
         <div style={{
-          position: 'absolute', bottom: 72, left: '50%',
+          position: 'absolute', bottom: 76, left: '50%',
           transform: 'translateX(-50%)',
-          background: toastBg,
-          color: '#fff', borderRadius: 8, padding: '8px 18px',
-          fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap',
+          minWidth: 230,
+          background: 'rgba(18,18,18,0.94)',
+          backdropFilter: 'blur(24px)',
+          WebkitBackdropFilter: 'blur(24px)',
+          borderRadius: 14,
+          border: '1px solid rgba(255,255,255,0.10)',
+          borderLeft: `3px solid ${accentColor ?? 'var(--accent)'}`,
+          padding: '13px 20px',
+          display: 'flex', alignItems: 'center', gap: 10,
           pointerEvents: 'none',
-          animation: 'slideUpToast 0.2s ease both',
-          boxShadow: '0 4px 16px rgba(0,0,0,0.45)',
+          animation: 'slideUpToast 0.25s cubic-bezier(0.34,1.56,0.64,1) both',
+          boxShadow: '0 8px 32px rgba(0,0,0,0.55)',
           zIndex: 50,
         }}>
-          {toast}
+          <svg viewBox="0 0 16 16" width="16" height="16" fill="none"
+            stroke={accentColor ?? 'var(--accent)'} strokeWidth="2.2"
+            strokeLinecap="round" strokeLinejoin="round">
+            <path d="M3 8l4 4 6-7"/>
+          </svg>
+          <span style={{ fontSize: 13, fontWeight: 500, color: 'rgba(255,255,255,0.88)', whiteSpace: 'nowrap' }}>{toast}</span>
         </div>
       )}
 

@@ -18,6 +18,12 @@ const GithubIcon = () => (
   </svg>
 )
 
+const BackIcon = () => (
+  <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M19 12H5M12 5l-7 7 7 7"/>
+  </svg>
+)
+
 const LinkIcon = () => (
   <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
     <path d="M10 14a4 4 0 0 1 0-5.6l3-3a4 4 0 1 1 5.6 5.6l-1.5 1.5"/>
@@ -505,32 +511,94 @@ export default function Home() {
   if (loading) {
     return (
       <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--bg)' }}>
+        {/* Nav */}
         <nav style={{
           height: 56, display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           padding: '0 24px', borderBottom: '1px solid var(--line-soft)',
           background: 'var(--bg)', flexShrink: 0,
         }}>
-          <div className="slide-down"><Logo /></div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div className="animate-pulse-slow" style={{ width: 72, height: 28, borderRadius: 8, background: 'rgba(255,255,255,0.06)' }} />
+            <Logo />
+          </div>
         </nav>
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px 24px' }}>
-          <div className="fade-up" style={{ width: '100%', maxWidth: 560, marginBottom: 48 }}>{urlBar}</div>
-          <div className="scale-in" style={{ display: 'flex', gap: 32, flexWrap: 'wrap', justifyContent: 'center', animationDelay: '0.08s' }}>
-            {/* Card skeleton */}
+
+        {/* Editor two-column skeleton */}
+        <div style={{ display: 'flex', flex: 1, maxWidth: 1280, margin: '0 auto', width: '100%' }} className="editor-layout">
+          {/* Left column */}
+          <div style={{ flex: 1, padding: '32px 24px 24px', display: 'flex', flexDirection: 'column', gap: 20 }}
+            className="left-col">
+            {/* URL bar shimmer */}
             <div className="animate-pulse-slow" style={{
-              width: 340, height: 340, borderRadius: 22,
-              background: 'var(--bg-1)', border: '1px solid var(--line)',
+              height: 52, borderRadius: 14,
+              background: 'rgba(255,255,255,0.05)',
+              border: '1px solid rgba(255,255,255,0.07)',
             }} />
-            {/* Controls skeleton */}
-            <div style={{ width: 280, display: 'flex', flexDirection: 'column', gap: 12 }}>
-              {[80, 60, 100, 70, 90, 55].map((w, i) => (
-                <div key={i} className="animate-pulse-slow" style={{
-                  height: 14, width: `${w}%`, borderRadius: 6, background: 'var(--bg-2)',
-                  animationDelay: `${i * 0.08}s`,
-                }} />
-              ))}
+            {/* Card glass placeholder */}
+            <div style={{
+              borderRadius: 22, padding: 20,
+              background: 'rgba(255,255,255,0.04)',
+              backdropFilter: 'blur(24px)',
+              WebkitBackdropFilter: 'blur(24px)',
+              border: '1px solid rgba(255,255,255,0.09)',
+            }}>
+              <div className="animate-pulse-slow" style={{
+                width: '100%', aspectRatio: '1 / 1', borderRadius: 16,
+                background: 'rgba(255,255,255,0.07)',
+              }} />
             </div>
+            {/* Audio bar shimmer */}
+            <div className="animate-pulse-slow" style={{
+              height: 52, borderRadius: 12,
+              background: 'rgba(255,255,255,0.04)',
+              border: '1px solid rgba(255,255,255,0.06)',
+            }} />
+          </div>
+
+          {/* Right column */}
+          <div style={{
+            width: 340, flexShrink: 0,
+            borderLeft: '1px solid var(--line)',
+            display: 'flex', flexDirection: 'column',
+          }} className="right-col">
+            {/* Track meta shimmer */}
+            <div style={{
+              padding: '12px 20px',
+              borderBottom: '1px solid rgba(255,255,255,0.06)',
+              display: 'flex', gap: 12, alignItems: 'center',
+            }}>
+              <div className="animate-pulse-slow" style={{
+                width: 36, height: 36, borderRadius: 6,
+                background: 'rgba(255,255,255,0.09)', flexShrink: 0,
+              }} />
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 7 }}>
+                <div className="animate-pulse-slow" style={{ height: 11, width: '68%', borderRadius: 6, background: 'rgba(255,255,255,0.09)' }} />
+                <div className="animate-pulse-slow" style={{ height: 9, width: '44%', borderRadius: 6, background: 'rgba(255,255,255,0.05)', animationDelay: '0.1s' }} />
+              </div>
+            </div>
+            {/* Settings section glass blocks */}
+            {([110, 155, 195, 135] as number[]).map((h, i) => (
+              <div key={i} className="animate-pulse-slow" style={{
+                margin: '8px 10px',
+                height: h,
+                borderRadius: 12,
+                background: 'rgba(255,255,255,0.04)',
+                backdropFilter: 'blur(12px)',
+                WebkitBackdropFilter: 'blur(12px)',
+                border: '1px solid rgba(255,255,255,0.07)',
+                animationDelay: `${i * 0.12}s`,
+              }} />
+            ))}
           </div>
         </div>
+
+        <style>{`
+          @media (max-width: 768px) {
+            .editor-layout { flex-direction: column !important; }
+            .left-col { width: 100% !important; }
+            .right-col { width: 100% !important; border-left: none !important; border-top: 1px solid var(--line) !important; }
+          }
+        `}</style>
       </div>
     )
   }
@@ -546,7 +614,17 @@ export default function Home() {
         padding: '0 24px', borderBottom: '1px solid var(--line-soft)',
         background: 'var(--bg)', flexShrink: 0, position: 'sticky', top: 0, zIndex: 20,
       }}>
-        <Logo />
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <button
+            onClick={() => { setTrack(null); setUrl(''); setError(null); setLyrics(null) }}
+            className="btn"
+            data-variant="ghost"
+            style={{ gap: 6, padding: '0 10px', height: 32, fontSize: 12, borderRadius: 8 }}
+          >
+            <BackIcon /> Back
+          </button>
+          <Logo />
+        </div>
         <a href="https://github.com/clintdoesdev/FrameSound" target="_blank" rel="noopener noreferrer"
           style={{ color: 'var(--fg-2)', display: 'flex', alignItems: 'center' }}>
           <GithubIcon />

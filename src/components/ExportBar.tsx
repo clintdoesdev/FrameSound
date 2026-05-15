@@ -77,6 +77,37 @@ async function waitReady(el: HTMLElement): Promise<void> {
   await Promise.all(imgs.map(img => img.decode().catch(() => {})))
 }
 
+async function composeSquare(
+  cardDataUrl: string,
+  bg: string | null,
+  format: 'png' | 'jpeg',
+  quality: number
+): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const img = new Image()
+    img.onload = () => {
+      const w = img.width
+      const h = img.height
+      const maxDim = Math.max(w, h)
+      const pad = Math.round(maxDim * 0.28)
+      const size = maxDim + pad * 2
+      const canvas = document.createElement('canvas')
+      canvas.width = size
+      canvas.height = size
+      const ctx = canvas.getContext('2d')
+      if (!ctx) { reject(new Error('no 2d ctx')); return }
+      if (bg) {
+        ctx.fillStyle = bg
+        ctx.fillRect(0, 0, size, size)
+      }
+      ctx.drawImage(img, Math.round((size - w) / 2), Math.round((size - h) / 2))
+      resolve(canvas.toDataURL(`image/${format}`, quality))
+    }
+    img.onerror = () => reject(new Error('img load failed'))
+    img.src = cardDataUrl
+  })
+}
+
 const supportsClipboard = typeof window !== 'undefined' && typeof ClipboardItem !== 'undefined'
 
 export default function ExportBar({ cardRef, track, config, onConfigChange, accentColor }: Props) {
@@ -98,7 +129,8 @@ export default function ExportBar({ cardRef, track, config, onConfigChange, acce
     const restore = await inlineImages(el)
     try {
       const { toPng } = await import('html-to-image')
-      const url = await toPng(el, { pixelRatio: 3 })
+      const cardUrl = await toPng(el, { pixelRatio: 3 })
+      const url = await composeSquare(cardUrl, '#000000', 'png', 1)
       const a = document.createElement('a')
       a.href = url; a.download = `${filename}.png`; a.click()
       showToast('Saved ✓')
@@ -113,8 +145,9 @@ export default function ExportBar({ cardRef, track, config, onConfigChange, acce
     await waitReady(el)
     const restore = await inlineImages(el)
     try {
-      const { toJpeg } = await import('html-to-image')
-      const url = await toJpeg(el, { quality: 0.95, pixelRatio: 2, backgroundColor: '#000000' })
+      const { toPng } = await import('html-to-image')
+      const cardUrl = await toPng(el, { pixelRatio: 2 })
+      const url = await composeSquare(cardUrl, '#000000', 'jpeg', 0.95)
       const a = document.createElement('a')
       a.href = url; a.download = `${filename}.jpg`; a.click()
       showToast('Saved ✓')
@@ -133,7 +166,8 @@ export default function ExportBar({ cardRef, track, config, onConfigChange, acce
     const restore = await inlineImages(el)
     try {
       const { toPng } = await import('html-to-image')
-      const url = await toPng(el, { pixelRatio: 2 })
+      const cardUrl = await toPng(el, { pixelRatio: 2 })
+      const url = await composeSquare(cardUrl, null, 'png', 1)
       const a = document.createElement('a')
       a.href = url; a.download = `${filename}-alpha.png`; a.click()
       showToast('Saved ✓')
@@ -149,7 +183,8 @@ export default function ExportBar({ cardRef, track, config, onConfigChange, acce
     const restore = await inlineImages(el)
     try {
       const { toPng } = await import('html-to-image')
-      const url = await toPng(el, { pixelRatio: 2 })
+      const cardUrl = await toPng(el, { pixelRatio: 2 })
+      const url = await composeSquare(cardUrl, '#000000', 'png', 1)
       const res = await fetch(url)
       const blob = await res.blob()
       await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })])

@@ -124,7 +124,7 @@ const DEMO_MIN_CARDS: DemoMinCard[] = [
 ]
 
 const MusicNote = () => (
-  <svg viewBox="0 0 24 24" width="36" height="36" fill="rgba(255,255,255,0.28)">
+  <svg viewBox="0 0 24 24" width="24" height="24" fill="rgba(255,255,255,0.28)">
     <path d="M9 18V5l12-2v13M9 18c0 1.657-1.343 3-3 3s-3-1.343-3-3 1.343-3 3-3 3 1.343 3 3zM21 16c0 1.657-1.343 3-3 3s-3-1.343-3-3 1.343-3 3-3 3 1.343 3 3z"/>
   </svg>
 )
@@ -134,12 +134,12 @@ function DemoBgCard({ title, artist, gradient, rotate, anim, dur, delay, pos }: 
     <div
       className="demo-bg-card"
       style={{
-        position: 'absolute', width: 178,
+        position: 'absolute', width: 122,
         background: 'linear-gradient(135deg,rgba(255,255,255,0.18) 0%,rgba(255,255,255,0.06) 48%,rgba(255,255,255,0.12) 100%)',
         backdropFilter: 'blur(20px) saturate(160%)',
         WebkitBackdropFilter: 'blur(20px) saturate(160%)',
         border: '1px solid rgba(255,255,255,0.24)',
-        borderRadius: 22, padding: 12,
+        borderRadius: 16, padding: 9,
         boxShadow: '0 1px 0 rgba(255,255,255,0.50) inset,0 22px 48px -12px rgba(0,0,0,0.42),0 8px 18px -6px rgba(0,0,0,0.25)',
         pointerEvents: 'none', color: 'white', zIndex: 2,
         ['--card-transform' as string]: `rotate(${rotate})`,
@@ -153,15 +153,15 @@ function DemoBgCard({ title, artist, gradient, rotate, anim, dur, delay, pos }: 
         mixBlendMode: 'screen' as React.CSSProperties['mixBlendMode'],
       }} />
       <div style={{
-        width: '100%', aspectRatio: '1/1', borderRadius: 13,
-        background: gradient, marginBottom: 11,
-        boxShadow: '0 12px 32px -6px rgba(0,0,0,0.52)',
+        width: '100%', aspectRatio: '1/1', borderRadius: 9,
+        background: gradient, marginBottom: 8,
+        boxShadow: '0 8px 22px -5px rgba(0,0,0,0.52)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
       }}>
         <MusicNote />
       </div>
-      <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '-0.01em', lineHeight: 1.2 }}>{title}</div>
-      <div style={{ fontSize: 11, opacity: 0.65, marginTop: 3 }}>{artist}</div>
+      <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '-0.01em', lineHeight: 1.2 }}>{title}</div>
+      <div style={{ fontSize: 9, opacity: 0.65, marginTop: 2 }}>{artist}</div>
     </div>
   )
 }
@@ -171,8 +171,8 @@ function DemoPosterCardView({ title, artist, gradient, rotate, anim, dur, delay,
     <div
       className="demo-bg-card"
       style={{
-        position: 'absolute', width: 148, height: 198,
-        borderRadius: 18, overflow: 'hidden',
+        position: 'absolute', width: 104, height: 138,
+        borderRadius: 13, overflow: 'hidden',
         boxShadow: '0 24px 52px -10px rgba(0,0,0,0.55),0 8px 18px -6px rgba(0,0,0,0.30)',
         pointerEvents: 'none', zIndex: 2,
         ['--card-transform' as string]: `rotate(${rotate})`,
@@ -184,7 +184,7 @@ function DemoPosterCardView({ title, artist, gradient, rotate, anim, dur, delay,
       <div style={{ position: 'absolute', inset: 0, background: gradient }} />
       {/* Music note */}
       <div style={{ position: 'absolute', top: '38%', left: '50%', transform: 'translate(-50%,-50%)' }}>
-        <svg viewBox="0 0 24 24" width="30" height="30" fill="rgba(255,255,255,0.22)">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="rgba(255,255,255,0.22)">
           <path d="M9 18V5l12-2v13M9 18c0 1.657-1.343 3-3 3s-3-1.343-3-3 1.343-3 3-3 3 1.343 3 3zM21 16c0 1.657-1.343 3-3 3s-3-1.343-3-3 1.343-3 3-3 3 1.343 3 3z"/>
         </svg>
       </div>
@@ -192,11 +192,11 @@ function DemoPosterCardView({ title, artist, gradient, rotate, anim, dur, delay,
       <div style={{
         position: 'absolute', bottom: 0, left: 0, right: 0,
         background: 'linear-gradient(to top, rgba(0,0,0,0.88) 0%, transparent 100%)',
-        padding: '28px 12px 12px',
+        padding: '20px 9px 9px',
         color: 'white',
       }}>
-        <div style={{ fontSize: 11, fontWeight: 700, lineHeight: 1.25, letterSpacing: '-0.01em' }}>{title}</div>
-        <div style={{ fontSize: 10, opacity: 0.6, marginTop: 2 }}>{artist}</div>
+        <div style={{ fontSize: 10, fontWeight: 700, lineHeight: 1.25, letterSpacing: '-0.01em' }}>{title}</div>
+        <div style={{ fontSize: 9, opacity: 0.6, marginTop: 2 }}>{artist}</div>
       </div>
       {/* Specular */}
       <div style={{
@@ -212,8 +212,8 @@ function DemoMinCardView({ title, artist, color, rotate, anim, dur, delay, pos }
     <div
       className="demo-bg-card"
       style={{
-        position: 'absolute', width: 196, height: 68,
-        borderRadius: 14, overflow: 'hidden',
+        position: 'absolute', width: 140, height: 50,
+        borderRadius: 11, overflow: 'hidden',
         background: 'rgba(14,14,18,0.82)',
         backdropFilter: 'blur(18px)',
         WebkitBackdropFilter: 'blur(18px)',
@@ -227,15 +227,15 @@ function DemoMinCardView({ title, artist, color, rotate, anim, dur, delay, pos }
       }}
     >
       {/* Colour strip */}
-      <div style={{ width: 68, flexShrink: 0, background: color, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <svg viewBox="0 0 24 24" width="20" height="20" fill="rgba(255,255,255,0.30)">
+      <div style={{ width: 50, flexShrink: 0, background: color, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="rgba(255,255,255,0.30)">
           <path d="M9 18V5l12-2v13M9 18c0 1.657-1.343 3-3 3s-3-1.343-3-3 1.343-3 3-3 3 1.343 3 3zM21 16c0 1.657-1.343 3-3 3s-3-1.343-3-3 1.343-3 3-3 3 1.343 3 3z"/>
         </svg>
       </div>
       {/* Text */}
-      <div style={{ flex: 1, padding: '0 12px', display: 'flex', flexDirection: 'column', justifyContent: 'center', overflow: 'hidden' }}>
-        <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '-0.01em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{title}</div>
-        <div style={{ fontSize: 10, opacity: 0.5, marginTop: 2 }}>{artist}</div>
+      <div style={{ flex: 1, padding: '0 9px', display: 'flex', flexDirection: 'column', justifyContent: 'center', overflow: 'hidden' }}>
+        <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '-0.01em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{title}</div>
+        <div style={{ fontSize: 9, opacity: 0.5, marginTop: 2 }}>{artist}</div>
       </div>
     </div>
   )
@@ -681,38 +681,37 @@ export default function Home() {
           }}>
             {track && (() => {
               const canvas = <CardCanvas track={track} config={config} accentColor={accentColor} />
-              if (config.preset !== 'minimal') return canvas
-              const ghost1Bg = accentColor
-                ? `linear-gradient(135deg, ${accentColor}18 0%, ${accentColor}08 100%)`
-                : 'linear-gradient(135deg, #222 0%, #333 100%)'
-              const ghost2Bg = accentColor
-                ? `linear-gradient(135deg, ${accentColor}10 0%, ${accentColor}05 100%)`
-                : 'linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%)'
+              const needsGhost = config.preset === 'minimal' || config.preset === 'story'
+              if (!needsGhost) return canvas
+
+              const isStory = config.preset === 'story'
+              const radius = isStory ? '24px' : '20px'
+              const ghostDeepBg = accentColor
+                ? `linear-gradient(135deg, ${accentColor}14 0%, ${accentColor}06 100%)`
+                : 'linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 60%, #1a1a1a 100%)'
+              const ghostMidBg = accentColor
+                ? `linear-gradient(135deg, ${accentColor}20 0%, ${accentColor}10 100%)`
+                : 'linear-gradient(135deg, #222 0%, #333 55%, #222 100%)'
+
               return (
                 <div style={{ position: 'relative' }}>
                   <div style={{
-                    position: 'absolute', inset: 0,
-                    borderRadius: '28px',
-                    background: ghost2Bg,
-                    opacity: 0.4,
-                    filter: 'blur(4px)',
-                    transform: 'translateY(14px) scaleX(0.96)',
-                    transformOrigin: 'bottom center',
-                    zIndex: 0,
+                    position: 'absolute', inset: 0, borderRadius: radius,
+                    background: ghostDeepBg,
+                    opacity: isStory ? 0.45 : 0.4,
+                    filter: `blur(${isStory ? 5 : 4}px)`,
+                    transform: isStory ? 'translateY(14px) scaleY(0.96)' : 'translateY(14px) scaleX(0.96)',
+                    transformOrigin: 'bottom center', zIndex: 0,
                   }} />
                   <div style={{
-                    position: 'absolute', inset: 0,
-                    borderRadius: '28px',
-                    background: ghost1Bg,
-                    opacity: 0.55,
-                    filter: 'blur(2px)',
-                    transform: 'translateY(8px) scaleX(0.98)',
-                    transformOrigin: 'bottom center',
-                    zIndex: 0,
+                    position: 'absolute', inset: 0, borderRadius: radius,
+                    background: ghostMidBg,
+                    opacity: 0.6,
+                    filter: `blur(${isStory ? 2.5 : 2}px)`,
+                    transform: isStory ? 'translateY(7px) scaleY(0.98)' : 'translateY(8px) scaleX(0.98)',
+                    transformOrigin: 'bottom center', zIndex: 0,
                   }} />
-                  <div style={{ position: 'relative', zIndex: 1 }}>
-                    {canvas}
-                  </div>
+                  <div style={{ position: 'relative', zIndex: 1 }}>{canvas}</div>
                 </div>
               )
             })()}

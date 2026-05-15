@@ -122,7 +122,8 @@ const CardCanvas = forwardRef<HTMLDivElement, Props>(function CardCanvas(
       <div ref={ref} style={{
         position: 'relative', overflow: 'hidden', width: '100%', aspectRatio: '4 / 5',
         borderRadius: '28px', fontFamily, containerType: 'inline-size',
-        background: 'linear-gradient(150deg, #2c2c30 0%, #1a1a1d 30%, #131315 100%)',
+        background: '#1c1c1e',
+        border: '1px solid rgba(255,255,255,0.10)',
         display: 'flex', flexDirection: 'column',
         boxShadow: shadow,
       }}>
@@ -136,7 +137,7 @@ const CardCanvas = forwardRef<HTMLDivElement, Props>(function CardCanvas(
           <div style={{
             flex: 1, minHeight: 0,
             margin: `${config.artPadding}px ${config.artPadding}px 0`,
-            borderRadius: '14px',
+            borderRadius: '18px',
             overflow: 'hidden', position: 'relative',
             boxShadow: 'inset 0 3px 10px rgba(0,0,0,0.65)',
             background: '#111',
@@ -161,7 +162,7 @@ const CardCanvas = forwardRef<HTMLDivElement, Props>(function CardCanvas(
             <p style={{ margin: 0, fontSize: 26, fontWeight: 800, color: '#fff', letterSpacing: '-0.03em', lineHeight: 1.15 }}>{track.title}</p>
           )}
           {config.showArtist && (
-            <p style={{ margin: 0, fontSize: 15, fontWeight: 400, color: 'rgba(255,255,255,0.38)' }}>{track.artist}</p>
+            <p style={{ margin: 0, fontSize: 15, fontWeight: 400, color: 'rgba(255,255,255,0.55)' }}>{track.artist}</p>
           )}
           <MetaRow color="rgba(255,255,255,0.22)" size={11} gap={5} />
           {config.showLyrics && config.lyricQuote && (
@@ -187,7 +188,7 @@ const CardCanvas = forwardRef<HTMLDivElement, Props>(function CardCanvas(
       <div ref={ref} style={{
         position: 'relative', overflow: 'hidden', width: '100%', height: 106,
         borderRadius: '20px', fontFamily, containerType: 'inline-size',
-        background: 'rgba(7,7,9,0.96)',
+        background: '#1c1c1e',
         display: 'flex', flexDirection: 'row',
         boxShadow: shadow,
       }}>
@@ -211,12 +212,12 @@ const CardCanvas = forwardRef<HTMLDivElement, Props>(function CardCanvas(
         <div style={{ position: 'absolute', top: '10%', bottom: '10%', left: '38%', width: 1, background: 'rgba(0,0,0,0.9)', boxShadow: '1px 0 4px rgba(0,0,0,0.6)', zIndex: 3 }} />
 
         {/* Right column */}
-        <div style={{ flex: 1, background: 'rgba(7,7,9,0.96)', display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '0 24px', gap: 3, textAlign: config.textAlign }}>
+        <div style={{ flex: 1, background: '#1c1c1e', display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '0 24px', gap: 3, textAlign: config.textAlign }}>
           {config.showTitle && (
             <p style={{ margin: 0, fontSize: 17, fontWeight: 700, color: '#fff', letterSpacing: '-0.02em', lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{track.title}</p>
           )}
           {config.showArtist && (
-            <p style={{ margin: 0, fontSize: 12, fontWeight: 400, color: 'rgba(255,255,255,0.33)' }}>{track.artist}</p>
+            <p style={{ margin: 0, fontSize: 12, fontWeight: 400, color: 'rgba(255,255,255,0.50)' }}>{track.artist}</p>
           )}
           <MetaRow color="rgba(255,255,255,0.13)" size={11} gap={5} />
           {config.showLyrics && config.lyricQuote && (
@@ -270,7 +271,7 @@ const CardCanvas = forwardRef<HTMLDivElement, Props>(function CardCanvas(
             <p style={{ margin: 0, fontSize: 32, fontWeight: 800, color: '#fff', letterSpacing: '-0.035em', lineHeight: 1.05 }}>{track.title}</p>
           )}
           {config.showArtist && (
-            <p style={{ margin: 0, fontSize: 17, fontWeight: 400, color: 'rgba(255,255,255,0.50)' }}>{track.artist}</p>
+            <p style={{ margin: 0, fontSize: 17, fontWeight: 400, color: 'rgba(255,255,255,0.60)' }}>{track.artist}</p>
           )}
           <MetaRow color="rgba(255,255,255,0.22)" size={12} gap={5} />
         </div>
@@ -284,7 +285,7 @@ const CardCanvas = forwardRef<HTMLDivElement, Props>(function CardCanvas(
       <div ref={ref} style={{
         position: 'relative', overflow: 'hidden', width: '100%', aspectRatio: '9 / 16',
         borderRadius: '24px', fontFamily, containerType: 'inline-size',
-        background: 'linear-gradient(150deg, #2c2c30 0%, #1a1a1d 30%, #131315 100%)',
+        background: '#1c1c1e',
         display: 'flex', flexDirection: 'column', alignItems: 'center',
         padding: '20px 16px 18px', gap: 14,
         boxShadow: shadow,
@@ -322,7 +323,7 @@ const CardCanvas = forwardRef<HTMLDivElement, Props>(function CardCanvas(
             <p style={{ margin: 0, fontSize: 14, fontWeight: 700, color: '#fff', lineHeight: 1.3 }}>{track.title}</p>
           )}
           {config.showArtist && (
-            <p style={{ margin: 0, fontSize: 11, fontWeight: 400, color: 'rgba(255,255,255,0.33)' }}>{track.artist}</p>
+            <p style={{ margin: 0, fontSize: 11, fontWeight: 400, color: 'rgba(255,255,255,0.50)' }}>{track.artist}</p>
           )}
           <MetaRow color="rgba(255,255,255,0.14)" size={10} gap={4} />
           {config.showLyrics && config.lyricQuote && (
@@ -342,7 +343,7 @@ const CardCanvas = forwardRef<HTMLDivElement, Props>(function CardCanvas(
       <div ref={ref} style={{
         position: 'relative', overflow: 'hidden', width: '100%', height: 106,
         borderRadius: '20px', fontFamily, containerType: 'inline-size',
-        background: 'rgba(10,10,14,0.96)',
+        background: '#1c1c1e',
         display: 'flex', flexDirection: 'row',
         boxShadow: shadow,
       }}>
@@ -369,7 +370,7 @@ const CardCanvas = forwardRef<HTMLDivElement, Props>(function CardCanvas(
             <p style={{ margin: 0, fontSize: 20, fontWeight: 700, color: '#fff', letterSpacing: '-0.025em', lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{track.title}</p>
           )}
           {config.showArtist && (
-            <p style={{ margin: 0, fontSize: 14, fontWeight: 400, color: 'rgba(255,255,255,0.40)' }}>{track.artist}</p>
+            <p style={{ margin: 0, fontSize: 14, fontWeight: 400, color: 'rgba(255,255,255,0.50)' }}>{track.artist}</p>
           )}
           <MetaRow color="rgba(255,255,255,0.13)" size={11} gap={5} />
           {accentColor && (
@@ -395,7 +396,7 @@ const CardCanvas = forwardRef<HTMLDivElement, Props>(function CardCanvas(
     <div ref={ref} style={{
       position: 'relative', overflow: 'hidden', width: '100%', aspectRatio: '1 / 1',
       borderRadius: '24px', fontFamily, containerType: 'inline-size',
-      background: 'linear-gradient(150deg, #2c2c30 0%, #1a1a1d 30%, #131315 100%)',
+      background: '#1c1c1e',
       display: 'flex', flexDirection: 'column',
       boxShadow: shadow,
     }}>
@@ -418,8 +419,7 @@ const CardCanvas = forwardRef<HTMLDivElement, Props>(function CardCanvas(
 
       {/* Bottom strip */}
       <div style={{
-        background: 'rgba(8,8,10,0.96)', padding: '13px 16px 15px',
-        borderTop: '1px solid rgba(255,255,255,0.04)',
+        background: '#1c1c1e', padding: '13px 16px 15px',
         display: 'flex', flexDirection: 'column', gap: 3,
         textAlign: config.textAlign,
         alignItems: config.textAlign === 'center' ? 'center' : config.textAlign === 'right' ? 'flex-end' : 'flex-start',
@@ -428,7 +428,7 @@ const CardCanvas = forwardRef<HTMLDivElement, Props>(function CardCanvas(
           <p style={{ margin: 0, fontSize: 16, fontWeight: 700, color: '#fff', letterSpacing: '-0.025em', lineHeight: 1.2 }}>{track.title}</p>
         )}
         {config.showArtist && (
-          <p style={{ margin: 0, fontSize: 12, fontWeight: 400, color: 'rgba(255,255,255,0.31)' }}>{track.artist}</p>
+          <p style={{ margin: 0, fontSize: 12, fontWeight: 400, color: 'rgba(255,255,255,0.50)' }}>{track.artist}</p>
         )}
         <MetaRow color="rgba(255,255,255,0.14)" size={10} gap={4} />
         {config.showLyrics && config.lyricQuote && (

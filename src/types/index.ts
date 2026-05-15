@@ -24,6 +24,11 @@ export type CardConfig = {
   showLyrics: boolean
   lyricQuote: string
   textAlign: 'left' | 'center' | 'right'
+  // Experimental
+  glowEnabled: boolean
+  glowStrength: number    // 0–100
+  grainEnabled: boolean
+  grainOpacity: number    // 0–100
 }
 
 export const defaultConfig: CardConfig = {
@@ -41,4 +46,8 @@ export const defaultConfig: CardConfig = {
   showLyrics: true,
   lyricQuote: '',
   textAlign: 'left',
+  glowEnabled: false,
+  glowStrength: 50,
+  grainEnabled: false,
+  grainOpacity: 30,
 }

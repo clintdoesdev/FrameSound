@@ -692,7 +692,7 @@ export default function Home() {
                 <div style={{ position: 'relative' }}>
                   <div style={{
                     position: 'absolute', inset: 0,
-                    borderRadius: '20px',
+                    borderRadius: '28px',
                     background: ghost2Bg,
                     opacity: 0.4,
                     filter: 'blur(4px)',
@@ -702,7 +702,7 @@ export default function Home() {
                   }} />
                   <div style={{
                     position: 'absolute', inset: 0,
-                    borderRadius: '20px',
+                    borderRadius: '28px',
                     background: ghost1Bg,
                     opacity: 0.55,
                     filter: 'blur(2px)',

@@ -72,6 +72,33 @@ const IconEye = () => (
     <path d="M1 8s2.5-5 7-5 7 5 7 5-2.5 5-7 5-7-5-7-5z"/><circle cx="8" cy="8" r="2"/>
   </svg>
 )
+const IconBeaker = () => (
+  <svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M6 1h4"/><path d="M7.5 1v5.2L3.2 13.5A1 1 0 0 0 4.1 15h7.8a1 1 0 0 0 .9-1.5L8.5 6.2V1"/>
+    <path d="M4.5 11h7" opacity="0.4"/>
+  </svg>
+)
+const IconGlow = () => (
+  <svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="8" cy="8" r="2.5" fill="currentColor" opacity="0.4"/>
+    <path d="M8 1v2M8 13v2M1 8h2M13 8h2M3.1 3.1l1.4 1.4M11.5 11.5l1.4 1.4M11.5 4.5l1.4-1.4M3.1 12.9l1.4-1.4"/>
+  </svg>
+)
+const IconGrain = () => (
+  <svg viewBox="0 0 16 16" width="13" height="13" fill="currentColor">
+    <circle cx="3" cy="3" r="1" opacity="0.8"/>
+    <circle cx="8" cy="2" r="0.8" opacity="0.5"/>
+    <circle cx="13" cy="4" r="1" opacity="0.7"/>
+    <circle cx="5" cy="7" r="0.8" opacity="0.6"/>
+    <circle cx="11" cy="7" r="1" opacity="0.9"/>
+    <circle cx="2" cy="11" r="0.8" opacity="0.5"/>
+    <circle cx="7" cy="12" r="1" opacity="0.7"/>
+    <circle cx="13" cy="11" r="0.8" opacity="0.6"/>
+    <circle cx="9" cy="5" r="0.6" opacity="0.4"/>
+    <circle cx="4" cy="14" r="0.8" opacity="0.7"/>
+    <circle cx="14" cy="14" r="1" opacity="0.5"/>
+  </svg>
+)
 const AlignLeftIcon = () => (
   <svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor">
     <rect x="1" y="3" width="14" height="1.5" rx="0.75"/>
@@ -252,17 +279,18 @@ function PillRow<T extends string>({ value, options, onChange, accent }: {
 }
 
 // ── Slider with styled track ───────────────────────────────────
-function StyledSlider({ value, min, max, step, onChange, trackStyle, label }: {
+function StyledSlider({ value, min, max, step, onChange, trackStyle, label, suffix }: {
   value: number; min: number; max: number; step: number
   onChange: (v: number) => void
   trackStyle?: React.CSSProperties
   label: string
+  suffix?: string
 }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)' }}>{label}</span>
-        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'rgba(255,255,255,0.7)' }}>{value}{label.includes('Hue') ? '°' : 'px'}</span>
+        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'rgba(255,255,255,0.7)' }}>{value}{suffix ?? (label.includes('Hue') ? '°' : 'px')}</span>
       </div>
       <div style={{ position: 'relative', height: 24, display: 'flex', alignItems: 'center' }}>
         <div style={{
@@ -531,6 +559,49 @@ export default function CustomizePanel({ config, onChange, accentColor }: Props)
           <ToggleItem icon={<IconCalendar />} label="Year"       value={config.showYear}     onChange={v => onChange({ showYear: v })}     accent={act} />
           <ToggleItem icon={<IconClock />}    label="Duration"   value={config.showDuration} onChange={v => onChange({ showDuration: v })} accent={act} />
           <ToggleItem icon={<IconQuote />}    label="Lyrics"     value={config.showLyrics}   onChange={v => onChange({ showLyrics: v })}   accent={act} />
+        </div>
+      </Section>
+
+      {/* ── EXPERIMENTAL ── */}
+      <Section icon={<IconBeaker />} label="Experimental">
+        <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.28)', lineHeight: 1.5, margin: 0 }}>
+          These effects render in the preview and in exported images.
+        </p>
+
+        {/* Ambient Glow */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <ToggleItem
+            icon={<IconGlow />}
+            label="Ambient Glow"
+            value={config.glowEnabled}
+            onChange={v => onChange({ glowEnabled: v })}
+            accent={act}
+          />
+          {config.glowEnabled && (
+            <StyledSlider
+              value={config.glowStrength} min={10} max={100} step={5}
+              onChange={v => onChange({ glowStrength: v })}
+              label="Intensity" suffix="%"
+            />
+          )}
+        </div>
+
+        {/* Film Grain */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <ToggleItem
+            icon={<IconGrain />}
+            label="Film Grain"
+            value={config.grainEnabled}
+            onChange={v => onChange({ grainEnabled: v })}
+            accent={act}
+          />
+          {config.grainEnabled && (
+            <StyledSlider
+              value={config.grainOpacity} min={5} max={60} step={5}
+              onChange={v => onChange({ grainOpacity: v })}
+              label="Opacity" suffix="%"
+            />
+          )}
         </div>
       </Section>
 

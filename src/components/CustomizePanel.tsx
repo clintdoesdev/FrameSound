@@ -103,6 +103,36 @@ const IconGlow = () => (
     <path d="M8 1v2M8 13v2M1 8h2M13 8h2M3.1 3.1l1.4 1.4M11.5 11.5l1.4 1.4M11.5 4.5l1.4-1.4M3.1 12.9l1.4-1.4"/>
   </svg>
 )
+const IconVignette = () => (
+  <svg viewBox="0 0 16 16" width="13" height="13" fill="none">
+    <defs><radialGradient id="vg" cx="50%" cy="50%" r="50%"><stop offset="30%" stopColor="currentColor" stopOpacity="0"/><stop offset="100%" stopColor="currentColor" stopOpacity="0.9"/></radialGradient></defs>
+    <rect x="1" y="1" width="14" height="14" rx="2" fill="url(#vg)"/>
+    <rect x="1" y="1" width="14" height="14" rx="2" stroke="currentColor" strokeWidth="1.2" fill="none" opacity="0.5"/>
+  </svg>
+)
+const IconScanlines = () => (
+  <svg viewBox="0 0 16 16" width="13" height="13" fill="currentColor">
+    <rect x="1" y="2"  width="14" height="1.2" rx="0.6" opacity="0.9"/>
+    <rect x="1" y="5"  width="14" height="1.2" rx="0.6" opacity="0.7"/>
+    <rect x="1" y="8"  width="14" height="1.2" rx="0.6" opacity="0.9"/>
+    <rect x="1" y="11" width="14" height="1.2" rx="0.6" opacity="0.7"/>
+    <rect x="1" y="14" width="14" height="1.2" rx="0.6" opacity="0.9"/>
+  </svg>
+)
+const IconHolo = () => (
+  <svg viewBox="0 0 16 16" width="13" height="13" fill="none">
+    <rect x="1" y="1" width="14" height="14" rx="2" fill="url(#hg)"/>
+    <defs>
+      <linearGradient id="hg" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0%"   stopColor="#f0f" stopOpacity="0.7"/>
+        <stop offset="33%"  stopColor="#0ff" stopOpacity="0.7"/>
+        <stop offset="66%"  stopColor="#0f0" stopOpacity="0.6"/>
+        <stop offset="100%" stopColor="#ff0" stopOpacity="0.7"/>
+      </linearGradient>
+    </defs>
+    <rect x="1" y="1" width="14" height="14" rx="2" stroke="currentColor" strokeWidth="0.8" fill="none" opacity="0.3"/>
+  </svg>
+)
 const IconGrain = () => (
   <svg viewBox="0 0 16 16" width="13" height="13" fill="currentColor">
     <circle cx="3" cy="3" r="1" opacity="0.8"/>
@@ -739,6 +769,60 @@ export default function CustomizePanel({ config, onChange, accentColor }: Props)
               value={config.grainOpacity} min={5} max={60} step={5}
               onChange={v => onChange({ grainOpacity: v })}
               label="Opacity" suffix="%"
+            />
+          )}
+        </div>
+
+        {/* Vignette */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <ToggleItem
+            icon={<IconVignette />}
+            label="Vignette"
+            value={config.vignetteEnabled}
+            onChange={v => onChange({ vignetteEnabled: v })}
+            accent={act}
+          />
+          {config.vignetteEnabled && (
+            <StyledSlider
+              value={config.vignetteStrength} min={10} max={100} step={5}
+              onChange={v => onChange({ vignetteStrength: v })}
+              label="Strength" suffix="%"
+            />
+          )}
+        </div>
+
+        {/* Scanlines */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <ToggleItem
+            icon={<IconScanlines />}
+            label="Scanlines"
+            value={config.scanlinesEnabled}
+            onChange={v => onChange({ scanlinesEnabled: v })}
+            accent={act}
+          />
+          {config.scanlinesEnabled && (
+            <StyledSlider
+              value={config.scanlinesOpacity} min={5} max={60} step={5}
+              onChange={v => onChange({ scanlinesOpacity: v })}
+              label="Opacity" suffix="%"
+            />
+          )}
+        </div>
+
+        {/* Holographic Shimmer */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <ToggleItem
+            icon={<IconHolo />}
+            label="Holo Shimmer"
+            value={config.holoEnabled}
+            onChange={v => onChange({ holoEnabled: v })}
+            accent={act}
+          />
+          {config.holoEnabled && (
+            <StyledSlider
+              value={config.holoOpacity} min={5} max={80} step={5}
+              onChange={v => onChange({ holoOpacity: v })}
+              label="Intensity" suffix="%"
             />
           )}
         </div>

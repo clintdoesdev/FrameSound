@@ -18,6 +18,7 @@ export default function LyricsPanel({ lines, loading, onQuoteChange }: Props) {
   const [selected, setSelected] = useState<string[]>([])
   const [custom, setCustom] = useState('')
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { setSelected([]); setCustom('') }, [lines])
 
   useEffect(() => {

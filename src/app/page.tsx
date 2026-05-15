@@ -259,6 +259,7 @@ export default function Home() {
 
   // Extract accent colour from album art with colorthief
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (!track?.coverUrl) { setAccentColor(null); return }
     const coverUrl = track.coverUrl
     import('colorthief').then(({ getColorSync }) => {

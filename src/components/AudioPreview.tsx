@@ -26,11 +26,13 @@ export default function AudioPreview({ previewUrl, trackId }: Props) {
   // Auto-pause when track changes
   useEffect(() => {
     audioRef.current?.pause()
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setPlaying(false)
     setProgress(0)
   }, [trackId])
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setError(false)
     const audio = new Audio(previewUrl)
     audioRef.current = audio

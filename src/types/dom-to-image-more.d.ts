@@ -11,11 +11,12 @@ declare module 'dom-to-image-more' {
     cacheBust?: boolean
   }
 
-  function toPng(node: HTMLElement, options?: Options): Promise<string>
-  function toJpeg(node: HTMLElement, options?: Options): Promise<string>
-  function toBlob(node: HTMLElement, options?: Options): Promise<Blob>
-  function toSvg(node: HTMLElement, options?: Options): Promise<string>
-  function toPixelData(node: HTMLElement, options?: Options): Promise<Uint8ClampedArray>
-
-  export default { toPng, toJpeg, toBlob, toSvg, toPixelData }
+  const domToImageMore: {
+    toPng(node: HTMLElement, options?: Options): Promise<string>
+    toJpeg(node: HTMLElement, options?: Options): Promise<string>
+    toBlob(node: HTMLElement, options?: Options): Promise<Blob>
+    toSvg(node: HTMLElement, options?: Options): Promise<string>
+    toPixelData(node: HTMLElement, options?: Options): Promise<Uint8ClampedArray>
+  }
+  export default domToImageMore
 }

@@ -7,6 +7,7 @@ type Props = {
   track: TrackData
   config: CardConfig
   exportMode?: boolean   // only changes image src to proxy URL — NO visual changes
+  accentColor?: string | null
 }
 
 export const sizeMap: Record<CardConfig['size'], { width: number; height: number }> = {
@@ -34,7 +35,7 @@ function resolveTextColor(config: CardConfig): string {
 }
 
 const CardCanvas = forwardRef<HTMLDivElement, Props>(function CardCanvas(
-  { track, config, exportMode = false },
+  { track, config, exportMode = false, accentColor },
   ref
 ) {
   const textColor = resolveTextColor(config)
@@ -174,47 +175,55 @@ const CardCanvas = forwardRef<HTMLDivElement, Props>(function CardCanvas(
     }
   }
 
-  // ── GLASS (thick bezel/frame style) ───────────────────────────
+  // ── GLASS ─────────────────────────────────────────────────────
   if (config.preset === 'glass') {
-    const bezel = Math.round(Math.max(12, cw * 0.033))
-    const artRadius = Math.max(6, config.borderRadius - 8)
+    const accent = accentColor ?? '#1db954'
+    const artRadius = Math.max(6, Math.round(config.borderRadius * 0.6))
     return (
       <div ref={ref} style={{
         ...cardWrapperStyle,
-        background: '#1c1c1e',
+        background: 'linear-gradient(145deg, #1c1c1e 0%, #2a2a2e 100%)',
         display: 'flex', flexDirection: 'column',
-        padding: `${bezel}px`,
+        alignItems: 'center', justifyContent: 'center',
+        padding: `${config.padding}px`,
+        gap: 16,
       }}>
-        {/* Album art — fills the top portion of the dark bezel frame */}
         {config.showAlbumArt && (
-          <div style={{ flex: '0 0 73%', borderRadius: artRadius, overflow: 'hidden', position: 'relative', flexShrink: 0 }}>
-            {track.coverUrl
+          <div style={{
+            width: '80%', aspectRatio: '1 / 1',
+            borderRadius: `${artRadius}px`,
+            overflow: 'hidden', position: 'relative', flexShrink: 0,
+            background: `radial-gradient(circle at 40% 40%, ${accent}cc 0%, ${accent}33 60%, #111 100%)`,
+          }}>
+            {track.coverUrl && (
               // eslint-disable-next-line @next/next/no-img-element
-              ? <img src={coverSrc} crossOrigin="anonymous" loading="eager" alt={track.title}
-                  style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', display: 'block', border: 'none', outline: 'none' }} />
-              : <div style={{ position: 'absolute', inset: 0, background: `linear-gradient(160deg, hsl(${config.tintHue},50%,28%), hsl(${config.tintHue + 40},25%,12%))` }} />
-            }
+              <img src={coverSrc} crossOrigin="anonymous" loading="eager" alt=""
+                style={{
+                  position: 'absolute', inset: 0, width: '100%', height: '100%',
+                  objectFit: 'cover', opacity: 0.28,
+                  mixBlendMode: 'overlay' as React.CSSProperties['mixBlendMode'],
+                  display: 'block', border: 'none', outline: 'none',
+                }}
+              />
+            )}
           </div>
         )}
-        {/* Text strip — in the dark bezel area below the art */}
         <div style={{
-          flex: 1, minHeight: 0,
-          display: 'flex', flexDirection: 'column', justifyContent: 'center',
-          paddingTop: Math.round(bezel * 0.65),
-          gap: 3,
+          width: '100%', display: 'flex', flexDirection: 'column',
+          alignItems: config.textAlign === 'center' ? 'center' : config.textAlign === 'right' ? 'flex-end' : 'flex-start',
+          gap: 4,
+          paddingLeft: `${Math.round(config.padding * 0.5)}px`,
           textAlign: config.textAlign,
-          color: '#ffffff',
-          background: 'none',
         }}>
-          {config.showTitle  && <p style={{ ...titleStyle, color: '#ffffff' }}>{track.title}</p>}
-          {config.showArtist && <p style={{ ...artistStyle, color: 'rgba(255,255,255,0.65)' }}>{track.artist}</p>}
-          <div style={{ display: 'flex', gap: 8, background: 'none' }}>
-            {config.showYear     && <span style={{ ...metaStyle, color: 'rgba(255,255,255,0.4)' }}>{track.releaseYear}</span>}
-            {config.showYear && config.showDuration && <span style={{ ...metaStyle, color: 'rgba(255,255,255,0.4)' }}>·</span>}
-            {config.showDuration && <span style={{ ...metaStyle, color: 'rgba(255,255,255,0.4)' }}>{track.duration}</span>}
+          {config.showTitle  && <p style={{ ...titleStyle,  whiteSpace: 'normal', wordBreak: 'break-word', margin: 0 }}>{track.title}</p>}
+          {config.showArtist && <p style={{ ...artistStyle, margin: 0 }}>{track.artist}</p>}
+          <div style={{ display: 'flex', gap: 6, justifyContent: config.textAlign === 'center' ? 'center' : config.textAlign === 'right' ? 'flex-end' : 'flex-start', background: 'none' }}>
+            {config.showYear     && <span style={metaStyle}>{track.releaseYear}</span>}
+            {config.showYear && config.showDuration && <span style={{ ...metaStyle, opacity: 0.3 }}>·</span>}
+            {config.showDuration && <span style={metaStyle}>{track.duration}</span>}
           </div>
           {config.showLyrics && config.lyricQuote && (
-            <p style={{ ...lyricsStyle, marginTop: 4, color: 'rgba(255,255,255,0.75)' }}>{`"${config.lyricQuote}"`}</p>
+            <p style={{ ...lyricsStyle, margin: 0 }}>{`"${config.lyricQuote}"`}</p>
           )}
         </div>
       </div>
@@ -259,38 +268,53 @@ const CardCanvas = forwardRef<HTMLDivElement, Props>(function CardCanvas(
 
   // ── MINIMAL ───────────────────────────────────────────────────
   if (config.preset === 'minimal') {
-    const minBg = config.bgStyle === 'solid'
-      ? config.bgColor
-      : textColor === '#000000' ? '#f5f4f2' : '#111111'
+    const accent = accentColor ?? '#1db954'
+    const minRadius = Math.max(24, config.borderRadius)
     return (
-      <div ref={ref} style={{ ...cardWrapperStyle, display: 'flex', flexDirection: 'row', alignItems: 'stretch', backgroundColor: minBg }}>
-        {config.showAlbumArt && track.coverUrl && (
-          <div style={{ width: '40%', flexShrink: 0, position: 'relative', overflow: 'hidden' }}>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={coverSrc}
-              crossOrigin="anonymous"
-              loading="eager"
-              alt={track.title}
-              style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', display: 'block', border: 'none', outline: 'none' }}
-            />
-          </div>
-        )}
+      <div ref={ref} style={{
+        ...cardWrapperStyle,
+        borderRadius: `${minRadius}px`,
+        display: 'flex', flexDirection: 'row',
+        overflow: 'hidden',
+        background: 'none',
+      }}>
+        {/* Left accent block */}
         <div style={{
-          flex: 1, display: 'flex', flexDirection: 'column',
-          justifyContent: 'center', padding: `${config.padding}px`,
-          gap: '8px', overflow: 'hidden',
-          textAlign: config.textAlign,
-          background: 'none',
+          width: '38%', flexShrink: 0,
+          backgroundColor: accent,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          position: 'relative', overflow: 'hidden',
         }}>
-          {config.showTitle  && <p style={titleStyle}>{track.title}</p>}
-          {config.showArtist && <p style={artistStyle}>{track.artist}</p>}
-          <div style={{ display: 'flex', gap: '8px', background: 'none' }}>
+          {config.showAlbumArt && track.coverUrl && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={coverSrc} crossOrigin="anonymous" loading="eager" alt=""
+              style={{
+                position: 'absolute', inset: 0, width: '100%', height: '100%',
+                objectFit: 'cover', opacity: 0.35,
+                mixBlendMode: 'luminosity' as React.CSSProperties['mixBlendMode'],
+                display: 'block', border: 'none', outline: 'none',
+              }}
+            />
+          )}
+        </div>
+        {/* Right dark glass panel */}
+        <div style={{
+          flex: 1, background: 'rgba(10,10,10,0.88)',
+          backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)',
+          display: 'flex', flexDirection: 'column', justifyContent: 'center',
+          padding: `0 ${config.padding}px`,
+          gap: 4, overflow: 'hidden',
+          textAlign: config.textAlign,
+        }}>
+          {config.showTitle  && <p style={{ ...titleStyle,  fontSize: 'clamp(15px,3.5cqi,28px)', margin: 0 }}>{track.title}</p>}
+          {config.showArtist && <p style={{ ...artistStyle, margin: 0 }}>{track.artist}</p>}
+          <div style={{ display: 'flex', gap: 6, alignItems: 'center', background: 'none' }}>
             {config.showYear     && <span style={metaStyle}>{track.releaseYear}</span>}
+            {config.showYear && config.showDuration && <span style={{ ...metaStyle, opacity: 0.3 }}>·</span>}
             {config.showDuration && <span style={metaStyle}>{track.duration}</span>}
           </div>
           {config.showLyrics && config.lyricQuote && (
-            <p style={lyricsStyle}>{`"${config.lyricQuote}"`}</p>
+            <p style={{ ...lyricsStyle, margin: 0 }}>{`"${config.lyricQuote}"`}</p>
           )}
         </div>
       </div>

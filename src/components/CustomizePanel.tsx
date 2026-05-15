@@ -208,7 +208,7 @@ function Section({ icon, label, children }: {
           flex: 1, textAlign: 'left',
           fontFamily: 'var(--font-mono)', fontSize: 10, fontWeight: 600,
           letterSpacing: '0.12em', textTransform: 'uppercase',
-          color: 'rgba(255,255,255,0.35)',
+          color: open ? 'rgba(255,255,255,0.7)' : 'rgba(255,255,255,0.35)',
         }}>
           {label}
         </span>

@@ -5,6 +5,7 @@ import { useState, useRef, useEffect } from 'react'
 type Props = {
   previewUrl: string
   trackId: string
+  accentColor?: string | null
 }
 
 const PlayIcon = () => (
@@ -16,7 +17,7 @@ const PauseIcon = () => (
   </svg>
 )
 
-export default function AudioPreview({ previewUrl, trackId }: Props) {
+export default function AudioPreview({ previewUrl, trackId, accentColor }: Props) {
   const [playing, setPlaying] = useState(false)
   const [progress, setProgress] = useState(0)
   const [dur, setDur] = useState(30)
@@ -76,7 +77,7 @@ export default function AudioPreview({ previewUrl, trackId }: Props) {
         </button>
         <div style={{ flex: 1, position: 'relative' }}>
           <div style={{ height: 4, background: 'var(--bg-2)', borderRadius: 99, overflow: 'hidden' }}>
-            <div style={{ height: '100%', width: `${progress * 100}%`, background: 'var(--accent)', transition: 'width 1s linear' }} />
+            <div style={{ height: '100%', width: `${progress * 100}%`, background: accentColor ?? 'var(--accent)', transition: 'width 1s linear' }} />
           </div>
           <div style={{
             display: 'flex', justifyContent: 'space-between', marginTop: 4,

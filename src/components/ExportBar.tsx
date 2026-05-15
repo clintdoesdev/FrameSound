@@ -161,17 +161,18 @@ export default function ExportBar({ cardRef, track, config, onConfigChange, acce
   const btnBase = (isActive: boolean): React.CSSProperties => ({
     flex: 1, height: 48, borderRadius: 8, border: 0,
     cursor: isActive ? 'default' : 'pointer',
-    background: isActive ? '#252525' : '#1a1a1a',
-    color: 'rgba(255,255,255,0.75)',
+    background: isActive ? (accentColor ? `${accentColor}30` : '#252525') : '#1a1a1a',
+    color: '#ffffff',
     display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4,
     transform: isActive ? 'scale(0.97)' : 'scale(1)',
     transition: 'transform 100ms, background 120ms',
-    opacity: busy && !isActive ? 0.4 : 1,
+    opacity: busy && !isActive ? 0.45 : 1,
   })
 
   const labelSty: React.CSSProperties = {
     fontFamily: 'var(--font-syne)', fontSize: 10, fontWeight: 600,
     letterSpacing: '0.08em', textTransform: 'uppercase',
+    color: 'rgba(255,255,255,0.85)',
   }
 
 

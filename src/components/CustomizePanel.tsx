@@ -6,371 +6,519 @@ import { CardConfig } from '@/types'
 type Props = {
   config: CardConfig
   onChange: (updates: Partial<CardConfig>) => void
+  accentColor?: string | null
 }
 
-const ChevronIcon = () => (
-  <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="m9 6 6 6-6 6"/>
-  </svg>
-)
-
-function Section({ icon, label, children, defaultOpen = true }: {
-  icon: React.ReactNode; label: string; children: React.ReactNode; defaultOpen?: boolean
-}) {
-  const [open, setOpen] = useState(defaultOpen)
-  return (
-    <div style={{ borderTop: '1px solid var(--line-soft)' }}>
-      <button
-        onClick={() => setOpen(!open)}
-        style={{
-          width: '100%', border: 0, background: 'transparent', cursor: 'pointer',
-          display: 'flex', alignItems: 'center', gap: 9,
-          padding: '14px var(--pad-x)',
-          color: 'var(--fg-1)',
-        }}
-      >
-        <span style={{ color: 'var(--accent)', flexShrink: 0 }}>{icon}</span>
-        <span style={{ flex: 1, textAlign: 'left', fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--fg-1)' }}>
-          {label}
-        </span>
-        <span style={{ color: 'var(--fg-3)', transform: open ? 'rotate(90deg)' : 'none', transition: 'transform 150ms' }}>
-          <ChevronIcon />
-        </span>
-      </button>
-      {open && (
-        <div style={{ padding: '2px var(--pad-x) 18px', display: 'flex', flexDirection: 'column', gap: 14 }}>
-          {children}
-        </div>
-      )}
-    </div>
-  )
-}
-
-function FieldLabel({ children, hint }: { children: React.ReactNode; hint?: string }) {
-  return (
-    <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 7 }}>
-      <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--fg)' }}>{children}</div>
-      {hint && <span className="mono" style={{ fontSize: 11, color: 'var(--fg-2)' }}>{hint}</span>}
-    </div>
-  )
-}
-
-function SegRow<T extends string>({ value, options, onChange }: {
-  value: T; options: { value: T; label: React.ReactNode; title?: string }[]; onChange: (v: T) => void
-}) {
-  return (
-    <div style={{
-      display: 'grid', gridTemplateColumns: `repeat(${options.length}, 1fr)`,
-      padding: 3, background: 'var(--bg-inset)', border: '1px solid var(--line)',
-      borderRadius: 10, height: 40,
-    }}>
-      {options.map((o, i) => (
-        <button key={i} onClick={() => onChange(o.value)} title={o.title} style={{
-          border: 0, cursor: 'pointer',
-          background: value === o.value ? 'var(--bg-2)' : 'transparent',
-          color: value === o.value ? 'var(--fg)' : 'var(--fg-1)',
-          borderRadius: 8, fontSize: 12.5, fontWeight: 500,
-          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
-          transition: 'background 120ms, color 120ms',
-          boxShadow: value === o.value ? 'var(--shadow-sm)' : 'none',
-        }}>{o.label}</button>
-      ))}
-    </div>
-  )
-}
-
-function NumStep({ value, min, max, step = 1, onChange, suffix = '' }: {
-  value: number; min: number; max: number; step?: number; onChange: (v: number) => void; suffix?: string
-}) {
-  return (
-    <div style={{
-      display: 'grid', gridTemplateColumns: '36px 1fr 36px', height: 40,
-      background: 'var(--bg-inset)', border: '1px solid var(--line)', borderRadius: 10,
-    }}>
-      <button onClick={() => onChange(Math.max(min, value - step))}
-        style={{ border: 0, background: 'transparent', color: 'var(--fg)', cursor: 'pointer', fontSize: 18, borderRadius: '10px 0 0 10px' }}>−</button>
-      <div style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        fontFamily: 'var(--font-mono)', fontSize: 13, color: 'var(--fg)',
-        borderLeft: '1px solid var(--line)', borderRight: '1px solid var(--line)',
-      }}>
-        {value}{suffix && <span style={{ opacity: 0.55, marginLeft: 2, fontSize: 11 }}>{suffix}</span>}
-      </div>
-      <button onClick={() => onChange(Math.min(max, value + step))}
-        style={{ border: 0, background: 'transparent', color: 'var(--fg)', cursor: 'pointer', fontSize: 18, borderRadius: '0 10px 10px 0' }}>+</button>
-    </div>
-  )
-}
-
-function ToggleRow({ label, value, onChange, icon }: {
-  label: string; value: boolean; onChange: (v: boolean) => void; icon?: React.ReactNode
-}) {
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '3px 0', minHeight: 40 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
-        {icon && <span style={{ color: 'var(--fg-3)', display: 'flex' }}>{icon}</span>}
-        <span style={{ fontSize: 13, color: 'var(--fg)' }}>{label}</span>
-      </div>
-      <button
-        onClick={() => onChange(!value)}
-        aria-pressed={value}
-        style={{
-          width: 36, height: 20, borderRadius: 999, border: 0, cursor: 'pointer',
-          background: value ? 'var(--accent)' : 'var(--bg-3)',
-          position: 'relative', transition: 'background 150ms ease', padding: 0, flexShrink: 0,
-        }}
-      >
-        <span style={{
-          position: 'absolute', top: 3, left: value ? 18 : 3,
-          width: 14, height: 14, borderRadius: '50%',
-          background: value ? 'var(--accent-fg)' : 'var(--fg-2)',
-          transition: 'left 150ms ease',
-          boxShadow: '0 1px 3px oklch(0 0 0 / 0.45)',
-        }} />
-      </button>
-    </div>
-  )
-}
-
-const PRESETS = [
-  { id: 'glass',   name: 'Glass',   sub: 'Frosted liquid' },
-  { id: 'poster',  name: 'Poster',  sub: 'Full-bleed art' },
-  { id: 'minimal', name: 'Minimal', sub: 'Side-by-side' },
-  { id: 'story',   name: 'Story',   sub: 'Vertical 9:16' },
-  { id: 'square',  name: 'Square',  sub: 'Compact card' },
-] as const
-
-// Icon components
+// ── Icons ──────────────────────────────────────────────────────
 const IconImage = () => (
-  <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-    <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/>
+  <svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="1.5" y="1.5" width="13" height="13" rx="2"/><circle cx="5.5" cy="5.5" r="1"/><path d="m14.5 10-4-4L2 14.5"/>
   </svg>
 )
 const IconText = () => (
-  <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M4 7V5h16v2M9 20h6M12 5v15"/>
+  <svg viewBox="0 0 16 16" width="13" height="13" fill="currentColor">
+    <path d="M2 3h12v2H9v8H7V5H2z"/>
   </svg>
 )
 const IconUser = () => (
-  <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-    <circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
+  <svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="8" cy="5" r="3"/><path d="M2 14c0-3 2.7-5 6-5s6 2 6 5"/>
   </svg>
 )
 const IconCalendar = () => (
-  <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-    <rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>
+  <svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="1.5" y="2.5" width="13" height="12" rx="2"/><path d="M5 1v3M11 1v3M1.5 7h13"/>
   </svg>
 )
 const IconClock = () => (
-  <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-    <circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/>
+  <svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="8" cy="8" r="6.5"/><path d="M8 4.5v4l2 2"/>
   </svg>
 )
 const IconQuote = () => (
-  <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M3 21c3 0 7-1 7-8V5c0-1.25-.756-2.017-2-2H4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2 1 0 1 0 1 1v1c0 1-1 2-2 2s-1 .008-1 1.031V20c0 1 0 1 1 1z"/>
-    <path d="M15 21c3 0 7-1 7-8V5c0-1.25-.757-2.017-2-2h-4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2h.75c0 2.25.25 4-2.75 4v3c0 1 0 1 1 1z"/>
+  <svg viewBox="0 0 16 16" width="13" height="13" fill="currentColor">
+    <path d="M1 3h5v5H3c0 2 1 3 3 3v2C2 13 1 10 1 7V3zM9 3h5v5h-3c0 2 1 3 3 3v2c-4 0-5-3-5-6V3z"/>
   </svg>
 )
 const IconLayers = () => (
-  <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-    <path d="m12 3 9 5-9 5-9-5 9-5z"/><path d="m3 13 9 5 9-5"/><path d="m3 18 9 5 9-5"/>
+  <svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <path d="m8 1.5 6.5 3.5-6.5 3.5L1.5 5 8 1.5z"/><path d="M1.5 9 8 12.5 14.5 9"/><path d="M1.5 12.5 8 16l6.5-3.5"/>
   </svg>
 )
 const IconBg = () => (
-  <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-    <circle cx="12" cy="12" r="9"/><path d="M12 3a6 6 0 0 0 9 9"/>
+  <svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="8" cy="8" r="6.5"/><path d="M8 1.5a5 5 0 0 0 5 5"/>
   </svg>
 )
 const IconType = () => (
-  <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M4 7V5h16v2M9 20h6M12 5v15"/>
+  <svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M2 4V2h12v2M7 14h2M8 2v12"/>
   </svg>
 )
 const IconGeometry = () => (
-  <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-    <rect x="3" y="3" width="18" height="18" rx="3"/>
-    <path d="M9 3v18M3 9h18"/>
+  <svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="1.5" y="1.5" width="13" height="13" rx="2"/>
+    <path d="M6 1.5v13M1.5 6h13"/>
   </svg>
 )
 const IconEye = () => (
-  <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/>
+  <svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M1 8s2.5-5 7-5 7 5 7 5-2.5 5-7 5-7-5-7-5z"/><circle cx="8" cy="8" r="2"/>
   </svg>
 )
-
-// Alignment icons
 const AlignLeftIcon = () => (
-  <svg viewBox="0 0 16 16" width="15" height="15" fill="currentColor">
+  <svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor">
     <rect x="1" y="3" width="14" height="1.5" rx="0.75"/>
     <rect x="1" y="7" width="9" height="1.5" rx="0.75"/>
     <rect x="1" y="11" width="12" height="1.5" rx="0.75"/>
   </svg>
 )
 const AlignCenterIcon = () => (
-  <svg viewBox="0 0 16 16" width="15" height="15" fill="currentColor">
+  <svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor">
     <rect x="1" y="3" width="14" height="1.5" rx="0.75"/>
     <rect x="3.5" y="7" width="9" height="1.5" rx="0.75"/>
     <rect x="2" y="11" width="12" height="1.5" rx="0.75"/>
   </svg>
 )
 const AlignRightIcon = () => (
-  <svg viewBox="0 0 16 16" width="15" height="15" fill="currentColor">
+  <svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor">
     <rect x="1" y="3" width="14" height="1.5" rx="0.75"/>
     <rect x="6" y="7" width="9" height="1.5" rx="0.75"/>
     <rect x="3" y="11" width="12" height="1.5" rx="0.75"/>
   </svg>
 )
 
-export default function CustomizePanel({ config, onChange }: Props) {
+// ── Preset SVG illustrations ───────────────────────────────────
+const PresetGlassSVG = () => (
+  <svg viewBox="0 0 60 45" width="60" height="45" fill="none">
+    <rect x="15" y="6" width="30" height="23" rx="3" fill="rgba(255,255,255,0.12)" stroke="rgba(255,255,255,0.2)" strokeWidth="0.8"/>
+    <rect x="20" y="10" width="20" height="14" rx="2" fill="rgba(255,255,255,0.18)"/>
+    <rect x="20" y="27" width="20" height="2" rx="1" fill="rgba(255,255,255,0.5)"/>
+    <rect x="22" y="31" width="16" height="1.5" rx="0.75" fill="rgba(255,255,255,0.25)"/>
+    <rect x="24" y="34" width="12" height="1.5" rx="0.75" fill="rgba(255,255,255,0.18)"/>
+  </svg>
+)
+const PresetPosterSVG = () => (
+  <svg viewBox="0 0 60 45" width="60" height="45" fill="none">
+    <rect x="8" y="4" width="44" height="37" rx="3" fill="rgba(255,255,255,0.10)"/>
+    <rect x="8" y="26" width="44" height="15" rx="0" fill="url(#pg)"/>
+    <defs><linearGradient id="pg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="rgba(0,0,0,0)"/><stop offset="100%" stopColor="rgba(0,0,0,0.8)"/></linearGradient></defs>
+    <rect x="13" y="30" width="22" height="2" rx="1" fill="rgba(255,255,255,0.9)"/>
+    <rect x="13" y="34" width="16" height="1.5" rx="0.75" fill="rgba(255,255,255,0.5)"/>
+    <rect x="13" y="37.5" width="10" height="1.2" rx="0.6" fill="rgba(255,255,255,0.3)"/>
+  </svg>
+)
+const PresetMinimalSVG = () => (
+  <svg viewBox="0 0 60 45" width="60" height="45" fill="none">
+    <rect x="8" y="8" width="44" height="29" rx="3" fill="rgba(255,255,255,0.06)"/>
+    <rect x="8" y="8" width="20" height="29" rx="3" fill="rgba(255,255,255,0.18)"/>
+    <rect x="32" y="16" width="16" height="2" rx="1" fill="rgba(255,255,255,0.7)"/>
+    <rect x="32" y="20.5" width="12" height="1.5" rx="0.75" fill="rgba(255,255,255,0.4)"/>
+    <rect x="32" y="25" width="10" height="1.2" rx="0.6" fill="rgba(255,255,255,0.25)"/>
+  </svg>
+)
+const PresetStorySVG = () => (
+  <svg viewBox="0 0 60 45" width="60" height="45" fill="none">
+    <rect x="20" y="3" width="20" height="39" rx="3" fill="rgba(255,255,255,0.10)"/>
+    <rect x="24" y="8" width="12" height="12" rx="2" fill="rgba(255,255,255,0.25)"/>
+    <rect x="22" y="24" width="16" height="2" rx="1" fill="rgba(255,255,255,0.7)"/>
+    <rect x="23" y="28" width="14" height="1.5" rx="0.75" fill="rgba(255,255,255,0.35)"/>
+    <rect x="25" y="31.5" width="10" height="1.2" rx="0.6" fill="rgba(255,255,255,0.2)"/>
+  </svg>
+)
+const PresetSquareSVG = () => (
+  <svg viewBox="0 0 60 45" width="60" height="45" fill="none">
+    <rect x="12" y="5" width="36" height="35" rx="3" fill="rgba(255,255,255,0.08)"/>
+    <rect x="20" y="10" width="20" height="14" rx="2" fill="rgba(255,255,255,0.22)"/>
+    <rect x="17" y="27" width="18" height="2" rx="1" fill="rgba(255,255,255,0.7)"/>
+    <rect x="17" y="31" width="14" height="1.5" rx="0.75" fill="rgba(255,255,255,0.35)"/>
+    <rect x="17" y="34.5" width="10" height="1.2" rx="0.6" fill="rgba(255,255,255,0.2)"/>
+  </svg>
+)
+
+const PRESET_SVG: Record<string, React.ReactNode> = {
+  glass: <PresetGlassSVG />,
+  poster: <PresetPosterSVG />,
+  minimal: <PresetMinimalSVG />,
+  story: <PresetStorySVG />,
+  square: <PresetSquareSVG />,
+}
+
+// ── Font map for rendering pills in their own typeface ─────────
+const FONT_CSS_VAR: Record<CardConfig['font'], string> = {
+  syne: 'var(--font-syne)',
+  'dm-serif': 'var(--font-dm-serif)',
+  playfair: 'var(--font-playfair)',
+  bebas: 'var(--font-bebas)',
+  instrument: 'var(--font-instrument)',
+}
+
+// ── Section accordion ──────────────────────────────────────────
+function Section({ icon, label, children }: {
+  icon: React.ReactNode; label: string; children: React.ReactNode
+}) {
+  const [open, setOpen] = useState(true)
   return (
-    <div className="scroll" style={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
-      {/* Preset picker */}
+    <div style={{ borderBottom: '1px solid rgba(255,255,255,0.06)', marginBottom: 4 }}>
+      <button
+        onClick={() => setOpen(o => !o)}
+        style={{
+          width: '100%', border: 0, background: 'transparent', cursor: 'pointer',
+          display: 'flex', alignItems: 'center', gap: 8,
+          padding: '13px 16px 12px',
+          borderBottom: open ? '1px solid rgba(255,255,255,0.05)' : 'none',
+          color: 'rgba(255,255,255,0.25)',
+        }}
+      >
+        <span style={{ display: 'flex', color: 'rgba(255,255,255,0.25)' }}>{icon}</span>
+        <span style={{
+          flex: 1, textAlign: 'left',
+          fontFamily: 'var(--font-mono)', fontSize: 10, fontWeight: 600,
+          letterSpacing: '0.12em', textTransform: 'uppercase',
+          color: 'rgba(255,255,255,0.35)',
+        }}>
+          {label}
+        </span>
+        <svg viewBox="0 0 10 10" width="9" height="9" fill="none" stroke="rgba(255,255,255,0.25)" strokeWidth="1.5" strokeLinecap="round">
+          <path d={open ? 'm2 3.5 3 3 3-3' : 'm2 6.5 3-3 3 3'} />
+        </svg>
+      </button>
+      <div style={{
+        overflow: 'hidden',
+        maxHeight: open ? 9999 : 0,
+        transition: 'max-height 300ms ease',
+      }}>
+        <div style={{ padding: '14px 16px 18px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+          {children}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ── Pill toggle row (bgStyle / textColor) ──────────────────────
+function PillRow<T extends string>({ value, options, onChange, accent }: {
+  value: T
+  options: { value: T; label: React.ReactNode }[]
+  onChange: (v: T) => void
+  accent?: string
+}) {
+  const accentRgb = accent ?? 'var(--accent)'
+  return (
+    <div style={{ display: 'flex', gap: 6 }}>
+      {options.map((o, i) => {
+        const selected = value === o.value
+        return (
+          <button key={i} onClick={() => onChange(o.value)} style={{
+            flex: 1, height: 36, borderRadius: 999, border: 0, cursor: 'pointer',
+            fontSize: 12, fontWeight: 500,
+            background: selected ? (accent ? `${accent}33` : 'var(--accent-quiet)') : '#1a1a1a',
+            color: selected ? (accent ?? 'var(--accent)') : 'rgba(255,255,255,0.5)',
+            outline: selected ? `1px solid ${accentRgb}` : '1px solid rgba(255,255,255,0.08)',
+            transition: 'all 120ms',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
+          }}>{o.label}</button>
+        )
+      })}
+    </div>
+  )
+}
+
+// ── Slider with styled track ───────────────────────────────────
+function StyledSlider({ value, min, max, step, onChange, trackStyle, label }: {
+  value: number; min: number; max: number; step: number
+  onChange: (v: number) => void
+  trackStyle?: React.CSSProperties
+  label: string
+}) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)' }}>{label}</span>
+        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'rgba(255,255,255,0.7)' }}>{value}{label.includes('Hue') ? '°' : 'px'}</span>
+      </div>
+      <div style={{ position: 'relative', height: 24, display: 'flex', alignItems: 'center' }}>
+        <div style={{
+          position: 'absolute', inset: 0, top: '50%', transform: 'translateY(-50%)',
+          height: 6, borderRadius: 3,
+          background: trackStyle?.background ?? `linear-gradient(to right, #1a1a1a, rgba(255,255,255,0.25))`,
+          ...trackStyle,
+        }} />
+        <input
+          type="range" min={min} max={max} step={step} value={value}
+          onChange={e => onChange(Number(e.target.value))}
+          style={{
+            position: 'relative', width: '100%', height: 24,
+            appearance: 'none', WebkitAppearance: 'none',
+            background: 'transparent', cursor: 'pointer', zIndex: 1,
+          }}
+        />
+        <style>{`
+          input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 16px; height: 16px; border-radius: 50%;
+            background: #fff;
+            box-shadow: 0 0 0 3px #000, 0 1px 4px rgba(0,0,0,0.6);
+            cursor: pointer;
+          }
+          input[type=range]::-moz-range-thumb {
+            width: 16px; height: 16px; border-radius: 50%;
+            background: #fff; border: none;
+            box-shadow: 0 0 0 3px #000, 0 1px 4px rgba(0,0,0,0.6);
+            cursor: pointer;
+          }
+        `}</style>
+      </div>
+    </div>
+  )
+}
+
+// ── Toggle pill (visibility) ───────────────────────────────────
+function ToggleItem({ label, value, onChange, icon, accent }: {
+  label: string; value: boolean; onChange: (v: boolean) => void
+  icon: React.ReactNode; accent?: string
+}) {
+  return (
+    <div
+      onClick={() => onChange(!value)}
+      style={{
+        display: 'flex', alignItems: 'center', gap: 8,
+        height: 40, padding: '0 10px',
+        borderRadius: 8, cursor: 'pointer',
+        background: value ? (accent ? `${accent}26` : 'var(--accent-quiet)') : 'transparent',
+        borderLeft: value ? `2px solid ${accent ?? 'var(--accent)'}` : '2px solid transparent',
+        transition: 'all 150ms',
+      }}
+    >
+      <span style={{ color: value ? (accent ?? 'var(--accent)') : 'rgba(255,255,255,0.3)', display: 'flex', flexShrink: 0 }}>{icon}</span>
+      <span style={{ flex: 1, fontSize: 12, color: value ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.45)' }}>{label}</span>
+      <div style={{
+        width: 36, height: 20, borderRadius: 999, flexShrink: 0,
+        background: value ? (accent ? `${accent}99` : 'var(--accent)') : '#2a2a2a',
+        position: 'relative', transition: 'background 150ms',
+      }}>
+        <span style={{
+          position: 'absolute', top: 3, left: value ? 18 : 3,
+          width: 14, height: 14, borderRadius: '50%',
+          background: value ? '#fff' : 'rgba(255,255,255,0.5)',
+          transition: 'left 150ms',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.4)',
+          display: 'block',
+        }} />
+      </div>
+    </div>
+  )
+}
+
+const PRESETS = [
+  { id: 'glass',   name: 'Glass'   },
+  { id: 'poster',  name: 'Poster'  },
+  { id: 'minimal', name: 'Minimal' },
+  { id: 'story',   name: 'Story'   },
+  { id: 'square',  name: 'Square'  },
+] as const
+
+const FONTS: { value: CardConfig['font']; label: string }[] = [
+  { value: 'syne',       label: 'Syne'       },
+  { value: 'dm-serif',   label: 'DM Serif'   },
+  { value: 'playfair',   label: 'Playfair'   },
+  { value: 'bebas',      label: 'Bebas'      },
+  { value: 'instrument', label: 'Instrument' },
+]
+
+const HUE_GRADIENT = 'linear-gradient(to right, hsl(0,80%,50%), hsl(45,80%,50%), hsl(90,80%,50%), hsl(135,80%,50%), hsl(180,80%,50%), hsl(225,80%,50%), hsl(270,80%,50%), hsl(315,80%,50%), hsl(360,80%,50%))'
+
+export default function CustomizePanel({ config, onChange, accentColor }: Props) {
+  const ac = accentColor ?? undefined
+
+  return (
+    <div style={{ background: '#0d0d0d', flex: 1 }}>
+
+      {/* ── PRESET ── */}
       <Section icon={<IconLayers />} label="Preset">
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 7 }}>
-          {PRESETS.map(p => (
-            <button key={p.id} onClick={() => onChange({ preset: p.id })} style={{
-              textAlign: 'left', padding: '11px 12px',
-              background: config.preset === p.id ? 'var(--accent-quiet)' : 'var(--bg-1)',
-              border: `1.5px solid ${config.preset === p.id ? 'var(--accent)' : 'var(--line)'}`,
-              borderRadius: 10, cursor: 'pointer',
-              display: 'flex', flexDirection: 'column', gap: 3,
-              transition: 'border-color 120ms, background 120ms',
-            }}>
-              <span style={{ fontSize: 13, fontWeight: 600, color: config.preset === p.id ? 'var(--accent)' : 'var(--fg)' }}>{p.name}</span>
-              <span className="mono" style={{ fontSize: 10.5, color: 'var(--fg-2)', letterSpacing: '0.02em' }}>{p.sub}</span>
-            </button>
-          ))}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+          {PRESETS.map(p => {
+            const sel = config.preset === p.id
+            return (
+              <button
+                key={p.id}
+                onClick={() => onChange({ preset: p.id })}
+                style={{
+                  background: sel ? (ac ? `${ac}26` : 'var(--accent-quiet)') : '#1a1a1a',
+                  border: `1.5px solid ${sel ? (ac ?? 'var(--accent)') : 'rgba(255,255,255,0.08)'}`,
+                  borderRadius: 10, cursor: 'pointer', padding: '10px 8px 8px',
+                  display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
+                  transition: 'border-color 120ms, background 120ms',
+                  minHeight: 90,
+                }}
+              >
+                <div style={{ opacity: sel ? 1 : 0.6, transition: 'opacity 120ms' }}>
+                  {PRESET_SVG[p.id]}
+                </div>
+                <span style={{
+                  fontFamily: 'var(--font-syne)', fontSize: 10, fontWeight: 600,
+                  letterSpacing: '0.08em', textTransform: 'uppercase',
+                  color: sel ? (ac ?? 'var(--accent)') : 'rgba(255,255,255,0.55)',
+                }}>{p.name}</span>
+              </button>
+            )
+          })}
         </div>
       </Section>
 
-      {/* Background */}
+      {/* ── BACKGROUND ── */}
       <Section icon={<IconBg />} label="Background">
-        <div>
-          <FieldLabel hint="style">Style</FieldLabel>
-          <SegRow
-            value={config.bgStyle}
-            onChange={(v) => onChange({ bgStyle: v })}
-            options={[
-              { value: 'blurred-art', label: 'Blurred' },
-              { value: 'gradient',    label: 'Grad' },
-              { value: 'solid',       label: 'Solid' },
-              { value: 'transparent', label: 'None' },
-            ]}
-          />
-        </div>
+        <PillRow
+          value={config.bgStyle}
+          onChange={v => onChange({ bgStyle: v })}
+          accent={ac}
+          options={[
+            { value: 'blurred-art', label: 'Blurred' },
+            { value: 'gradient',    label: 'Grad' },
+            { value: 'solid',       label: 'Solid' },
+            { value: 'transparent', label: 'None' },
+          ]}
+        />
+
         {config.bgStyle === 'solid' && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <span style={{ fontSize: 13, color: 'var(--fg)' }}>Color</span>
-            <input type="color" value={config.bgColor} onChange={(e) => onChange({ bgColor: e.target.value })}
-              style={{ width: 40, height: 32, borderRadius: 8, border: '1px solid var(--line)', cursor: 'pointer', background: 'none', padding: 2 }} />
-            <span className="mono" style={{ fontSize: 11, color: 'var(--fg-3)' }}>{config.bgColor}</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{ position: 'relative' }}>
+              <div style={{
+                width: 32, height: 32, borderRadius: 8,
+                background: config.bgColor,
+                border: '1px solid rgba(255,255,255,0.12)',
+                cursor: 'pointer',
+                overflow: 'hidden',
+              }}>
+                <input
+                  type="color" value={config.bgColor}
+                  onChange={e => onChange({ bgColor: e.target.value })}
+                  style={{ position: 'absolute', inset: 0, opacity: 0, width: '100%', height: '100%', cursor: 'pointer' }}
+                />
+              </div>
+            </div>
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'rgba(255,255,255,0.55)' }}>{config.bgColor.toUpperCase()}</span>
           </div>
         )}
-        <div>
-          <FieldLabel hint="0–360°">Tint hue</FieldLabel>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 56px', gap: 10, alignItems: 'center' }}>
-            <input type="range" min={0} max={360} step={1} value={config.tintHue}
-              onChange={(e) => onChange({ tintHue: parseInt(e.target.value) })}
-              style={{ accentColor: 'var(--accent)' }} />
-            <div className="mono tnum" style={{
-              fontSize: 12, color: 'var(--fg)', textAlign: 'center',
-              background: 'var(--bg-inset)', border: '1px solid var(--line)',
-              borderRadius: 8, padding: '5px 6px',
-            }}>{config.tintHue}°</div>
-          </div>
-        </div>
+
+        <StyledSlider
+          value={config.tintHue} min={0} max={360} step={1}
+          onChange={v => onChange({ tintHue: v })}
+          trackStyle={{ background: HUE_GRADIENT }}
+          label="Tint Hue"
+        />
       </Section>
 
-      {/* Typography */}
+      {/* ── TYPOGRAPHY ── */}
       <Section icon={<IconType />} label="Typography">
-        <div>
-          <FieldLabel hint="family">Card font</FieldLabel>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 5 }}>
-            {([
-              { value: 'syne',       label: 'Syne' },
-              { value: 'dm-serif',   label: 'DM Serif' },
-              { value: 'playfair',   label: 'Playfair' },
-              { value: 'bebas',      label: 'Bebas' },
-              { value: 'instrument', label: 'Instrument' },
-            ] as { value: CardConfig['font']; label: string }[]).map(f => (
+        {/* Font pills — scrollable row, each in its own face */}
+        <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 2 }}>
+          {FONTS.map(f => {
+            const sel = config.font === f.value
+            return (
               <button key={f.value} onClick={() => onChange({ font: f.value })} style={{
-                height: 36, border: `1.5px solid ${config.font === f.value ? 'var(--accent)' : 'var(--line)'}`,
-                background: config.font === f.value ? 'var(--accent-quiet)' : 'var(--bg-inset)',
-                borderRadius: 8, fontSize: 12, fontWeight: 500,
-                color: config.font === f.value ? 'var(--accent)' : 'var(--fg-1)', cursor: 'pointer',
-                transition: 'all 120ms',
-              }}>{f.label}</button>
-            ))}
-          </div>
-        </div>
-
-        <div>
-          <FieldLabel hint="contrast">Text color</FieldLabel>
-          <SegRow
-            value={config.textColor}
-            onChange={(v) => onChange({ textColor: v })}
-            options={[
-              { value: 'white', label: 'Light' },
-              { value: 'black', label: 'Dark' },
-              { value: 'auto',  label: 'Auto' },
-            ]}
-          />
-        </div>
-
-        <div>
-          <FieldLabel>Text align</FieldLabel>
-          <SegRow
-            value={config.textAlign}
-            onChange={(v) => onChange({ textAlign: v })}
-            options={[
-              { value: 'left',   label: <AlignLeftIcon />,   title: 'Align left' },
-              { value: 'center', label: <AlignCenterIcon />, title: 'Align center' },
-              { value: 'right',  label: <AlignRightIcon />,  title: 'Align right' },
-            ]}
-          />
-        </div>
-      </Section>
-
-      {/* Geometry */}
-      <Section icon={<IconGeometry />} label="Geometry">
-        <div>
-          <FieldLabel hint="aspect">Canvas size</FieldLabel>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 5 }}>
-            {(['1:1', '16:9', '4:5', '9:16'] as CardConfig['size'][]).map(s => (
-              <button key={s} onClick={() => onChange({ size: s })} style={{
-                height: 36,
-                background: config.size === s ? 'var(--accent-quiet)' : 'var(--bg-inset)',
-                border: `1.5px solid ${config.size === s ? 'var(--accent)' : 'var(--line)'}`,
-                borderRadius: 8,
-                fontFamily: 'var(--font-mono)', fontSize: 11,
-                color: config.size === s ? 'var(--accent)' : 'var(--fg-1)',
+                flexShrink: 0, width: 80, height: 36, borderRadius: 999,
+                border: `1.5px solid ${sel ? (ac ?? 'var(--accent)') : 'rgba(255,255,255,0.10)'}`,
+                background: sel ? (ac ? `${ac}26` : 'var(--accent-quiet)') : '#1a1a1a',
+                fontFamily: FONT_CSS_VAR[f.value],
+                fontSize: f.value === 'bebas' ? 15 : 12,
+                fontWeight: f.value === 'bebas' ? 400 : 600,
+                color: sel ? (ac ?? 'var(--accent)') : 'rgba(255,255,255,0.55)',
                 cursor: 'pointer', transition: 'all 120ms',
-              }}>{s}</button>
-            ))}
-          </div>
+              }}>{f.label}</button>
+            )
+          })}
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-          <div>
-            <FieldLabel hint="px">Padding</FieldLabel>
-            <NumStep value={config.padding} min={8} max={64} step={4} onChange={(v) => onChange({ padding: v })} />
-          </div>
-          <div>
-            <FieldLabel hint="px">Radius</FieldLabel>
-            <NumStep value={config.borderRadius} min={0} max={48} step={2} onChange={(v) => onChange({ borderRadius: v })} />
-          </div>
+
+        {/* Text color */}
+        <PillRow
+          value={config.textColor}
+          onChange={v => onChange({ textColor: v })}
+          accent={ac}
+          options={[
+            { value: 'white', label: 'Light' },
+            { value: 'black', label: 'Dark' },
+            { value: 'auto',  label: 'Auto' },
+          ]}
+        />
+
+        {/* Text align */}
+        <div style={{ display: 'flex', gap: 6 }}>
+          {([
+            { value: 'left'   as const, icon: <AlignLeftIcon /> },
+            { value: 'center' as const, icon: <AlignCenterIcon /> },
+            { value: 'right'  as const, icon: <AlignRightIcon /> },
+          ]).map(o => {
+            const sel = config.textAlign === o.value
+            return (
+              <button key={o.value} onClick={() => onChange({ textAlign: o.value })} style={{
+                width: 40, height: 40, borderRadius: 8, border: 0, cursor: 'pointer',
+                background: sel ? (ac ? `${ac}33` : 'var(--accent-quiet)') : '#1a1a1a',
+                color: sel ? (ac ?? 'var(--accent)') : 'rgba(255,255,255,0.4)',
+                outline: sel ? `1.5px solid ${ac ?? 'var(--accent)'}` : '1.5px solid rgba(255,255,255,0.08)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                transition: 'all 120ms',
+              }}>{o.icon}</button>
+            )
+          })}
         </div>
       </Section>
 
-      {/* Visibility */}
-      <Section icon={<IconEye />} label="Visibility">
-        <ToggleRow icon={<IconImage />}    label="Album art"    value={config.showAlbumArt} onChange={(v) => onChange({ showAlbumArt: v })} />
-        <ToggleRow icon={<IconText />}     label="Title"        value={config.showTitle}    onChange={(v) => onChange({ showTitle: v })} />
-        <ToggleRow icon={<IconUser />}     label="Artist"       value={config.showArtist}   onChange={(v) => onChange({ showArtist: v })} />
-        <ToggleRow icon={<IconCalendar />} label="Release year" value={config.showYear}     onChange={(v) => onChange({ showYear: v })} />
-        <ToggleRow icon={<IconClock />}    label="Duration"     value={config.showDuration} onChange={(v) => onChange({ showDuration: v })} />
-        <ToggleRow icon={<IconQuote />}    label="Lyric quote"  value={config.showLyrics}   onChange={(v) => onChange({ showLyrics: v })} />
+      {/* ── GEOMETRY ── */}
+      <Section icon={<IconGeometry />} label="Geometry">
+        {/* Canvas size with aspect-ratio SVG pills */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 6 }}>
+          {([
+            { s: '1:1'  as const, w: 16, h: 16 },
+            { s: '16:9' as const, w: 20, h: 11 },
+            { s: '4:5'  as const, w: 14, h: 17 },
+            { s: '9:16' as const, w: 10, h: 18 },
+          ]).map(({ s, w, h }) => {
+            const sel = config.size === s
+            return (
+              <button key={s} onClick={() => onChange({ size: s })} style={{
+                height: 52, borderRadius: 10,
+                background: sel ? (ac ? `${ac}26` : 'var(--accent-quiet)') : '#1a1a1a',
+                border: `1.5px solid ${sel ? (ac ?? 'var(--accent)') : 'rgba(255,255,255,0.08)'}`,
+                cursor: 'pointer', transition: 'all 120ms',
+                display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4,
+              }}>
+                <svg viewBox={`0 0 ${w} ${h}`} width={w} height={h}>
+                  <rect x="0.75" y="0.75" width={w - 1.5} height={h - 1.5} rx="1.5"
+                    fill={sel ? (ac ? `${ac}40` : 'rgba(100,120,255,0.3)') : 'rgba(255,255,255,0.12)'}
+                    stroke={sel ? (ac ?? 'var(--accent)') : 'rgba(255,255,255,0.35)'} strokeWidth="1.5"
+                  />
+                </svg>
+                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: sel ? (ac ?? 'var(--accent)') : 'rgba(255,255,255,0.4)' }}>{s}</span>
+              </button>
+            )
+          })}
+        </div>
+
+        <StyledSlider
+          value={config.padding} min={8} max={64} step={4}
+          onChange={v => onChange({ padding: v })}
+          label="Padding"
+        />
+        <StyledSlider
+          value={config.borderRadius} min={0} max={48} step={4}
+          onChange={v => onChange({ borderRadius: v })}
+          label="Radius"
+        />
       </Section>
+
+      {/* ── VISIBILITY ── */}
+      <Section icon={<IconEye />} label="Visibility">
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4 }}>
+          <ToggleItem icon={<IconImage />}    label="Album art"  value={config.showAlbumArt} onChange={v => onChange({ showAlbumArt: v })} accent={ac} />
+          <ToggleItem icon={<IconText />}     label="Title"      value={config.showTitle}    onChange={v => onChange({ showTitle: v })}    accent={ac} />
+          <ToggleItem icon={<IconUser />}     label="Artist"     value={config.showArtist}   onChange={v => onChange({ showArtist: v })}   accent={ac} />
+          <ToggleItem icon={<IconCalendar />} label="Year"       value={config.showYear}     onChange={v => onChange({ showYear: v })}     accent={ac} />
+          <ToggleItem icon={<IconClock />}    label="Duration"   value={config.showDuration} onChange={v => onChange({ showDuration: v })} accent={ac} />
+          <ToggleItem icon={<IconQuote />}    label="Lyrics"     value={config.showLyrics}   onChange={v => onChange({ showLyrics: v })}   accent={ac} />
+        </div>
+      </Section>
+
     </div>
   )
 }

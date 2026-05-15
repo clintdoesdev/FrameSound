@@ -15,7 +15,7 @@ export type CardConfig = {
   bgColor: string
   tintHue: number
   textColor: 'white' | 'black' | 'auto'
-  font: 'syne' | 'dm-serif' | 'playfair' | 'bebas' | 'instrument' | 'space-grotesk' | 'raleway' | 'cormorant' | 'oswald'
+  font: 'poppins' | 'dm-serif' | 'playfair' | 'bebas' | 'instrument' | 'space-grotesk' | 'raleway' | 'cormorant' | 'oswald'
   showAlbumArt: boolean
   showTitle: boolean
   showArtist: boolean
@@ -38,7 +38,7 @@ export const defaultConfig: CardConfig = {
   bgColor: '#111111',
   tintHue: 0,
   textColor: 'auto',
-  font: 'syne',
+  font: 'poppins',
   showAlbumArt: true,
   showTitle: true,
   showArtist: true,

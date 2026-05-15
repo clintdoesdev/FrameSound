@@ -3,6 +3,20 @@
 import React, { useState } from 'react'
 import { CardConfig } from '@/types'
 
+type SavedPreset = { id: string; name: string; config: CardConfig }
+
+const STORAGE_KEY = 'framesound-saved-presets'
+function loadSavedPresets(): SavedPreset[] {
+  if (typeof window === 'undefined') return []
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY)
+    return raw ? (JSON.parse(raw) as SavedPreset[]) : []
+  } catch { return [] }
+}
+function persistPresets(list: SavedPreset[]) {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(list)) } catch { /* quota error */ }
+}
+
 type Props = {
   config: CardConfig
   onChange: (updates: Partial<CardConfig>) => void
@@ -22,6 +36,11 @@ function textAccent(hex: string | null | undefined): string {
 }
 
 // ── Icons ──────────────────────────────────────────────────────
+const IconBookmark = () => (
+  <svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M2 2h12v13l-6-4-6 4z"/>
+  </svg>
+)
 const IconImage = () => (
   <svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
     <rect x="1.5" y="1.5" width="13" height="13" rx="2"/><circle cx="5.5" cy="5.5" r="1"/><path d="m14.5 10-4-4L2 14.5"/>
@@ -196,7 +215,7 @@ const PRESET_SVG: Record<string, React.ReactNode> = {
 
 // ── Font map for rendering cards in their own typeface ─────────
 const FONT_CSS_VAR: Record<CardConfig['font'], string> = {
-  syne:             'var(--font-syne)',
+  poppins:          'var(--font-poppins)',
   'dm-serif':       'var(--font-dm-serif)',
   playfair:         'var(--font-playfair)',
   bebas:            'var(--font-bebas)',
@@ -375,15 +394,15 @@ const PRESETS = [
 ] as const
 
 const FONTS: { value: CardConfig['font']; label: string; tag: string; weight: number; size: number }[] = [
-  { value: 'syne',            label: 'Syne',         tag: 'Geometric',  weight: 700, size: 18 },
-  { value: 'space-grotesk',   label: 'Space Grotesk',tag: 'Modern',     weight: 600, size: 16 },
-  { value: 'raleway',         label: 'Raleway',      tag: 'Elegant',    weight: 300, size: 18 },
-  { value: 'oswald',          label: 'Oswald',       tag: 'Condensed',  weight: 500, size: 18 },
-  { value: 'bebas',           label: 'Bebas Neue',   tag: 'Display',    weight: 400, size: 22 },
-  { value: 'playfair',        label: 'Playfair',     tag: 'Serif',      weight: 700, size: 17 },
-  { value: 'dm-serif',        label: 'DM Serif',     tag: 'Serif',      weight: 400, size: 18 },
-  { value: 'cormorant',       label: 'Cormorant',    tag: 'Luxury',     weight: 600, size: 20 },
-  { value: 'instrument',      label: 'Instrument',   tag: 'Italic',     weight: 400, size: 18 },
+  { value: 'poppins',          label: 'Poppins',      tag: 'Modern',     weight: 600, size: 17 },
+  { value: 'space-grotesk',    label: 'Space Grotesk',tag: 'Modern',     weight: 600, size: 16 },
+  { value: 'raleway',          label: 'Raleway',      tag: 'Elegant',    weight: 300, size: 18 },
+  { value: 'oswald',           label: 'Oswald',       tag: 'Condensed',  weight: 500, size: 18 },
+  { value: 'bebas',            label: 'Bebas Neue',   tag: 'Display',    weight: 400, size: 22 },
+  { value: 'playfair',         label: 'Playfair',     tag: 'Serif',      weight: 700, size: 17 },
+  { value: 'dm-serif',         label: 'DM Serif',     tag: 'Serif',      weight: 400, size: 18 },
+  { value: 'cormorant',        label: 'Cormorant',    tag: 'Luxury',     weight: 600, size: 20 },
+  { value: 'instrument',       label: 'Instrument',   tag: 'Italic',     weight: 400, size: 18 },
 ]
 
 const HUE_GRADIENT = 'linear-gradient(to right, hsl(0,80%,50%), hsl(45,80%,50%), hsl(90,80%,50%), hsl(135,80%,50%), hsl(180,80%,50%), hsl(225,80%,50%), hsl(270,80%,50%), hsl(315,80%,50%), hsl(360,80%,50%))'
@@ -392,8 +411,121 @@ export default function CustomizePanel({ config, onChange, accentColor }: Props)
   const ac = accentColor ?? undefined          // raw hex — safe for bg tints
   const act = textAccent(accentColor)          // luminance-checked — safe for text/border
 
+  const [savedPresets, setSavedPresets] = useState<SavedPreset[]>(() => loadSavedPresets())
+  const [saveName, setSaveName] = useState('')
+  const [showSaveInput, setShowSaveInput] = useState(false)
+
   return (
     <div style={{ background: '#0d0d0d', flex: 1 }}>
+
+      {/* ── SAVED PRESETS ── */}
+      <Section icon={<IconBookmark />} label="Saved Presets">
+        {/* Save current config */}
+        {!showSaveInput ? (
+          <button
+            onClick={() => setShowSaveInput(true)}
+            style={{
+              width: '100%', height: 36, borderRadius: 8, border: '1px dashed rgba(255,255,255,0.15)',
+              background: 'transparent', cursor: 'pointer',
+              fontSize: 12, color: 'rgba(255,255,255,0.45)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+            }}
+          >
+            + Save current preset
+          </button>
+        ) : (
+          <div style={{ display: 'flex', gap: 6 }}>
+            <input
+              autoFocus
+              value={saveName}
+              onChange={e => setSaveName(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === 'Enter' && saveName.trim()) {
+                  const newPreset: SavedPreset = { id: Date.now().toString(), name: saveName.trim(), config }
+                  const updated = [...savedPresets, newPreset]
+                  setSavedPresets(updated)
+                  persistPresets(updated)
+                  setSaveName('')
+                  setShowSaveInput(false)
+                }
+                if (e.key === 'Escape') { setSaveName(''); setShowSaveInput(false) }
+              }}
+              placeholder="Preset name…"
+              style={{
+                flex: 1, height: 34, borderRadius: 6, border: '1px solid rgba(255,255,255,0.15)',
+                background: 'rgba(255,255,255,0.06)', color: '#fff', fontSize: 12, padding: '0 10px',
+                outline: 'none',
+              }}
+            />
+            <button
+              onClick={() => {
+                if (!saveName.trim()) return
+                const newPreset: SavedPreset = { id: Date.now().toString(), name: saveName.trim(), config }
+                const updated = [...savedPresets, newPreset]
+                setSavedPresets(updated)
+                persistPresets(updated)
+                setSaveName('')
+                setShowSaveInput(false)
+              }}
+              style={{
+                height: 34, width: 56, borderRadius: 6, border: 0,
+                background: ac ? `${ac}33` : '#252525',
+                color: act, cursor: 'pointer', fontSize: 12, fontWeight: 600,
+              }}
+            >Save</button>
+            <button
+              onClick={() => { setSaveName(''); setShowSaveInput(false) }}
+              style={{
+                height: 34, width: 34, borderRadius: 6, border: 0,
+                background: 'transparent', color: 'rgba(255,255,255,0.4)',
+                cursor: 'pointer', fontSize: 16,
+              }}
+            >✕</button>
+          </div>
+        )}
+
+        {/* Saved preset list */}
+        {savedPresets.length > 0 && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: showSaveInput ? 0 : -4 }}>
+            {savedPresets.map(p => (
+              <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <button
+                  onClick={() => onChange(p.config)}
+                  style={{
+                    flex: 1, height: 34, borderRadius: 7, border: '1px solid rgba(255,255,255,0.09)',
+                    background: '#1a1a1a', cursor: 'pointer', textAlign: 'left',
+                    padding: '0 10px', fontSize: 12, color: 'rgba(255,255,255,0.75)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                  }}
+                >
+                  <span>{p.name}</span>
+                  <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', fontFamily: 'var(--font-mono)' }}>
+                    {p.config.preset}
+                  </span>
+                </button>
+                <button
+                  onClick={() => {
+                    const updated = savedPresets.filter(x => x.id !== p.id)
+                    setSavedPresets(updated)
+                    persistPresets(updated)
+                  }}
+                  style={{
+                    width: 28, height: 34, borderRadius: 7, border: 0,
+                    background: 'transparent', cursor: 'pointer',
+                    color: 'rgba(255,255,255,0.25)', fontSize: 14,
+                  }}
+                >✕</button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {savedPresets.length === 0 && !showSaveInput && (
+          <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.25)', margin: 0 }}>
+            No saved presets yet. Save your current settings to quickly restore them.
+          </p>
+        )}
+      </Section>
 
       {/* ── PRESET ── */}
       <Section icon={<IconLayers />} label="Preset">
@@ -417,7 +549,7 @@ export default function CustomizePanel({ config, onChange, accentColor }: Props)
                   {PRESET_SVG[p.id]}
                 </div>
                 <span style={{
-                  fontFamily: 'var(--font-syne)', fontSize: 10, fontWeight: 600,
+                  fontFamily: 'var(--font-poppins)', fontSize: 10, fontWeight: 600,
                   letterSpacing: '0.08em', textTransform: 'uppercase',
                   color: sel ? act : 'rgba(255,255,255,0.55)',
                 }}>{p.name}</span>

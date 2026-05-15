@@ -2,8 +2,9 @@
 
 /* ─── Design tokens — dark by default ───────────────────────── */
 :root {
-  --font:         var(--font-dm-sans, "DM Sans", ui-sans-serif, system-ui, sans-serif);
-  --font-display: var(--font-syne, "Syne", ui-sans-serif, system-ui, sans-serif);
+  --font:         var(--font-poppins, "Poppins", ui-sans-serif, system-ui, sans-serif);
+  --font-display: var(--font-poppins, "Poppins", ui-sans-serif, system-ui, sans-serif);
+  --font-syne:    var(--font-poppins, "Poppins", ui-sans-serif, system-ui, sans-serif);
   --font-mono:    ui-monospace, "SF Mono", Menlo, Consolas, monospace;
 
   /* Surfaces */

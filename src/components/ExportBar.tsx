@@ -89,7 +89,7 @@ async function composeSquare(
       const w = img.width
       const h = img.height
       const maxDim = Math.max(w, h)
-      const pad = Math.round(maxDim * 0.28)
+      const pad = Math.round(maxDim * 0.18)
       const size = maxDim + pad * 2
       const canvas = document.createElement('canvas')
       canvas.width = size
@@ -122,7 +122,8 @@ export default function ExportBar({ cardRef, track, config, onConfigChange, acce
   }
 
   const exportPNG = useCallback(async () => {
-    if (!cardRef.current || busy) return
+    if (!cardRef.current) { showToast('No card to export'); return }
+    if (busy) return
     setBusy('png')
     const el = cardRef.current
     await waitReady(el)
@@ -134,29 +135,36 @@ export default function ExportBar({ cardRef, track, config, onConfigChange, acce
       const a = document.createElement('a')
       a.href = url; a.download = `${filename}.png`; a.click()
       showToast('Saved ✓')
-    } catch (e) { console.error(e); showToast('Export failed') }
-    finally { restore(); setBusy(null) }
+    } catch (e) {
+      console.error('PNG export failed:', e)
+      const msg = e instanceof Error ? e.message.slice(0, 50) : 'Unknown error'
+      showToast(`Failed: ${msg}`)
+    } finally { restore(); setBusy(null) }
   }, [cardRef, busy, filename])
 
   const exportJPG = useCallback(async () => {
-    if (!cardRef.current || busy) return
+    if (!cardRef.current) { showToast('No card to export'); return }
+    if (busy) return
     setBusy('jpg')
     const el = cardRef.current
     await waitReady(el)
     const restore = await inlineImages(el)
     try {
       const { toPng } = await import('html-to-image')
-      const cardUrl = await toPng(el, { pixelRatio: 2 })
-      const url = await composeSquare(cardUrl, '#000000', 'jpeg', 0.95)
+      const url = await toPng(el, { pixelRatio: 2 })
       const a = document.createElement('a')
-      a.href = url; a.download = `${filename}.jpg`; a.click()
+      a.href = url; a.download = `${filename}.png`; a.click()
       showToast('Saved ✓')
-    } catch (e) { console.error(e); showToast('Export failed') }
-    finally { restore(); setBusy(null) }
+    } catch (e) {
+      console.error('JPG export failed:', e)
+      const msg = e instanceof Error ? e.message.slice(0, 50) : 'Unknown error'
+      showToast(`Failed: ${msg}`)
+    } finally { restore(); setBusy(null) }
   }, [cardRef, busy, filename])
 
   const exportTransparent = useCallback(async () => {
-    if (!cardRef.current || busy) return
+    if (!cardRef.current) { showToast('No card to export'); return }
+    if (busy) return
     setBusy('transparent')
     const prevBgStyle = config.bgStyle
     onConfigChange({ bgStyle: 'transparent' })
@@ -171,12 +179,16 @@ export default function ExportBar({ cardRef, track, config, onConfigChange, acce
       const a = document.createElement('a')
       a.href = url; a.download = `${filename}-alpha.png`; a.click()
       showToast('Saved ✓')
-    } catch (e) { console.error(e); showToast('Export failed') }
-    finally { restore(); onConfigChange({ bgStyle: prevBgStyle }); setBusy(null) }
+    } catch (e) {
+      console.error('Transparent export failed:', e)
+      const msg = e instanceof Error ? e.message.slice(0, 50) : 'Unknown error'
+      showToast(`Failed: ${msg}`)
+    } finally { restore(); onConfigChange({ bgStyle: prevBgStyle }); setBusy(null) }
   }, [cardRef, busy, filename, config.bgStyle, onConfigChange])
 
   const copyClipboard = useCallback(async () => {
-    if (!cardRef.current || busy) return
+    if (!cardRef.current) { showToast('No card to export'); return }
+    if (busy) return
     setBusy('clipboard')
     const el = cardRef.current
     await waitReady(el)
@@ -189,8 +201,11 @@ export default function ExportBar({ cardRef, track, config, onConfigChange, acce
       const blob = await res.blob()
       await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })])
       showToast('Copied ✓')
-    } catch (e) { console.error(e); showToast('Copy failed') }
-    finally { restore(); setBusy(null) }
+    } catch (e) {
+      console.error('Clipboard copy failed:', e)
+      const msg = e instanceof Error ? e.message.slice(0, 50) : 'Unknown error'
+      showToast(`Failed: ${msg}`)
+    } finally { restore(); setBusy(null) }
   }, [cardRef, busy])
 
   const btnBase = (isActive: boolean): React.CSSProperties => ({
@@ -205,7 +220,7 @@ export default function ExportBar({ cardRef, track, config, onConfigChange, acce
   })
 
   const labelSty: React.CSSProperties = {
-    fontFamily: 'var(--font-syne)', fontSize: 10, fontWeight: 600,
+    fontFamily: 'var(--font-poppins)', fontSize: 10, fontWeight: 600,
     letterSpacing: '0.08em', textTransform: 'uppercase',
     color: 'rgba(255,255,255,0.85)',
   }
@@ -263,7 +278,7 @@ export default function ExportBar({ cardRef, track, config, onConfigChange, acce
         </button>
         <button style={btnBase(busy === 'jpg')} onClick={exportJPG} disabled={!!busy}>
           {busy === 'jpg' ? <Spinner /> : <DlIcon />}
-          <span style={labelSty}>JPG 2×</span>
+          <span style={labelSty}>PNG 2×</span>
         </button>
         <button style={btnBase(busy === 'transparent')} onClick={exportTransparent} disabled={!!busy}>
           {busy === 'transparent' ? <Spinner /> : <AlphaIcon />}

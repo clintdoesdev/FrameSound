@@ -101,15 +101,6 @@ const AlignRightIcon = () => (
 )
 
 // ── Preset SVG illustrations ───────────────────────────────────
-const PresetGlassSVG = () => (
-  <svg viewBox="0 0 60 45" width="60" height="45" fill="none">
-    <rect x="15" y="6" width="30" height="23" rx="3" fill="rgba(255,255,255,0.12)" stroke="rgba(255,255,255,0.2)" strokeWidth="0.8"/>
-    <rect x="20" y="10" width="20" height="14" rx="2" fill="rgba(255,255,255,0.18)"/>
-    <rect x="20" y="27" width="20" height="2" rx="1" fill="rgba(255,255,255,0.5)"/>
-    <rect x="22" y="31" width="16" height="1.5" rx="0.75" fill="rgba(255,255,255,0.25)"/>
-    <rect x="24" y="34" width="12" height="1.5" rx="0.75" fill="rgba(255,255,255,0.18)"/>
-  </svg>
-)
 const PresetPosterSVG = () => (
   <svg viewBox="0 0 60 45" width="60" height="45" fill="none">
     <rect x="8" y="4" width="44" height="37" rx="3" fill="rgba(255,255,255,0.10)"/>
@@ -147,13 +138,39 @@ const PresetSquareSVG = () => (
     <rect x="17" y="34.5" width="10" height="1.2" rx="0.6" fill="rgba(255,255,255,0.2)"/>
   </svg>
 )
+const PresetGlassBezelSVG = () => (
+  <svg viewBox="0 0 60 45" width="60" height="45" fill="none">
+    {/* Outer bezel frame */}
+    <rect x="7" y="3" width="46" height="39" rx="5" fill="rgba(255,255,255,0.14)" stroke="rgba(255,255,255,0.10)" strokeWidth="0.6"/>
+    {/* Album art inset */}
+    <rect x="11" y="7" width="38" height="24" rx="3" fill="rgba(255,255,255,0.28)"/>
+    {/* Text in bezel below art */}
+    <rect x="11" y="34" width="18" height="2" rx="1" fill="rgba(255,255,255,0.80)"/>
+    <rect x="11" y="38" width="13" height="1.4" rx="0.7" fill="rgba(255,255,255,0.35)"/>
+  </svg>
+)
+const PresetNowPlayingSVG = () => (
+  <svg viewBox="0 0 60 45" width="60" height="45" fill="none">
+    {/* Card background */}
+    <rect x="3" y="8" width="54" height="29" rx="4" fill="rgba(255,255,255,0.06)"/>
+    {/* Left colour strip */}
+    <rect x="3" y="8" width="19" height="29" rx="4" fill="rgba(255,255,255,0.22)"/>
+    {/* Cover right-side rounded corners of strip (make right edge flat) */}
+    <rect x="16" y="8" width="6" height="29" fill="rgba(255,255,255,0.22)"/>
+    {/* Text lines on right */}
+    <rect x="28" y="15" width="21" height="2.2" rx="1" fill="rgba(255,255,255,0.75)"/>
+    <rect x="28" y="20" width="15" height="1.6" rx="0.8" fill="rgba(255,255,255,0.40)"/>
+    <rect x="28" y="25" width="10" height="1.2" rx="0.6" fill="rgba(255,255,255,0.22)"/>
+  </svg>
+)
 
 const PRESET_SVG: Record<string, React.ReactNode> = {
-  glass: <PresetGlassSVG />,
-  poster: <PresetPosterSVG />,
-  minimal: <PresetMinimalSVG />,
-  story: <PresetStorySVG />,
-  square: <PresetSquareSVG />,
+  glass:      <PresetGlassBezelSVG />,
+  poster:     <PresetPosterSVG />,
+  minimal:    <PresetMinimalSVG />,
+  story:      <PresetStorySVG />,
+  square:     <PresetSquareSVG />,
+  nowplaying: <PresetNowPlayingSVG />,
 }
 
 // ── Font map for rendering cards in their own typeface ─────────
@@ -327,11 +344,12 @@ function ToggleItem({ label, value, onChange, icon, accent }: {
 }
 
 const PRESETS = [
-  { id: 'glass',   name: 'Glass'   },
-  { id: 'poster',  name: 'Poster'  },
-  { id: 'minimal', name: 'Minimal' },
-  { id: 'story',   name: 'Story'   },
-  { id: 'square',  name: 'Square'  },
+  { id: 'glass',      name: 'Glass'      },
+  { id: 'nowplaying', name: 'Now Playing'},
+  { id: 'poster',     name: 'Poster'     },
+  { id: 'minimal',    name: 'Minimal'    },
+  { id: 'story',      name: 'Story'      },
+  { id: 'square',     name: 'Square'     },
 ] as const
 
 const FONTS: { value: CardConfig['font']; label: string; tag: string; weight: number; size: number }[] = [

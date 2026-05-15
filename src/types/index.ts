@@ -10,7 +10,7 @@ export type TrackData = {
 }
 
 export type CardConfig = {
-  preset: 'glass' | 'poster' | 'minimal' | 'story' | 'square'
+  preset: 'glass' | 'poster' | 'minimal' | 'story' | 'square' | 'nowplaying'
   bgStyle: 'blurred-art' | 'solid' | 'gradient' | 'transparent'
   bgColor: string
   tintHue: number

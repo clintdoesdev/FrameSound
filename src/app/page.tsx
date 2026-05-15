@@ -666,13 +666,6 @@ export default function Home() {
             )}
           </div>
 
-          {/* Hidden export card — explicit w/h so dom-to-image resolves dimensions without CSS aspectRatio */}
-          {track && (
-            <div aria-hidden style={{ position: 'fixed', left: -10000, top: -10000, pointerEvents: 'none', width: 520, height: 800 }}>
-              <CardCanvas ref={cardRef} track={track} config={config} exportMode accentColor={accentColor} />
-            </div>
-          )}
-
           {/* Card preview — fills container, aspect ratio maintained by the card itself */}
           <div style={{
             background: 'var(--bg-1)', borderRadius: 12,
@@ -680,7 +673,7 @@ export default function Home() {
             padding: 20, overflow: 'hidden',
           }}>
             {track && (() => {
-              const canvas = <CardCanvas track={track} config={config} accentColor={accentColor} />
+              const canvas = <CardCanvas ref={cardRef} track={track} config={config} exportMode accentColor={accentColor} />
               const needsGhost = config.preset === 'minimal' || config.preset === 'story'
               if (!needsGhost) return canvas
 

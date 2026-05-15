@@ -135,7 +135,7 @@ const CardCanvas = forwardRef<HTMLDivElement, Props>(function CardCanvas(
         {config.showAlbumArt && (
           <div style={{
             flex: 1, minHeight: 0,
-            margin: '12px 12px 0',
+            margin: `${config.artPadding}px ${config.artPadding}px 0`,
             borderRadius: '14px',
             overflow: 'hidden', position: 'relative',
             boxShadow: 'inset 0 3px 10px rgba(0,0,0,0.65)',

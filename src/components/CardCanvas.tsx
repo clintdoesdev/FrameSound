@@ -120,7 +120,7 @@ const CardCanvas = forwardRef<HTMLDivElement, Props>(function CardCanvas(
   if (config.preset === 'glass') {
     return (
       <div ref={ref} style={{
-        position: 'relative', overflow: 'hidden', width: '100%', aspectRatio: '1 / 1',
+        position: 'relative', overflow: 'hidden', width: '100%', aspectRatio: '4 / 5',
         borderRadius: '28px', fontFamily, containerType: 'inline-size',
         background: 'linear-gradient(150deg, #2c2c30 0%, #1a1a1d 30%, #131315 100%)',
         display: 'flex', flexDirection: 'column',
@@ -132,7 +132,7 @@ const CardCanvas = forwardRef<HTMLDivElement, Props>(function CardCanvas(
         {grainOverlay}
 
         {/* Bezel padding + art */}
-        <div style={{ padding: '16px 16px 0' }}>
+        <div style={{ padding: '12px 12px 0' }}>
           {config.showAlbumArt && (
             <div style={{
               width: '100%', aspectRatio: '1 / 1', borderRadius: '14px',
@@ -152,12 +152,12 @@ const CardCanvas = forwardRef<HTMLDivElement, Props>(function CardCanvas(
         </div>
 
         {/* Text area */}
-        <div style={{ padding: '15px 18px 18px', display: 'flex', flexDirection: 'column', gap: 3, textAlign: config.textAlign, color: textColor }}>
+        <div style={{ padding: '14px 16px 18px', display: 'flex', flexDirection: 'column', gap: 3, textAlign: config.textAlign, color: textColor }}>
           {config.showTitle && (
-            <p style={{ margin: 0, fontSize: 20, fontWeight: 700, color: '#fff', letterSpacing: '-0.025em', lineHeight: 1.2 }}>{track.title}</p>
+            <p style={{ margin: 0, fontSize: 26, fontWeight: 800, color: '#fff', letterSpacing: '-0.03em', lineHeight: 1.15 }}>{track.title}</p>
           )}
           {config.showArtist && (
-            <p style={{ margin: 0, fontSize: 13, fontWeight: 400, color: 'rgba(255,255,255,0.31)' }}>{track.artist}</p>
+            <p style={{ margin: 0, fontSize: 15, fontWeight: 400, color: 'rgba(255,255,255,0.38)' }}>{track.artist}</p>
           )}
           <MetaRow color="rgba(255,255,255,0.17)" size={11} gap={5} />
           {config.showLyrics && config.lyricQuote && (
@@ -230,8 +230,8 @@ const CardCanvas = forwardRef<HTMLDivElement, Props>(function CardCanvas(
   if (config.preset === 'poster') {
     return (
       <div ref={ref} style={{
-        position: 'relative', overflow: 'hidden', width: '100%', aspectRatio: '4 / 5',
-        borderRadius: '24px', fontFamily, containerType: 'inline-size',
+        position: 'relative', overflow: 'hidden', width: '100%', aspectRatio: '3 / 4',
+        borderRadius: '28px', fontFamily, containerType: 'inline-size',
         boxShadow: shadow,
       }}>
         {glossOverlay}
@@ -247,7 +247,7 @@ const CardCanvas = forwardRef<HTMLDivElement, Props>(function CardCanvas(
         )}
 
         {/* Bottom gradient fade */}
-        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '58%', background: 'linear-gradient(to top, rgba(0,0,0,0.97) 0%, rgba(0,0,0,0.7) 40%, transparent 100%)', zIndex: 2, pointerEvents: 'none' }} />
+        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '62%', background: 'linear-gradient(to top, rgba(0,0,0,0.97) 0%, rgba(0,0,0,0.72) 40%, transparent 100%)', zIndex: 2, pointerEvents: 'none' }} />
 
         {/* Duration bar */}
         {accentColor && (
@@ -255,20 +255,20 @@ const CardCanvas = forwardRef<HTMLDivElement, Props>(function CardCanvas(
         )}
 
         {/* Text block */}
-        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '20px 20px 22px', zIndex: 5, display: 'flex', flexDirection: 'column', gap: 4, textAlign: config.textAlign }}>
+        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '26px 26px 30px', zIndex: 5, display: 'flex', flexDirection: 'column', gap: 5, textAlign: config.textAlign }}>
           {config.showLyrics && config.lyricQuote && (
             <p style={{
-              margin: 0, fontSize: 12, fontStyle: 'italic', color: 'rgba(255,255,255,0.34)', lineHeight: 1.5,
+              margin: 0, fontSize: 13, fontStyle: 'italic', color: 'rgba(255,255,255,0.38)', lineHeight: 1.5,
               display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' as const, overflow: 'hidden',
             } as React.CSSProperties}>{config.lyricQuote}</p>
           )}
           {config.showTitle && (
-            <p style={{ margin: 0, fontSize: 22, fontWeight: 800, color: '#fff', letterSpacing: '-0.03em', lineHeight: 1.05 }}>{track.title}</p>
+            <p style={{ margin: 0, fontSize: 32, fontWeight: 800, color: '#fff', letterSpacing: '-0.035em', lineHeight: 1.05 }}>{track.title}</p>
           )}
           {config.showArtist && (
-            <p style={{ margin: 0, fontSize: 13, fontWeight: 400, color: 'rgba(255,255,255,0.38)' }}>{track.artist}</p>
+            <p style={{ margin: 0, fontSize: 17, fontWeight: 400, color: 'rgba(255,255,255,0.50)' }}>{track.artist}</p>
           )}
-          <MetaRow color="rgba(255,255,255,0.17)" size={11} gap={5} />
+          <MetaRow color="rgba(255,255,255,0.22)" size={12} gap={5} />
         </div>
       </div>
     )
@@ -347,26 +347,25 @@ const CardCanvas = forwardRef<HTMLDivElement, Props>(function CardCanvas(
         {grainOverlay}
 
         {/* Left art strip */}
-        <div style={{ width: '36%', flexShrink: 0, position: 'relative', overflow: 'hidden' }}>
+        <div style={{ width: '40%', flexShrink: 0, position: 'relative', overflow: 'hidden' }}>
           {track.coverUrl && (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={coverSrc} crossOrigin="anonymous" loading="eager" alt=""
               style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', display: 'block', border: 'none', outline: 'none' }}
             />
           )}
-          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to right, transparent 55%, rgba(10,10,14,0.5) 100%)', pointerEvents: 'none' }} />
         </div>
 
         {/* Seam */}
-        <div style={{ position: 'absolute', top: '10%', bottom: '10%', left: '36%', width: 1, background: 'rgba(0,0,0,0.9)', boxShadow: '1px 0 4px rgba(0,0,0,0.6)', zIndex: 3 }} />
+        <div style={{ position: 'absolute', top: '10%', bottom: '10%', left: '40%', width: 1, background: 'rgba(0,0,0,0.9)', boxShadow: '1px 0 4px rgba(0,0,0,0.6)', zIndex: 3 }} />
 
         {/* Right text */}
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '0 16px', gap: 3, textAlign: config.textAlign }}>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '0 20px', gap: 3, textAlign: config.textAlign }}>
           {config.showTitle && (
-            <p style={{ margin: 0, fontSize: 17, fontWeight: 700, color: '#fff', letterSpacing: '-0.02em', lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{track.title}</p>
+            <p style={{ margin: 0, fontSize: 20, fontWeight: 700, color: '#fff', letterSpacing: '-0.025em', lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{track.title}</p>
           )}
           {config.showArtist && (
-            <p style={{ margin: 0, fontSize: 12, fontWeight: 400, color: 'rgba(255,255,255,0.33)' }}>{track.artist}</p>
+            <p style={{ margin: 0, fontSize: 14, fontWeight: 400, color: 'rgba(255,255,255,0.40)' }}>{track.artist}</p>
           )}
           <MetaRow color="rgba(255,255,255,0.13)" size={11} gap={5} />
           {accentColor && (

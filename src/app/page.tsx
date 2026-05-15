@@ -611,29 +611,31 @@ export default function Home() {
 
         {/* ── RIGHT: Lyrics + Customize + Export ──────────── */}
         <div style={{
-          flex: 1, minWidth: 0,
+          width: 340, flexShrink: 0,
           borderLeft: '1px solid var(--line)',
           display: 'flex', flexDirection: 'column',
-          minHeight: 'calc(100vh - 56px)',
-        }}>
+          height: 'calc(100vh - 56px)',
+          position: 'sticky', top: 56,
+          overflow: 'hidden',
+        }} className="right-col">
           {/* Track meta strip */}
           {track && (
             <div style={{
-              padding: '16px 20px', borderBottom: '1px solid var(--line-soft)',
-              display: 'flex', alignItems: 'center', gap: 14, flexShrink: 0,
+              padding: '12px 20px', borderBottom: '1px solid var(--line-soft)',
+              display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0,
             }}>
-              <div style={{ width: 44, height: 44, borderRadius: 6, overflow: 'hidden', flexShrink: 0, position: 'relative', background: 'var(--bg-2)' }}>
+              <div style={{ width: 36, height: 36, borderRadius: 6, overflow: 'hidden', flexShrink: 0, position: 'relative', background: 'var(--bg-2)' }}>
                 {track.coverUrl && (
                   <Image src={track.coverUrl} alt={track.title} fill style={{ objectFit: 'cover' }} unoptimized />
                 )}
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--fg)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                <div style={{ fontFamily: 'var(--font-syne)', fontSize: 13, fontWeight: 600, color: 'var(--fg)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {track.title}
                 </div>
-                <div style={{ fontSize: 12, color: 'var(--fg-2)', marginTop: 1 }}>{track.artist}</div>
-                <div className="mono" style={{ fontSize: 11, color: 'var(--fg-3)', marginTop: 2, letterSpacing: '0.04em' }}>
-                  {track.album.toUpperCase()} · {track.releaseYear} · {track.duration}
+                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.60)', marginTop: 2 }}>{track.artist}</div>
+                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.40)', marginTop: 1 }}>
+                  {track.releaseYear} · {track.duration}
                 </div>
               </div>
             </div>
@@ -650,12 +652,12 @@ export default function Home() {
 
           {/* Customize panel — scrollable */}
           <div className="scroll" style={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
-            <CustomizePanel config={config} onChange={updateConfig} />
+            <CustomizePanel config={config} onChange={updateConfig} accentColor={accentColor} />
           </div>
 
           {/* Export bar — sticky at bottom */}
           {track && (
-            <ExportBar cardRef={cardRef} track={track} config={config} onConfigChange={updateConfig} />
+            <ExportBar cardRef={cardRef} track={track} config={config} onConfigChange={updateConfig} accentColor={accentColor} />
           )}
         </div>
       </div>
@@ -668,6 +670,12 @@ export default function Home() {
             width: 100% !important;
             max-height: none !important;
             overflow-y: visible !important;
+          }
+          .right-col {
+            width: 100% !important;
+            height: auto !important;
+            position: static !important;
+            overflow: visible !important;
           }
         }
       `}</style>

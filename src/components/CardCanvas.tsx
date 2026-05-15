@@ -56,10 +56,7 @@ const CardCanvas = forwardRef<HTMLDivElement, Props>(function CardCanvas(
     '9:16': '9 / 16',
   }
 
-  // Deterministic font sizes from card pixel width — no vw dependency,
-  // so preview and export always compute the same sizes.
   const cw = sizeMap[config.size].width
-  const titlePx   = `${Math.round(Math.max(18, Math.min(32, cw * 0.062)))}px`
   const artistPx  = `${Math.round(Math.max(12, Math.min(18, cw * 0.035)))}px`
   const metaPx    = `${Math.round(Math.max(10, Math.min(14, cw * 0.027)))}px`
   const lyricsPx  = `${Math.round(Math.max(11, Math.min(15, cw * 0.029)))}px`
@@ -72,22 +69,21 @@ const CardCanvas = forwardRef<HTMLDivElement, Props>(function CardCanvas(
     borderRadius: `${config.borderRadius}px`,
     fontFamily,
     color: textColor,
+    containerType: 'inline-size',
   }
 
-  // position:relative on text elements creates an independent stacking context
-  // in foreignObject rendering, preventing the UA white-background bleed-through.
   const titleStyle: React.CSSProperties = {
     position: 'relative',
-    fontSize: titlePx,
+    fontSize: 'clamp(14px, 5cqi, 38px)',
     fontWeight: 700,
-    lineHeight: 1.1,
+    lineHeight: 1.15,
     margin: 0,
     color: textColor,
     background: 'none',
-    whiteSpace: 'nowrap',
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-    maxWidth: '100%',
+    whiteSpace: 'normal',
+    wordBreak: 'break-word',
+    overflowWrap: 'break-word',
+    overflow: 'visible',
   }
 
   const artistStyle: React.CSSProperties = {
@@ -98,10 +94,9 @@ const CardCanvas = forwardRef<HTMLDivElement, Props>(function CardCanvas(
     color: textColor,
     background: 'none',
     opacity: 0.75,
-    whiteSpace: 'nowrap',
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-    maxWidth: '100%',
+    whiteSpace: 'normal',
+    wordBreak: 'break-word',
+    overflow: 'visible',
   }
 
   const metaStyle: React.CSSProperties = {
@@ -197,7 +192,6 @@ const CardCanvas = forwardRef<HTMLDivElement, Props>(function CardCanvas(
             display: 'flex', flexDirection: 'column',
             alignItems: 'center', gap: '12px',
             width: '100%', maxWidth: '320px',
-            border: '1px solid rgba(255,255,255,0.2)',
             textAlign: config.textAlign,
           }}>
             {config.showAlbumArt && track.coverUrl && (
@@ -330,7 +324,7 @@ const CardCanvas = forwardRef<HTMLDivElement, Props>(function CardCanvas(
             />
           )}
           <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', gap: '10px', alignItems: 'center', width: '100%', background: 'none' }}>
-            {config.showTitle  && <p style={{ ...titleStyle, whiteSpace: 'normal', textAlign: 'center' }}>{track.title}</p>}
+            {config.showTitle  && <p style={{ ...titleStyle, textAlign: 'center' }}>{track.title}</p>}
             {config.showArtist && <p style={{ ...artistStyle, textAlign: 'center' }}>{track.artist}</p>}
             {config.showLyrics && config.lyricQuote && (
               <div style={{ position: 'relative', background: 'rgba(0,0,0,0.35)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '10px', padding: '10px 14px', maxWidth: '92%' }}>

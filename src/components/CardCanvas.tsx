@@ -41,11 +41,15 @@ const CardCanvas = forwardRef<HTMLDivElement, Props>(function CardCanvas(
 
   // Fixed CSS variable names matching layout.tsx font registrations
   const fontFamilyMap: Record<CardConfig['font'], string> = {
-    syne:       'var(--font-syne)',
-    'dm-serif': 'var(--font-dm-serif)',
-    playfair:   'var(--font-playfair)',
-    bebas:      'var(--font-bebas)',
-    instrument: 'var(--font-instrument)',
+    syne:             'var(--font-syne)',
+    'dm-serif':       'var(--font-dm-serif)',
+    playfair:         'var(--font-playfair)',
+    bebas:            'var(--font-bebas)',
+    instrument:       'var(--font-instrument)',
+    'space-grotesk':  'var(--font-space-grotesk)',
+    raleway:          'var(--font-raleway)',
+    cormorant:        'var(--font-cormorant)',
+    oswald:           'var(--font-oswald)',
   }
   const fontFamily = fontFamilyMap[config.font]
 

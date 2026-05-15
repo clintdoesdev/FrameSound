@@ -6,6 +6,10 @@ import {
   Playfair_Display,
   Bebas_Neue,
   Instrument_Serif,
+  Space_Grotesk,
+  Raleway,
+  Cormorant_Garamond,
+  Oswald,
 } from 'next/font/google'
 import './globals.css'
 
@@ -33,6 +37,22 @@ const instrumentSerif = Instrument_Serif({
   subsets: ['latin'], variable: '--font-instrument',
   weight: ['400'], display: 'swap', style: ['normal', 'italic'],
 })
+const spaceGrotesk = Space_Grotesk({
+  subsets: ['latin'], variable: '--font-space-grotesk',
+  weight: ['400', '500', '600', '700'], display: 'swap',
+})
+const raleway = Raleway({
+  subsets: ['latin'], variable: '--font-raleway',
+  weight: ['300', '400', '500', '600', '700'], display: 'swap',
+})
+const cormorant = Cormorant_Garamond({
+  subsets: ['latin'], variable: '--font-cormorant',
+  weight: ['400', '600', '700'], display: 'swap', style: ['normal', 'italic'],
+})
+const oswald = Oswald({
+  subsets: ['latin'], variable: '--font-oswald',
+  weight: ['400', '500', '600', '700'], display: 'swap',
+})
 
 export const metadata: Metadata = {
   title: 'FrameSound — Spotify Card Generator',
@@ -56,6 +76,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     playfair.variable,
     bebasNeue.variable,
     instrumentSerif.variable,
+    spaceGrotesk.variable,
+    raleway.variable,
+    cormorant.variable,
+    oswald.variable,
   ].join(' ')
 
   return (

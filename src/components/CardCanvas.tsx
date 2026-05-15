@@ -33,7 +33,7 @@ const CardCanvas = forwardRef<HTMLDivElement, Props>(function CardCanvas(
   ref
 ) {
   const fontFamilyMap: Record<CardConfig['font'], string> = {
-    syne:            'var(--font-syne)',
+    poppins:         'var(--font-poppins)',
     'dm-serif':      'var(--font-dm-serif)',
     playfair:        'var(--font-playfair)',
     bebas:           'var(--font-bebas)',
@@ -69,7 +69,7 @@ const CardCanvas = forwardRef<HTMLDivElement, Props>(function CardCanvas(
   const watermark = (
     <div style={{
       position: 'absolute', bottom: 10, right: 12,
-      fontFamily: 'var(--font-syne)',
+      fontFamily: 'var(--font-poppins)',
       fontSize: 9, letterSpacing: '0.12em',
       textTransform: 'uppercase' as const,
       color: 'rgba(255,255,255,0.18)',
@@ -118,18 +118,33 @@ const CardCanvas = forwardRef<HTMLDivElement, Props>(function CardCanvas(
 
   // ── GLASS ─────────────────────────────────────────────────────
   if (config.preset === 'glass') {
+    // Internal reflection glow — color comes from accent (song color)
+    const reflectionGlow = (
+      <div style={{
+        position: 'absolute', inset: 0, zIndex: 1, pointerEvents: 'none',
+        background: accentColor
+          ? [
+              `radial-gradient(ellipse 90% 55% at 50% -5%, ${accentColor}50 0%, transparent 65%)`,
+              `radial-gradient(ellipse 50% 35% at 18% 12%, rgba(255,255,255,0.14) 0%, transparent 55%)`,
+            ].join(', ')
+          : 'radial-gradient(ellipse 50% 35% at 18% 12%, rgba(255,255,255,0.10) 0%, transparent 55%)',
+      }} />
+    )
+
     return (
       <div ref={ref} style={{
         position: 'relative', overflow: 'hidden', width: '100%', aspectRatio: '4 / 5',
         borderRadius: '28px', fontFamily, containerType: 'inline-size',
-        background: '#1c1c1e',
-        border: '1px solid rgba(255,255,255,0.10)',
+        background: accentColor
+          ? `linear-gradient(160deg, color-mix(in srgb, ${accentColor} 18%, #27272b) 0%, #232327 40%, #1c1c1e 100%)`
+          : '#232327',
+        border: '1px solid rgba(255,255,255,0.13)',
         display: 'flex', flexDirection: 'column',
         boxShadow: shadow,
       }}>
         {glossOverlay}
+        {reflectionGlow}
         {watermark}
-        {accentTint}
         {grainOverlay}
 
         {/* Art block — flex:1 fills remaining height, never overflows */}

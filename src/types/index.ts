@@ -22,9 +22,6 @@ export type CardConfig = {
   showYear: boolean
   showDuration: boolean
   showLyrics: boolean
-  padding: number
-  borderRadius: number
-  size: '1:1' | '16:9' | '4:5' | '9:16'
   lyricQuote: string
   textAlign: 'left' | 'center' | 'right'
 }
@@ -42,9 +39,6 @@ export const defaultConfig: CardConfig = {
   showYear: true,
   showDuration: true,
   showLyrics: true,
-  padding: 32,
-  borderRadius: 16,
-  size: '1:1',
   lyricQuote: '',
   textAlign: 'left',
 }

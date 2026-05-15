@@ -5,7 +5,7 @@ import Image from 'next/image'
 import { getTrackFromUrl } from '@/actions/spotify'
 import { getLyrics } from '@/actions/lyrics'
 import { TrackData, CardConfig, defaultConfig } from '@/types'
-import CardCanvas, { sizeMap } from '@/components/CardCanvas'
+import CardCanvas from '@/components/CardCanvas'
 import LyricsPanel from '@/components/LyricsPanel'
 import CustomizePanel from '@/components/CustomizePanel'
 import ExportBar from '@/components/ExportBar'
@@ -667,45 +667,52 @@ export default function Home() {
           </div>
 
           {/* Hidden export card — explicit w/h so dom-to-image resolves dimensions without CSS aspectRatio */}
-          {track && (() => {
-            const { width: exportW, height: exportH } = sizeMap[config.size]
-            return (
-              <div aria-hidden style={{ position: 'fixed', left: -10000, top: -10000, pointerEvents: 'none', width: exportW, height: exportH }}>
-                <CardCanvas ref={cardRef} track={track} config={config} exportMode accentColor={accentColor} />
-              </div>
-            )
-          })()}
+          {track && (
+            <div aria-hidden style={{ position: 'fixed', left: -10000, top: -10000, pointerEvents: 'none', width: 520, height: 520 }}>
+              <CardCanvas ref={cardRef} track={track} config={config} exportMode accentColor={accentColor} />
+            </div>
+          )}
 
           {/* Card preview — fills container, aspect ratio maintained by the card itself */}
           <div style={{
             background: 'var(--bg-1)', borderRadius: 12,
             border: '1px solid var(--line)',
             padding: 20, overflow: 'hidden',
-            ...(config.preset === 'glass' ? { perspective: '900px', perspectiveOrigin: '50% 50%' } : {}),
           }}>
             {track && (() => {
               const canvas = <CardCanvas track={track} config={config} accentColor={accentColor} />
-              if (config.preset !== 'glass') return canvas
+              if (config.preset !== 'minimal') return canvas
+              const ghost1Bg = accentColor
+                ? `linear-gradient(135deg, ${accentColor}18 0%, ${accentColor}08 100%)`
+                : 'linear-gradient(135deg, #222 0%, #333 100%)'
+              const ghost2Bg = accentColor
+                ? `linear-gradient(135deg, ${accentColor}10 0%, ${accentColor}05 100%)`
+                : 'linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%)'
               return (
-                <div
-                  style={{
-                    transform: 'rotateX(4deg) rotateY(-8deg)',
-                    transformStyle: 'preserve-3d',
-                    boxShadow: '0 32px 80px rgba(0,0,0,0.7), 0 8px 24px rgba(0,0,0,0.5)',
-                    borderRadius: `${config.borderRadius}px`,
-                    transition: 'transform 0.3s ease',
-                  }}
-                  onMouseMove={(e) => {
-                    const rect = e.currentTarget.getBoundingClientRect()
-                    const x = (e.clientX - rect.left) / rect.width - 0.5
-                    const y = (e.clientY - rect.top) / rect.height - 0.5
-                    e.currentTarget.style.transform = `rotateX(${-y * 10}deg) rotateY(${x * 10}deg)`
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.transform = 'rotateX(4deg) rotateY(-8deg)'
-                  }}
-                >
-                  {canvas}
+                <div style={{ position: 'relative' }}>
+                  <div style={{
+                    position: 'absolute', inset: 0,
+                    borderRadius: '20px',
+                    background: ghost2Bg,
+                    opacity: 0.4,
+                    filter: 'blur(4px)',
+                    transform: 'translateY(14px) scaleX(0.96)',
+                    transformOrigin: 'bottom center',
+                    zIndex: 0,
+                  }} />
+                  <div style={{
+                    position: 'absolute', inset: 0,
+                    borderRadius: '20px',
+                    background: ghost1Bg,
+                    opacity: 0.55,
+                    filter: 'blur(2px)',
+                    transform: 'translateY(8px) scaleX(0.98)',
+                    transformOrigin: 'bottom center',
+                    zIndex: 0,
+                  }} />
+                  <div style={{ position: 'relative', zIndex: 1 }}>
+                    {canvas}
+                  </div>
                 </div>
               )
             })()}

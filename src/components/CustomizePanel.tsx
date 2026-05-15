@@ -67,12 +67,6 @@ const IconType = () => (
     <path d="M2 4V2h12v2M7 14h2M8 2v12"/>
   </svg>
 )
-const IconGeometry = () => (
-  <svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-    <rect x="1.5" y="1.5" width="13" height="13" rx="2"/>
-    <path d="M6 1.5v13M1.5 6h13"/>
-  </svg>
-)
 const IconEye = () => (
   <svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
     <path d="M1 8s2.5-5 7-5 7 5 7 5-2.5 5-7 5-7-5-7-5z"/><circle cx="8" cy="8" r="2"/>
@@ -526,49 +520,6 @@ export default function CustomizePanel({ config, onChange, accentColor }: Props)
             )
           })}
         </div>
-      </Section>
-
-      {/* ── GEOMETRY ── */}
-      <Section icon={<IconGeometry />} label="Geometry">
-        {/* Canvas size with aspect-ratio SVG pills */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 6 }}>
-          {([
-            { s: '1:1'  as const, w: 16, h: 16 },
-            { s: '16:9' as const, w: 20, h: 11 },
-            { s: '4:5'  as const, w: 14, h: 17 },
-            { s: '9:16' as const, w: 10, h: 18 },
-          ]).map(({ s, w, h }) => {
-            const sel = config.size === s
-            return (
-              <button key={s} onClick={() => onChange({ size: s })} style={{
-                height: 52, borderRadius: 10,
-                background: sel ? (ac ? `${ac}26` : 'var(--accent-quiet)') : '#1a1a1a',
-                border: `1.5px solid ${sel ? act : 'rgba(255,255,255,0.08)'}`,
-                cursor: 'pointer', transition: 'all 120ms',
-                display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4,
-              }}>
-                <svg viewBox={`0 0 ${w} ${h}`} width={w} height={h}>
-                  <rect x="0.75" y="0.75" width={w - 1.5} height={h - 1.5} rx="1.5"
-                    fill={sel ? (act.startsWith('#') ? `${act}40` : 'rgba(100,120,255,0.3)') : 'rgba(255,255,255,0.12)'}
-                    stroke={sel ? act : 'rgba(255,255,255,0.35)'} strokeWidth="1.5"
-                  />
-                </svg>
-                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: sel ? act : 'rgba(255,255,255,0.4)' }}>{s}</span>
-              </button>
-            )
-          })}
-        </div>
-
-        <StyledSlider
-          value={config.padding} min={8} max={64} step={4}
-          onChange={v => onChange({ padding: v })}
-          label="Padding"
-        />
-        <StyledSlider
-          value={config.borderRadius} min={0} max={48} step={4}
-          onChange={v => onChange({ borderRadius: v })}
-          label="Radius"
-        />
       </Section>
 
       {/* ── VISIBILITY ── */}

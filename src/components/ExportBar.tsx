@@ -89,7 +89,7 @@ async function composeSquare(
       const w = img.width
       const h = img.height
       const maxDim = Math.max(w, h)
-      const pad = Math.round(maxDim * 0.18)
+      const pad = Math.round(maxDim * 0.10)
       const size = maxDim + pad * 2
       const canvas = document.createElement('canvas')
       canvas.width = size

@@ -19,14 +19,21 @@ function withGlow(shadow: string, hex: string | null | undefined, strength: numb
   const r = parseInt(hex.slice(1, 3), 16)
   const g = parseInt(hex.slice(3, 5), 16)
   const b = parseInt(hex.slice(5, 7), 16)
-  const alpha = Math.min(0.85, 0.15 + strength * 0.006).toFixed(2)
-  const blur = Math.round(20 + strength * 0.9)
-  return `0 0 ${blur}px rgba(${r},${g},${b},${alpha}), ${shadow}`
+  // Two soft layers — close bloom + wide diffuse halo, no hard edges
+  const a1 = Math.min(0.55, 0.08 + strength * 0.0047).toFixed(2)
+  const a2 = Math.min(0.28, 0.04 + strength * 0.0024).toFixed(2)
+  const b1 = Math.round(50 + strength * 1.4)
+  const b2 = Math.round(100 + strength * 2.2)
+  return (
+    `0 0 ${b1}px rgba(${r},${g},${b},${a1}), ` +
+    `0 0 ${b2}px rgba(${r},${g},${b},${a2}), ` +
+    shadow
+  )
 }
 
+// No hard inset edges — depth comes from drop shadows only
 const DEPTH_SHADOW =
-  '0 40px 80px rgba(0,0,0,0.88), 0 12px 32px rgba(0,0,0,0.6), ' +
-  'inset 1px 1px 0 rgba(255,255,255,0.09), inset -1px -1px 0 rgba(0,0,0,0.5)'
+  '0 40px 80px rgba(0,0,0,0.88), 0 12px 32px rgba(0,0,0,0.6)'
 
 const CardCanvas = forwardRef<HTMLDivElement, Props>(function CardCanvas(
   { track, config, exportMode = false, accentColor },
@@ -52,34 +59,35 @@ const CardCanvas = forwardRef<HTMLDivElement, Props>(function CardCanvas(
     ? proxySrc(track.coverUrl)
     : (track.coverUrl ?? '')
 
-  // Shared gloss overlay — first child of every cardRef
+  // Shared gloss overlay
   const glossOverlay = (
     <div style={{
       position: 'absolute', inset: 0,
-      borderRadius: '20px',
       background:
-        'linear-gradient(180deg, rgba(255,255,255,0.08) 0%, transparent 44%), ' +
-        'linear-gradient(135deg, rgba(255,255,255,0.10) 0%, transparent 38%)',
-      pointerEvents: 'none',
-      zIndex: 5,
+        'linear-gradient(180deg, rgba(255,255,255,0.07) 0%, transparent 40%), ' +
+        'linear-gradient(135deg, rgba(255,255,255,0.09) 0%, transparent 35%)',
+      pointerEvents: 'none', zIndex: 5,
     }} />
   )
 
-  // FrameSound watermark — always present, zIndex 6
-  const watermark = (
-    <div style={{
-      position: 'absolute', bottom: 10, right: 12,
-      fontFamily: 'var(--font-poppins)',
-      fontSize: 9, letterSpacing: '0.12em',
-      textTransform: 'uppercase' as const,
-      color: 'rgba(255,255,255,0.18)',
-      zIndex: 6, pointerEvents: 'none',
-    }}>
-      FrameSound
-    </div>
-  )
+  // Watermark — per-preset position to stay clear of bars and text
+  function Watermark({ position }: { position?: 'top-right' | 'bottom-right' }) {
+    const isTop = position === 'top-right'
+    return (
+      <div style={{
+        position: 'absolute',
+        top: isTop ? 7 : undefined, bottom: isTop ? undefined : 7,
+        right: 9,
+        fontFamily: 'var(--font-poppins)',
+        fontSize: 7, letterSpacing: '0.11em',
+        textTransform: 'uppercase' as const,
+        color: 'rgba(255,255,255,0.12)',
+        zIndex: 6, pointerEvents: 'none',
+      }}>FrameSound</div>
+    )
+  }
 
-  // Film grain (experimental)
+  // Film grain
   const grainSvg = encodeURIComponent(
     '<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200">' +
     '<filter id="g"><feTurbulence type="fractalNoise" baseFrequency="0.7" numOctaves="4" stitchTiles="stitch"/>' +
@@ -96,15 +104,49 @@ const CardCanvas = forwardRef<HTMLDivElement, Props>(function CardCanvas(
     }} />
   ) : null
 
-  // accentColor tint — glass and square only
-  const accentTint = accentColor ? (
+  // Vignette — dark radial fade at edges, no hard boundary
+  const vignetteOverlay = config.vignetteEnabled ? (
     <div style={{
-      position: 'absolute', inset: 0, zIndex: 1, pointerEvents: 'none',
-      background: `radial-gradient(ellipse at 80% 20%, ${accentColor}12 0%, transparent 60%)`,
+      position: 'absolute', inset: 0, zIndex: 9, pointerEvents: 'none',
+      background: `radial-gradient(ellipse at center, transparent ${Math.round(55 - config.vignetteStrength * 0.25)}%, rgba(0,0,0,${(config.vignetteStrength / 100 * 0.82).toFixed(2)}) 100%)`,
     }} />
   ) : null
 
-  // Meta row helper
+  // Scanlines — subtle CRT horizontal lines
+  const scanlineOverlay = config.scanlinesEnabled ? (
+    <div style={{
+      position: 'absolute', inset: 0, zIndex: 9, pointerEvents: 'none',
+      opacity: config.scanlinesOpacity / 100,
+      backgroundImage: 'repeating-linear-gradient(0deg, rgba(0,0,0,0.45) 0px, rgba(0,0,0,0.45) 1px, transparent 1px, transparent 3px)',
+    }} />
+  ) : null
+
+  // Holographic shimmer — soft rainbow screen blend
+  const holoOverlay = config.holoEnabled ? (
+    <div style={{
+      position: 'absolute', inset: 0, zIndex: 9, pointerEvents: 'none',
+      opacity: config.holoOpacity / 100,
+      background: [
+        'linear-gradient(135deg, rgba(255,0,128,0.22) 0%, transparent 30%)',
+        'linear-gradient(225deg, rgba(0,200,255,0.20) 0%, transparent 30%)',
+        'linear-gradient(315deg, rgba(120,255,60,0.18) 0%, transparent 30%)',
+        'linear-gradient(45deg, rgba(255,140,0,0.20) 0%, transparent 30%)',
+      ].join(', '),
+      mixBlendMode: 'screen' as const,
+    }} />
+  ) : null
+
+  // Shared experimental layers (applied to all presets)
+  const experimentalLayers = <>{vignetteOverlay}{scanlineOverlay}{holoOverlay}</>
+
+  // accentColor tint — square only
+  const accentTint = accentColor ? (
+    <div style={{
+      position: 'absolute', inset: 0, zIndex: 1, pointerEvents: 'none',
+      background: `radial-gradient(ellipse 75% 55% at 80% 20%, ${accentColor}18 0%, transparent 65%)`,
+    }} />
+  ) : null
+
   function MetaRow({ color, size, gap }: { color: string; size: number; gap: number }) {
     if (!config.showYear && !config.showDuration) return null
     return (
@@ -118,16 +160,16 @@ const CardCanvas = forwardRef<HTMLDivElement, Props>(function CardCanvas(
 
   // ── GLASS ─────────────────────────────────────────────────────
   if (config.preset === 'glass') {
-    // Internal reflection glow — color comes from accent (song color)
+    // Soft internal light — smaller ellipse so it fully fades before card edges
     const reflectionGlow = (
       <div style={{
         position: 'absolute', inset: 0, zIndex: 1, pointerEvents: 'none',
         background: accentColor
           ? [
-              `radial-gradient(ellipse 90% 55% at 50% -5%, ${accentColor}50 0%, transparent 65%)`,
-              `radial-gradient(ellipse 50% 35% at 18% 12%, rgba(255,255,255,0.14) 0%, transparent 55%)`,
+              `radial-gradient(ellipse 70% 42% at 50% -5%, ${accentColor}42 0%, transparent 55%)`,
+              `radial-gradient(ellipse 40% 28% at 18% 10%, rgba(255,255,255,0.11) 0%, transparent 50%)`,
             ].join(', ')
-          : 'radial-gradient(ellipse 50% 35% at 18% 12%, rgba(255,255,255,0.10) 0%, transparent 55%)',
+          : 'radial-gradient(ellipse 40% 28% at 18% 10%, rgba(255,255,255,0.08) 0%, transparent 50%)',
       }} />
     )
 
@@ -136,18 +178,18 @@ const CardCanvas = forwardRef<HTMLDivElement, Props>(function CardCanvas(
         position: 'relative', overflow: 'hidden', width: '100%', aspectRatio: '4 / 5',
         borderRadius: '28px', fontFamily, containerType: 'inline-size',
         background: accentColor
-          ? `linear-gradient(160deg, color-mix(in srgb, ${accentColor} 18%, #27272b) 0%, #232327 40%, #1c1c1e 100%)`
+          ? `linear-gradient(160deg, color-mix(in srgb, ${accentColor} 16%, #27272b) 0%, #232327 40%, #1c1c1e 100%)`
           : '#232327',
-        border: '1px solid rgba(255,255,255,0.13)',
+        border: '1px solid rgba(255,255,255,0.11)',
         display: 'flex', flexDirection: 'column',
         boxShadow: shadow,
       }}>
         {glossOverlay}
         {reflectionGlow}
-        {watermark}
+        <Watermark position="bottom-right" />
         {grainOverlay}
+        {experimentalLayers}
 
-        {/* Art block — flex:1 fills remaining height, never overflows */}
         {config.showAlbumArt && (
           <div style={{
             flex: 1, minHeight: 0,
@@ -163,11 +205,10 @@ const CardCanvas = forwardRef<HTMLDivElement, Props>(function CardCanvas(
                 style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', display: 'block', border: 'none', outline: 'none' }}
               />
             )}
-            <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '40%', background: 'linear-gradient(180deg, rgba(255,255,255,0.08) 0%, transparent 100%)', zIndex: 2, pointerEvents: 'none' }} />
+            <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '40%', background: 'linear-gradient(180deg, rgba(255,255,255,0.07) 0%, transparent 100%)', zIndex: 2, pointerEvents: 'none' }} />
           </div>
         )}
 
-        {/* Text area — never shrinks, always visible at bottom */}
         <div style={{
           flexShrink: 0, position: 'relative', zIndex: 6,
           padding: '14px 16px 18px', display: 'flex', flexDirection: 'column', gap: 3,
@@ -208,10 +249,10 @@ const CardCanvas = forwardRef<HTMLDivElement, Props>(function CardCanvas(
         boxShadow: shadow,
       }}>
         {glossOverlay}
-        {watermark}
+        <Watermark position="top-right" />
         {grainOverlay}
+        {experimentalLayers}
 
-        {/* Left column — album art */}
         <div style={{ width: '38%', flexShrink: 0, overflow: 'hidden', position: 'relative' }}>
           {track.coverUrl && (
             // eslint-disable-next-line @next/next/no-img-element
@@ -219,14 +260,12 @@ const CardCanvas = forwardRef<HTMLDivElement, Props>(function CardCanvas(
               style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', border: 'none', outline: 'none' }}
             />
           )}
-          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '50%', background: 'linear-gradient(180deg, rgba(255,255,255,0.15) 0%, transparent 100%)', zIndex: 2, pointerEvents: 'none' }} />
-          <div style={{ position: 'absolute', top: '15%', bottom: '15%', left: 0, width: 2, background: 'linear-gradient(180deg, transparent, rgba(255,255,255,0.24) 35%, rgba(255,255,255,0.24) 65%, transparent)', zIndex: 3, pointerEvents: 'none' }} />
+          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '50%', background: 'linear-gradient(180deg, rgba(255,255,255,0.12) 0%, transparent 100%)', zIndex: 2, pointerEvents: 'none' }} />
+          <div style={{ position: 'absolute', top: '15%', bottom: '15%', left: 0, width: 2, background: 'linear-gradient(180deg, transparent, rgba(255,255,255,0.22) 35%, rgba(255,255,255,0.22) 65%, transparent)', zIndex: 3, pointerEvents: 'none' }} />
         </div>
 
-        {/* Seam */}
-        <div style={{ position: 'absolute', top: '10%', bottom: '10%', left: '38%', width: 1, background: 'rgba(0,0,0,0.9)', boxShadow: '1px 0 4px rgba(0,0,0,0.6)', zIndex: 3 }} />
+        <div style={{ position: 'absolute', top: '10%', bottom: '10%', left: '38%', width: 1, background: 'rgba(0,0,0,0.9)', zIndex: 3 }} />
 
-        {/* Right column */}
         <div style={{ flex: 1, background: '#1c1c1e', display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '0 24px', gap: 3, textAlign: config.textAlign }}>
           {config.showTitle && (
             <p style={{ margin: 0, fontSize: 17, fontWeight: 700, color: '#fff', letterSpacing: '-0.02em', lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{track.title}</p>
@@ -255,10 +294,11 @@ const CardCanvas = forwardRef<HTMLDivElement, Props>(function CardCanvas(
         boxShadow: shadow,
       }}>
         {glossOverlay}
-        {watermark}
+        {/* Watermark at top-right to stay clear of bottom text/bar */}
+        <Watermark position="top-right" />
         {grainOverlay}
+        {experimentalLayers}
 
-        {/* Full-bleed cover */}
         {track.coverUrl && (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={coverSrc} crossOrigin="anonymous" loading="eager" alt=""
@@ -266,15 +306,13 @@ const CardCanvas = forwardRef<HTMLDivElement, Props>(function CardCanvas(
           />
         )}
 
-        {/* Bottom gradient fade */}
         <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '62%', background: 'linear-gradient(to top, rgba(0,0,0,0.97) 0%, rgba(0,0,0,0.72) 40%, transparent 100%)', zIndex: 2, pointerEvents: 'none' }} />
 
-        {/* Duration bar */}
+        {/* Duration bar sits above text at z:6 */}
         {accentColor && (
           <div style={{ position: 'absolute', bottom: 0, left: 0, height: 2, width: '35%', background: accentColor, zIndex: 6 }} />
         )}
 
-        {/* Text block */}
         <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '26px 26px 30px', zIndex: 5, display: 'flex', flexDirection: 'column', gap: 5, textAlign: config.textAlign }}>
           {config.showLyrics && config.lyricQuote && (
             <p style={{
@@ -306,10 +344,10 @@ const CardCanvas = forwardRef<HTMLDivElement, Props>(function CardCanvas(
         boxShadow: shadow,
       }}>
         {glossOverlay}
-        {watermark}
+        <Watermark position="top-right" />
         {grainOverlay}
+        {experimentalLayers}
 
-        {/* Art block */}
         {config.showAlbumArt && track.coverUrl && (
           <div style={{
             width: '78%', aspectRatio: '1 / 1', borderRadius: '14px',
@@ -320,11 +358,10 @@ const CardCanvas = forwardRef<HTMLDivElement, Props>(function CardCanvas(
             <img src={coverSrc} crossOrigin="anonymous" loading="eager" alt=""
               style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', border: 'none', outline: 'none' }}
             />
-            <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '40%', background: 'linear-gradient(180deg, rgba(255,255,255,0.08) 0%, transparent 100%)', zIndex: 2, pointerEvents: 'none' }} />
+            <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '40%', background: 'linear-gradient(180deg, rgba(255,255,255,0.07) 0%, transparent 100%)', zIndex: 2, pointerEvents: 'none' }} />
           </div>
         )}
 
-        {/* Frosted text panel */}
         <div style={{
           width: '100%', borderRadius: 12,
           background: 'rgba(255,255,255,0.05)',
@@ -363,10 +400,10 @@ const CardCanvas = forwardRef<HTMLDivElement, Props>(function CardCanvas(
         boxShadow: shadow,
       }}>
         {glossOverlay}
-        {watermark}
+        <Watermark position="top-right" />
         {grainOverlay}
+        {experimentalLayers}
 
-        {/* Left art strip */}
         <div style={{ width: '40%', flexShrink: 0, position: 'relative', overflow: 'hidden' }}>
           {track.coverUrl && (
             // eslint-disable-next-line @next/next/no-img-element
@@ -376,10 +413,8 @@ const CardCanvas = forwardRef<HTMLDivElement, Props>(function CardCanvas(
           )}
         </div>
 
-        {/* Seam */}
-        <div style={{ position: 'absolute', top: '10%', bottom: '10%', left: '40%', width: 1, background: 'rgba(0,0,0,0.9)', boxShadow: '1px 0 4px rgba(0,0,0,0.6)', zIndex: 3 }} />
+        <div style={{ position: 'absolute', top: '10%', bottom: '10%', left: '40%', width: 1, background: 'rgba(0,0,0,0.9)', zIndex: 3 }} />
 
-        {/* Right text */}
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '0 20px', gap: 3, textAlign: config.textAlign }}>
           {config.showTitle && (
             <p style={{ margin: 0, fontSize: 20, fontWeight: 700, color: '#fff', letterSpacing: '-0.025em', lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{track.title}</p>
@@ -416,11 +451,11 @@ const CardCanvas = forwardRef<HTMLDivElement, Props>(function CardCanvas(
       boxShadow: shadow,
     }}>
       {glossOverlay}
-      {watermark}
+      <Watermark position="bottom-right" />
       {accentTint}
       {grainOverlay}
+      {experimentalLayers}
 
-      {/* Art area */}
       <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
         {track.coverUrl && (
           // eslint-disable-next-line @next/next/no-img-element
@@ -428,11 +463,10 @@ const CardCanvas = forwardRef<HTMLDivElement, Props>(function CardCanvas(
             style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', display: 'block', border: 'none', outline: 'none' }}
           />
         )}
-        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '38%', background: 'linear-gradient(180deg, rgba(255,255,255,0.08) 0%, transparent 100%)', zIndex: 2, pointerEvents: 'none' }} />
+        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '38%', background: 'linear-gradient(180deg, rgba(255,255,255,0.07) 0%, transparent 100%)', zIndex: 2, pointerEvents: 'none' }} />
         <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 20, background: 'linear-gradient(to top, rgba(0,0,0,0.5), transparent)', zIndex: 2, pointerEvents: 'none' }} />
       </div>
 
-      {/* Bottom strip */}
       <div style={{
         background: '#1c1c1e', padding: '13px 16px 15px',
         display: 'flex', flexDirection: 'column', gap: 3,

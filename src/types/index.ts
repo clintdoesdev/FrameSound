@@ -30,6 +30,12 @@ export type CardConfig = {
   glowStrength: number    // 0–100
   grainEnabled: boolean
   grainOpacity: number    // 0–100
+  vignetteEnabled: boolean
+  vignetteStrength: number // 0–100
+  scanlinesEnabled: boolean
+  scanlinesOpacity: number // 0–100
+  holoEnabled: boolean
+  holoOpacity: number      // 0–100
 }
 
 export const defaultConfig: CardConfig = {
@@ -52,4 +58,10 @@ export const defaultConfig: CardConfig = {
   glowStrength: 50,
   grainEnabled: false,
   grainOpacity: 30,
+  vignetteEnabled: false,
+  vignetteStrength: 50,
+  scanlinesEnabled: false,
+  scanlinesOpacity: 20,
+  holoEnabled: false,
+  holoOpacity: 30,
 }

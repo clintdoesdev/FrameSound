@@ -373,6 +373,7 @@ export default function Home() {
       }}>
         <span style={{ color: 'var(--fg-3)', flexShrink: 0 }}><LinkIcon /></span>
         <input
+          className="hero-url-input"
           value={url}
           onChange={e => handleUrlInput(e.target.value)}
           onPaste={handlePaste}
@@ -385,10 +386,26 @@ export default function Home() {
           className="btn btn-glow"
           data-variant="primary"
           data-size="sm"
-          onClick={() => url && fetchTrack(url)}
-          style={{ flexShrink: 0, borderRadius: 10, height: 44 }}
+          onClick={async () => {
+            try {
+              const text = await navigator.clipboard.readText()
+              if (text) {
+                setUrl(text)
+                handleUrlInput(text)
+              }
+            } catch {
+              // Clipboard read denied — focus the input so the user can paste manually
+              const input = document.querySelector<HTMLInputElement>('.hero-url-input')
+              input?.focus()
+            }
+          }}
+          style={{ flexShrink: 0, borderRadius: 10, height: 44, gap: 6 }}
         >
-          Generate →
+          <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="5" y="4" width="9" height="11" rx="1.5"/>
+            <path d="M5 4V3a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h1"/>
+          </svg>
+          Paste
         </button>
       </div>
     </div>

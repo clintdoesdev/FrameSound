@@ -11,10 +11,19 @@ import CustomizePanel from '@/components/CustomizePanel'
 import ExportBar from '@/components/ExportBar'
 import AudioPreview from '@/components/AudioPreview'
 import RecentTracks, { addRecentTrack } from '@/components/RecentTracks'
+import { useConfigHistory } from '@/lib/useConfigHistory'
 
 const BackIcon = () => (
   <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M19 12H5M12 5l-7 7 7 7"/>
+  </svg>
+)
+
+const UndoIcon = ({ flip }: { flip?: boolean }) => (
+  <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor"
+    strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+    style={flip ? { transform: 'scaleX(-1)' } : undefined}>
+    <path d="M9 14 4 9l5-5"/><path d="M4 9h9a7 7 0 0 1 0 14h-3"/>
   </svg>
 )
 
@@ -24,6 +33,10 @@ const LinkIcon = () => (
     <path d="M14 10a4 4 0 0 1 0 5.6l-3 3a4 4 0 1 1-5.6-5.6L6.9 11.5"/>
   </svg>
 )
+
+// Order matches the settings panel, so the 1–7 shortcuts line up with the grid.
+const PRESET_ORDER: CardConfig['preset'][] =
+  ['glass', 'bezel', 'bloom', 'ticket', 'tag', 'profile', 'player']
 
 function Logo() {
   return (
@@ -244,7 +257,7 @@ function DemoMinCardView({ title, artist, color, rotate, anim, dur, delay, pos }
 export default function Home() {
   const [url, setUrl] = useState('')
   const [track, setTrack] = useState<TrackData | null>(null)
-  const [config, setConfig] = useState<CardConfig>(defaultConfig)
+  const { config, update: updateConfig, resetHere, undo, redo, canUndo, canRedo } = useConfigHistory(defaultConfig)
   const [lyrics, setLyrics] = useState<string[] | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -252,16 +265,50 @@ export default function Home() {
 
   // cardRef → hidden off-screen export card (what dom-to-image captures)
   const cardRef = useRef<HTMLDivElement>(null!)
-
-  const updateConfig = useCallback((updates: Partial<CardConfig>) => {
-    setConfig(prev => ({ ...prev, ...updates }))
-  }, [])
+  // ExportBar refreshes this every render, so the shortcut always calls the
+  // current closure rather than a stale one captured at mount.
+  const exportActions = useRef<{ exportPng: () => void } | null>(null)
+  // Loading a track keeps the user's styling but starts a fresh undo timeline,
+  // so undo can't walk back into a different song's state.
+  const startNewTrack = useCallback(() => {
+    resetHere({ lyricQuote: '' })
+  }, [resetHere])
 
   // Stable reference — LyricsPanel depends on this identity in a useEffect;
   // an inline arrow here would change every render and loop indefinitely.
   const handleQuoteChange = useCallback((q: string) => {
     updateConfig({ lyricQuote: q })
   }, [updateConfig])
+
+  // ── Keyboard shortcuts ────────────────────────────────────────
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const el = e.target as HTMLElement | null
+      const typing = !!el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable)
+      const mod = e.metaKey || e.ctrlKey
+
+      if (mod && e.key.toLowerCase() === 'z') {
+        if (typing) return
+        e.preventDefault()
+        if (e.shiftKey) redo(); else undo()
+        return
+      }
+      if (mod && e.key.toLowerCase() === 'e') {
+        e.preventDefault()
+        exportActions.current?.exportPng()
+        return
+      }
+      if (typing || mod || e.altKey) return
+      // 1–7 jump straight to a preset
+      const n = Number(e.key)
+      if (n >= 1 && n <= PRESET_ORDER.length) {
+        e.preventDefault()
+        updateConfig({ preset: PRESET_ORDER[n - 1] })
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [undo, redo, updateConfig])
 
   // Extract accent colour from album art with colorthief
   useEffect(() => {
@@ -310,8 +357,7 @@ export default function Home() {
     if (result.data) {
       setTrack(result.data)
       addRecentTrack(result.data)
-      // Reset lyric quote when new track loads
-      setConfig(prev => ({ ...prev, lyricQuote: '' }))
+      startNewTrack()
       getLyrics(result.data.artist, result.data.title).then(r => {
         setLyrics(r.lines.length > 0 ? r.lines : null)
       })
@@ -319,7 +365,7 @@ export default function Home() {
       setError(result.error ?? 'Failed to fetch track')
     }
     setLoading(false)
-  }, [])
+  }, [startNewTrack])
 
   const handleUrlInput = (val: string) => {
     setUrl(val)
@@ -340,12 +386,12 @@ export default function Home() {
   const loadFromRecent = useCallback((t: TrackData) => {
     setTrack(t)
     setUrl(`https://open.spotify.com/track/${t.id}`)
-    setConfig(prev => ({ ...prev, lyricQuote: '' }))
+    startNewTrack()
     setLyrics(null)
     getLyrics(t.artist, t.title).then(r => {
       setLyrics(r.lines.length > 0 ? r.lines : null)
     })
-  }, [])
+  }, [startNewTrack])
 
   const urlBar = (
     <div style={{ position: 'relative', width: '100%' }}>
@@ -634,6 +680,20 @@ export default function Home() {
           </button>
           <Logo />
         </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <button
+            onClick={undo} disabled={!canUndo}
+            className="btn" data-variant="ghost" data-icon-only="true"
+            title="Undo (⌘Z)" aria-label="Undo"
+            style={{ height: 32, width: 32, borderRadius: 8 }}
+          ><UndoIcon /></button>
+          <button
+            onClick={redo} disabled={!canRedo}
+            className="btn" data-variant="ghost" data-icon-only="true"
+            title="Redo (⇧⌘Z)" aria-label="Redo"
+            style={{ height: 32, width: 32, borderRadius: 8 }}
+          ><UndoIcon flip /></button>
+        </div>
       </nav>
 
       {/* Split layout */}
@@ -732,7 +792,7 @@ export default function Home() {
 
           {/* Export bar — sticky at bottom */}
           {track && (
-            <ExportBar cardRef={cardRef} track={track} config={config} onConfigChange={updateConfig} accentColor={accentColor} />
+            <ExportBar cardRef={cardRef} track={track} config={config} onConfigChange={updateConfig} accentColor={accentColor} actionsRef={exportActions} />
           )}
         </div>
       </div>

@@ -6,11 +6,34 @@ import { CardConfig } from '@/types'
 type SavedPreset = { id: string; name: string; config: CardConfig }
 
 const STORAGE_KEY = 'framesound-saved-presets'
+
+// Presets that existed in earlier versions. Without this map a stale saved
+// preset silently falls through to the default branch and renders as the
+// wrong card, which reads as data loss to whoever saved it.
+const LEGACY_PRESETS: Record<string, CardConfig['preset']> = {
+  poster:     'bloom',
+  square:     'bezel',
+  minimal:    'profile',
+  nowplaying: 'player',
+  story:      'bloom',
+}
+const VALID_PRESETS: CardConfig['preset'][] =
+  ['glass', 'bezel', 'bloom', 'ticket', 'tag', 'profile', 'player']
+
+function migratePreset(p: string): CardConfig['preset'] {
+  if ((VALID_PRESETS as string[]).includes(p)) return p as CardConfig['preset']
+  return LEGACY_PRESETS[p] ?? 'glass'
+}
+
 function loadSavedPresets(): SavedPreset[] {
   if (typeof window === 'undefined') return []
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
-    return raw ? (JSON.parse(raw) as SavedPreset[]) : []
+    const list = raw ? (JSON.parse(raw) as SavedPreset[]) : []
+    return list.map(p => ({
+      ...p,
+      config: { ...p.config, preset: migratePreset(p.config?.preset as string) },
+    }))
   } catch { return [] }
 }
 function persistPresets(list: SavedPreset[]) {
@@ -293,6 +316,8 @@ function Section({ icon, label, children }: {
       background: 'var(--panel)', border: '1px solid var(--panel-line)',
     }}>
       <button
+        type="button"
+        aria-expanded={open}
         onClick={() => setOpen(o => !o)}
         style={{
           width: '100%', border: 0, background: 'transparent', cursor: 'pointer',
@@ -336,7 +361,7 @@ function PillRow<T extends string>({ value, options, onChange, accent }: {
       {options.map((o, i) => {
         const selected = value === o.value
         return (
-          <button key={i} onClick={() => onChange(o.value)} style={{
+          <button key={i} type="button" aria-pressed={selected} onClick={() => onChange(o.value)} style={{
             flex: 1, height: 28, borderRadius: 999, border: 0, cursor: 'pointer',
             fontSize: 11.5, fontWeight: 600,
             background: selected ? (accent ?? 'var(--accent)') : 'transparent',
@@ -406,11 +431,14 @@ function ToggleItem({ label, value, onChange, icon, accent }: {
   icon: React.ReactNode; accent?: string
 }) {
   return (
-    <div
+    <button
+      type="button"
+      role="switch"
+      aria-checked={value}
       onClick={() => onChange(!value)}
       style={{
-        display: 'flex', alignItems: 'center', gap: 7,
-        height: 32, padding: '0 8px',
+        display: 'flex', alignItems: 'center', gap: 7, width: '100%',
+        height: 32, padding: '0 8px', border: 0, font: 'inherit', textAlign: 'left',
         borderRadius: 9, cursor: 'pointer',
         background: 'var(--panel-well)',
         transition: 'background 150ms',
@@ -432,9 +460,19 @@ function ToggleItem({ label, value, onChange, icon, accent }: {
           display: 'block',
         }} />
       </div>
-    </div>
+    </button>
   )
 }
+
+// Curated one-tap looks so the panel is useful before anyone has saved anything.
+const STARTERS: { name: string; patch: Partial<CardConfig> }[] = [
+  { name: 'Clean',   patch: { preset: 'bezel', bgStyle: 'blurred-art', textColor: 'auto', glowEnabled: false, grainEnabled: false, vignetteEnabled: false, scanlinesEnabled: false, holoEnabled: false } },
+  { name: 'Poster',  patch: { preset: 'bloom', bgStyle: 'blurred-art', textAlign: 'left', vignetteEnabled: true, vignetteStrength: 40, grainEnabled: true, grainOpacity: 18 } },
+  { name: 'Stub',    patch: { preset: 'ticket', bgStyle: 'blurred-art', grainEnabled: true, grainOpacity: 14 } },
+  { name: 'Retro',   patch: { preset: 'bezel', bgStyle: 'blurred-art', grainEnabled: true, grainOpacity: 34, scanlinesEnabled: true, scanlinesOpacity: 16, vignetteEnabled: true, vignetteStrength: 55 } },
+  { name: 'Neon',    patch: { preset: 'glass', bgStyle: 'gradient', glowEnabled: true, glowStrength: 70, holoEnabled: true, holoOpacity: 22 } },
+  { name: 'Paper',   patch: { preset: 'bezel', bgStyle: 'solid', bgColor: '#f2ece2', textColor: 'auto', grainEnabled: true, grainOpacity: 22, glowEnabled: false } },
+]
 
 const PRESETS = [
   { id: 'glass',   name: 'Glass'   },
@@ -572,11 +610,26 @@ export default function CustomizePanel({ config, onChange, accentColor }: Props)
           </div>
         )}
 
-        {savedPresets.length === 0 && !showSaveInput && (
-          <p style={{ fontSize: 11, color: 'var(--fg-3)', margin: 0 }}>
-            No saved presets yet. Save your current settings to quickly restore them.
-          </p>
-        )}
+        {/* Starters — always available, so this section is never a dead end */}
+        <div>
+          <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--fg-3)', marginBottom: 6 }}>
+            Quick looks
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 5 }}>
+            {STARTERS.map(st => (
+              <button
+                key={st.name}
+                type="button"
+                onClick={() => onChange(st.patch)}
+                style={{
+                  height: 28, borderRadius: 8, border: 0, cursor: 'pointer',
+                  background: 'var(--panel-well)', color: 'var(--fg-1)',
+                  fontSize: 11, fontWeight: 600,
+                }}
+              >{st.name}</button>
+            ))}
+          </div>
+        </div>
       </Section>
 
       {/* ── PRESET ── */}
@@ -587,6 +640,9 @@ export default function CustomizePanel({ config, onChange, accentColor }: Props)
             return (
               <button
                 key={p.id}
+                type="button"
+                aria-pressed={sel}
+                title={`${p.name} preset`}
                 onClick={() => onChange({ preset: p.id })}
                 style={{
                   background: 'transparent', border: 0, padding: 0, cursor: 'pointer',
@@ -667,6 +723,8 @@ export default function CustomizePanel({ config, onChange, accentColor }: Props)
             return (
               <button
                 key={f.value}
+                type="button"
+                aria-pressed={sel}
                 onClick={() => onChange({ font: f.value })}
                 style={{
                   height: 52, borderRadius: 9, border: 0,
@@ -723,7 +781,9 @@ export default function CustomizePanel({ config, onChange, accentColor }: Props)
           ]).map(o => {
             const sel = config.textAlign === o.value
             return (
-              <button key={o.value} onClick={() => onChange({ textAlign: o.value })} style={{
+              <button key={o.value} type="button" aria-pressed={sel}
+                aria-label={`Align ${o.value}`}
+                onClick={() => onChange({ textAlign: o.value })} style={{
                 width: 34, height: 30, borderRadius: 8, border: 0, cursor: 'pointer',
                 background: sel ? (accentColor ?? 'var(--accent)') : 'var(--panel-well)',
                 color: sel ? '#0d0d0f' : 'var(--fg-3)',

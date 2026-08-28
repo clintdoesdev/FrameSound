@@ -210,6 +210,24 @@ input, textarea { font: inherit; color: inherit; }
 .btn[data-size="xl"]  { height: 52px; padding: 0 28px; font-size: 16px; font-weight: 600; border-radius: var(--r-4); }
 .btn[data-icon-only="true"] { padding: 0; width: var(--row-h); justify-content: center; }
 .btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* The settings panel styles its controls inline, so they need an explicit
+   focus ring — without this, keyboard users get no visible position. */
+.right-col button:focus-visible,
+.right-col [role="switch"]:focus-visible,
+.right-col input:focus-visible,
+.right-col textarea:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
 .btn:disabled { opacity: 0.45; cursor: not-allowed; }
 
 /* ─── Glowing CTA button ────────────────────────────────────── */

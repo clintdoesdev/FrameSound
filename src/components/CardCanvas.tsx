@@ -57,13 +57,47 @@ const CardCanvas = forwardRef<HTMLDivElement, Props>(function CardCanvas(
     oswald:          'var(--font-oswald)',
   }
   const fontFamily = fontFamilyMap[config.font]
-  const shadow = config.glowEnabled
-    ? withGlow(DEPTH_SHADOW, accentColor, config.glowStrength)
-    : DEPTH_SHADOW
+  // A cut-out asset carries no ground shadow — and rasterizing one against
+  // transparency smears grey fringes into the alpha channel.
+  const shadow = config.bgStyle === 'transparent'
+    ? 'none'
+    : config.glowEnabled
+      ? withGlow(DEPTH_SHADOW, accentColor, config.glowStrength)
+      : DEPTH_SHADOW
   const coverSrc = exportMode && track.coverUrl
     ? proxySrc(track.coverUrl)
     : (track.coverUrl ?? '')
   const accent = accentColor ?? '#e2603a'
+
+  // ── Background / ink resolution ───────────────────────────────
+  // bgStyle picks what the card's shell is made of; each preset passes its
+  // own look as the `blurred-art` fallback so the default is unchanged.
+  // `transparent` strips the shell so an alpha export yields real cut-out.
+  const shell = (fallback: string): string =>
+    config.bgStyle === 'transparent' ? 'transparent'
+      : config.bgStyle === 'solid' ? config.bgColor
+      : config.bgStyle === 'gradient' ? `linear-gradient(160deg, ${accent} 0%, ${accent}55 55%, #141416 100%)`
+      : fallback
+
+  // Hue tint rotates the artwork only — the shell already follows the accent.
+  const tint = config.tintHue > 0 ? `hue-rotate(${config.tintHue}deg)` : ''
+  const withTint = (f?: string) => [f, tint].filter(Boolean).join(' ') || undefined
+
+  // `auto` reads the solid colour when there is one; on artwork the scrims are
+  // built for light type, so white stays the safe default.
+  const srgbLum = (hex: string): number => {
+    if (!/^#[0-9a-f]{6}$/i.test(hex)) return 0
+    const c = [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16) / 255)
+    const l = c.map(v => (v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4))
+    return 0.2126 * l[0] + 0.7152 * l[1] + 0.0722 * l[2]
+  }
+  const darkInk = config.textColor === 'black'
+    || (config.textColor === 'auto' && config.bgStyle === 'solid' && srgbLum(config.bgColor) > 0.5)
+  const inkRGB = darkInk ? '16,16,18' : '255,255,255'
+  const ink  = darkInk ? '#101012' : '#ffffff'
+  const ink2 = `rgba(${inkRGB},0.64)`
+  const ink3 = `rgba(${inkRGB},0.44)`
+  const ink4 = `rgba(${inkRGB},0.30)`
 
   // Film grain
   const grainSvg = encodeURIComponent(
@@ -122,6 +156,7 @@ const CardCanvas = forwardRef<HTMLDivElement, Props>(function CardCanvas(
           position: 'absolute', inset: 0, width: '100%', height: '100%',
           objectFit: 'cover', objectPosition: position, display: 'block',
           border: 'none', outline: 'none', borderRadius: u(radius),
+          filter: withTint(),
         }}
       />
     ) : null
@@ -138,7 +173,7 @@ const CardCanvas = forwardRef<HTMLDivElement, Props>(function CardCanvas(
         style={{
           position: 'absolute', inset: 0, width: '100%', height: '100%',
           objectFit: 'cover', objectPosition: position,
-          filter: `blur(${u(blur)}) saturate(165%) brightness(${brightness})`,
+          filter: withTint(`blur(${u(blur)}) saturate(165%) brightness(${brightness})`),
           transform: 'scale(1.25)', display: 'block', border: 'none', outline: 'none',
         }}
       />
@@ -167,7 +202,7 @@ const CardCanvas = forwardRef<HTMLDivElement, Props>(function CardCanvas(
     )
   }
 
-  const Title = ({ size, color = '#fff', weight = 800, clamp }: {
+  const Title = ({ size, color = ink, weight = 800, clamp }: {
     size: number; color?: string; weight?: number; clamp?: number
   }) => config.showTitle ? (
     <p style={{
@@ -180,7 +215,7 @@ const CardCanvas = forwardRef<HTMLDivElement, Props>(function CardCanvas(
     } as React.CSSProperties}>{track.title}</p>
   ) : null
 
-  const Artist = ({ size, color = 'rgba(255,255,255,0.62)', weight = 400 }: {
+  const Artist = ({ size, color = ink2, weight = 400 }: {
     size: number; color?: string; weight?: number
   }) => config.showArtist ? (
     <p style={{
@@ -249,7 +284,7 @@ const CardCanvas = forwardRef<HTMLDivElement, Props>(function CardCanvas(
     return (
       <div ref={ref} style={root({
         aspectRatio: '4 / 5', borderRadius: u(30),
-        background: `linear-gradient(160deg, ${accent}38 0%, #232327 45%, #18181a 100%)`,
+        background: shell(`linear-gradient(160deg, ${accent}38 0%, #232327 45%, #18181a 100%)`),
       })}>
         <Art radius={0} />
         <div style={{
@@ -285,9 +320,9 @@ const CardCanvas = forwardRef<HTMLDivElement, Props>(function CardCanvas(
             display: 'flex', flexDirection: 'column', gap: u(3), textAlign: config.textAlign,
           }}>
             <Title size={25} />
-            <Artist size={14} color="rgba(255,255,255,0.7)" />
-            <Meta size={11} color="rgba(255,255,255,0.45)" />
-            <Lyric size={12} color="rgba(255,255,255,0.58)" rule="rgba(255,255,255,0.3)" />
+            <Artist size={14} />
+            <Meta size={11} color={ink3} />
+            <Lyric size={12} color={ink2} rule={ink4} />
           </div>
         </div>
       </div>
@@ -299,10 +334,16 @@ const CardCanvas = forwardRef<HTMLDivElement, Props>(function CardCanvas(
   // perforated stub tucked under the card); they differ in the stub payload.
   if (config.preset === 'ticket' || config.preset === 'tag') {
     const isTag = config.preset === 'tag'
-    const shell = '#26221f'
+    // Notches work by painting the shell colour over the stub's seam, so they
+    // only read as die-cuts when there is a solid shell to punch through.
+    const stubSurround =
+      config.bgStyle === 'solid' ? config.bgColor
+        : config.bgStyle === 'gradient' ? '#141416'
+          : '#26221f'
+    const showNotches = config.bgStyle !== 'transparent'
     return (
       <div ref={ref} style={root({
-        aspectRatio: '4 / 5', borderRadius: u(34), background: shell,
+        aspectRatio: '4 / 5', borderRadius: u(34), background: shell('#26221f'),
         display: 'flex', flexDirection: 'column',
         padding: `${u(13)} ${u(13)} ${u(15)}`,
       })}>
@@ -335,8 +376,8 @@ const CardCanvas = forwardRef<HTMLDivElement, Props>(function CardCanvas(
           }}>
             <div style={{ flex: 1, minWidth: 0, textAlign: config.textAlign }}>
               <Title size={17} />
-              <Artist size={11.5} color="rgba(255,255,255,0.72)" />
-              {isTag && <Meta size={10.5} color="rgba(255,255,255,0.5)" />}
+              <Artist size={11.5} />
+              {isTag && <Meta size={10.5} color={ink3} />}
             </div>
             {!isTag && <span style={{ color: 'rgba(255,255,255,0.85)' }}><ShuffleIcon size={14} /></span>}
           </div>
@@ -351,7 +392,7 @@ const CardCanvas = forwardRef<HTMLDivElement, Props>(function CardCanvas(
           justifyContent: isTag ? 'center' : 'flex-start',
           gap: u(10), padding: `${u(8)} ${u(13)}`,
         }}>
-          <Notches bg={shell} size={11} top={-5} />
+          {showNotches && <Notches bg={stubSurround} size={11} top={-5} />}
           {isTag ? (
             <BrandMark size={22} tone="light" />
           ) : (
@@ -385,7 +426,7 @@ const CardCanvas = forwardRef<HTMLDivElement, Props>(function CardCanvas(
     const handle = '@' + (track.artist.toLowerCase().replace(/[^a-z0-9]+/g, '') || 'artist')
     return (
       <div ref={ref} style={root({
-        aspectRatio: '4 / 5', borderRadius: u(30), background: '#1b1b1d',
+        aspectRatio: '4 / 5', borderRadius: u(30), background: shell('#1b1b1d'),
         display: 'flex', flexDirection: 'column', padding: u(10),
       })}>
         {fx}
@@ -473,7 +514,7 @@ const CardCanvas = forwardRef<HTMLDivElement, Props>(function CardCanvas(
     return (
       <div ref={ref} style={root({
         aspectRatio: '1 / 1', borderRadius: u(28),
-        background: `linear-gradient(150deg, ${accent}55 0%, #2a2a2e 45%, #131315 100%)`,
+        background: shell(`linear-gradient(150deg, ${accent}55 0%, #2a2a2e 45%, #131315 100%)`),
         display: 'flex', alignItems: 'center', justifyContent: 'center',
       })}>
         <FrostedArt blur={46} brightness={0.62} position="center" />
@@ -579,7 +620,7 @@ const CardCanvas = forwardRef<HTMLDivElement, Props>(function CardCanvas(
     return (
       <div ref={ref} style={root({
         aspectRatio: '4 / 5', borderRadius: u(30),
-        background: `linear-gradient(168deg, #2b2028 0%, ${accent} 58%, ${accent}dd 100%)`,
+        background: shell(`linear-gradient(168deg, #2b2028 0%, ${accent} 58%, ${accent}dd 100%)`),
         display: 'flex', flexDirection: 'column', justifyContent: 'flex-end',
       })}>
         <Art radius={0} />
@@ -604,10 +645,10 @@ const CardCanvas = forwardRef<HTMLDivElement, Props>(function CardCanvas(
           display: 'flex', flexDirection: 'column', gap: u(4),
           textAlign: config.textAlign,
         }}>
-          <Lyric size={13} color="rgba(255,255,255,0.66)" clamp={2} />
+          <Lyric size={13} color={ink2} clamp={2} />
           <Title size={30} />
-          <Artist size={17} color="rgba(255,255,255,0.66)" />
-          <Meta size={12} color="rgba(255,255,255,0.45)" />
+          <Artist size={17} />
+          <Meta size={12} color={ink3} />
         </div>
       </div>
     )
@@ -617,19 +658,24 @@ const CardCanvas = forwardRef<HTMLDivElement, Props>(function CardCanvas(
   return (
     <div ref={ref} style={root({
       aspectRatio: '4 / 5', borderRadius: u(30),
-      background: 'linear-gradient(158deg, #333336 0%, #232326 46%, #171719 100%)',
+      background: shell('linear-gradient(158deg, #333336 0%, #232326 46%, #171719 100%)'),
       display: 'flex', flexDirection: 'column',
       padding: `${u(14)} ${u(14)} 0`,
     })}>
-      {/* Specular rim — the moulded-plastic highlight along the top-left edge */}
-      <div style={{
-        position: 'absolute', inset: 0, borderRadius: u(30), zIndex: 6, pointerEvents: 'none',
-        boxShadow: `inset ${u(1.5)} ${u(1.5)} 0 rgba(255,255,255,0.34), inset 0 0 ${u(5)} ${u(1)} rgba(255,255,255,0.14), inset ${u(-1)} ${u(-1)} 0 rgba(0,0,0,0.5)`,
-      }} />
-      <div style={{
-        position: 'absolute', inset: 0, zIndex: 5, pointerEvents: 'none',
-        background: 'linear-gradient(152deg, rgba(255,255,255,0.13) 0%, transparent 30%)',
-      }} />
+      {/* Specular rim + gloss describe a moulded shell. They are additive white,
+          so with no shell behind them they would ghost onto a cut-out export. */}
+      {config.bgStyle !== 'transparent' && (
+        <>
+          <div style={{
+            position: 'absolute', inset: 0, borderRadius: u(30), zIndex: 6, pointerEvents: 'none',
+            boxShadow: `inset ${u(1.5)} ${u(1.5)} 0 rgba(255,255,255,0.34), inset 0 0 ${u(5)} ${u(1)} rgba(255,255,255,0.14), inset ${u(-1)} ${u(-1)} 0 rgba(0,0,0,0.5)`,
+          }} />
+          <div style={{
+            position: 'absolute', inset: 0, zIndex: 5, pointerEvents: 'none',
+            background: 'linear-gradient(152deg, rgba(255,255,255,0.13) 0%, transparent 30%)',
+          }} />
+        </>
+      )}
       <span style={{ position: 'absolute', top: u(16), right: u(16), zIndex: 7, opacity: 0.55 }}>
         <BrandMark size={15} tone="dark" />
       </span>
@@ -657,9 +703,9 @@ const CardCanvas = forwardRef<HTMLDivElement, Props>(function CardCanvas(
         justifyContent: 'center', textAlign: config.textAlign,
       }}>
         <Title size={27} />
-        <Artist size={17} color="rgba(255,255,255,0.58)" />
-        <Meta size={12} color="rgba(255,255,255,0.34)" />
-        <Lyric size={12} color="rgba(255,255,255,0.42)" clamp={1} />
+        <Artist size={17} />
+        <Meta size={12} color={ink4} />
+        <Lyric size={12} color={ink3} clamp={1} />
       </div>
     </div>
   )

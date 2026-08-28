@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useCallback } from 'react'
+import React, { useState, useCallback, useEffect } from 'react'
 import { TrackData, CardConfig } from '@/types'
 
 type Props = {
@@ -9,6 +9,8 @@ type Props = {
   config: CardConfig
   onConfigChange: (updates: Partial<CardConfig>) => void
   accentColor?: string | null
+  /** Lets the page trigger an export from a keyboard shortcut. */
+  actionsRef?: React.MutableRefObject<{ exportPng: () => void } | null>
 }
 
 type Busy = 'png' | 'jpg' | 'transparent' | 'clipboard' | null
@@ -110,7 +112,7 @@ async function composeSquare(
 
 const supportsClipboard = typeof window !== 'undefined' && typeof ClipboardItem !== 'undefined'
 
-export default function ExportBar({ cardRef, track, config, onConfigChange, accentColor }: Props) {
+export default function ExportBar({ cardRef, track, config, onConfigChange, accentColor, actionsRef }: Props) {
   const [busy, setBusy] = useState<Busy>(null)
   const [toast, setToast] = useState<string | null>(null)
 
@@ -207,6 +209,12 @@ export default function ExportBar({ cardRef, track, config, onConfigChange, acce
       showToast(`Failed: ${msg}`)
     } finally { restore(); setBusy(null) }
   }, [cardRef, busy])
+
+  // No dep array on purpose: refresh the published closure every render so the
+  // shortcut never fires a stale `busy` capture.
+  useEffect(() => {
+    if (actionsRef) actionsRef.current = { exportPng: exportPNG }
+  })
 
   const btnBase = (isActive: boolean): React.CSSProperties => ({
     flex: 1, height: 44, borderRadius: 10, border: 0,

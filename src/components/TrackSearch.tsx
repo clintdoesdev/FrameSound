@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef, useCallback } from 'react'
+import { createPortal } from 'react-dom'
 import Image from 'next/image'
 import { TrackData } from '@/types'
 import { searchTracksAction } from '@/actions/spotify'
@@ -69,19 +70,25 @@ export default function TrackSearch({ onSelect, query, children }: Props) {
   }, [onSelect])
 
   const onKeyDown = (e: React.KeyboardEvent) => {
-    if (!open || results.length === 0) return
+    if (!open) return
+    // Escape should dismiss even an error-only dropdown, which has no results.
+    if (e.key === 'Escape') { setOpen(false); return }
+    if (results.length === 0) return
     if (e.key === 'ArrowDown') { e.preventDefault(); setActive(i => (i + 1) % results.length) }
     else if (e.key === 'ArrowUp') { e.preventDefault(); setActive(i => (i - 1 + results.length) % results.length) }
     else if (e.key === 'Enter') { e.preventDefault(); choose(results[active]) }
-    else if (e.key === 'Escape') { setOpen(false) }
   }
+
+  const showDropdown = open && (results.length > 0 || error)
 
   return (
     <div ref={boxRef} style={{ position: 'relative', width: '100%' }} onKeyDown={onKeyDown}>
-      {children}
+      {/* Raised above the scrim below so the field stays fully visible and
+          interactive while the dropdown is open. */}
+      <div style={{ position: 'relative', zIndex: 35 }}>{children}</div>
 
       {searching && (
-        <div style={{ position: 'absolute', right: 14, top: 18, zIndex: 3 }}>
+        <div style={{ position: 'absolute', right: 14, top: 18, zIndex: 36 }}>
           <span className="spin" style={{
             display: 'block', width: 15, height: 15,
             border: '2px solid var(--accent)', borderTopColor: 'transparent', borderRadius: '50%',
@@ -89,7 +96,25 @@ export default function TrackSearch({ onSelect, query, children }: Props) {
         </div>
       )}
 
-      {open && (results.length > 0 || error) && (
+      {/* Dims the rest of the page so the suggestion list doesn't collide
+          visually with whatever sits underneath it (e.g. the card preview).
+          Portalled to <body> — a transform-animated ancestor (.fade-up etc.)
+          would otherwise become the containing block for this fixed element
+          and shrink it down to that ancestor's own box. */}
+      {showDropdown && typeof document !== 'undefined' && createPortal(
+        <div
+          aria-hidden
+          onClick={() => setOpen(false)}
+          style={{
+            position: 'fixed', inset: 0, zIndex: 30,
+            background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(1px)',
+            animation: 'fadeIn 150ms ease both',
+          }}
+        />,
+        document.body,
+      )}
+
+      {showDropdown && (
         <div
           role="listbox"
           style={{

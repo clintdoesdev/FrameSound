@@ -458,6 +458,7 @@ export default function Home() {
           onPaste={handlePaste}
           placeholder="Search a song, or paste a Spotify link…"
           spellCheck={false}
+          autoComplete="off"
           style={{ fontSize: 15 }}
         />
         {loading && (
@@ -486,6 +487,7 @@ export default function Home() {
           onPaste={handlePaste}
           placeholder="Search a song, or paste a Spotify link…"
           spellCheck={false}
+          autoComplete="off"
           autoFocus
           style={{ fontSize: 16 }}
         />

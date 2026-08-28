@@ -257,6 +257,12 @@ export default function Home() {
     setConfig(prev => ({ ...prev, ...updates }))
   }, [])
 
+  // Stable reference — LyricsPanel depends on this identity in a useEffect;
+  // an inline arrow here would change every render and loop indefinitely.
+  const handleQuoteChange = useCallback((q: string) => {
+    updateConfig({ lyricQuote: q })
+  }, [updateConfig])
+
   // Extract accent colour from album art with colorthief
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -568,12 +574,9 @@ export default function Home() {
             {/* URL bar shimmer */}
             <div className="animate-pulse-slow glass" style={{ height: 52, borderRadius: 14 }} />
             {/* Card glass placeholder */}
-            <div className="glass" style={{ borderRadius: 20, padding: 20 }}>
-              <div className="animate-pulse-slow" style={{
-                width: '100%', aspectRatio: '1 / 1', borderRadius: 16,
-                background: 'var(--glass-strong)',
-              }} />
-            </div>
+            <div className="animate-pulse-slow glass" style={{
+              width: '100%', aspectRatio: '4 / 5', borderRadius: 28,
+            }} />
             {/* Audio bar shimmer */}
             <div className="animate-pulse-slow glass" style={{ height: 52, borderRadius: 14 }} />
           </div>
@@ -689,11 +692,9 @@ export default function Home() {
             )}
           </div>
 
-          {/* Card preview — fills container, aspect ratio maintained by the card itself */}
-          <div className="glass glass-sheen" style={{
-            borderRadius: 20,
-            padding: 20, overflow: 'hidden',
-          }}>
+          {/* Card preview — the card's own glass/shadow treatment does the work;
+              no competing outer frame, just breathing room. */}
+          <div style={{ padding: '8px 4px' }}>
             {track && (() => {
               const canvas = <CardCanvas ref={cardRef} track={track} config={config} exportMode accentColor={accentColor} />
               const needsGhost = config.preset === 'minimal' || config.preset === 'story'
@@ -777,7 +778,7 @@ export default function Home() {
             <LyricsPanel
               lines={lyrics ?? []}
               loading={false}
-              onQuoteChange={q => updateConfig({ lyricQuote: q })}
+              onQuoteChange={handleQuoteChange}
               accentColor={accentColor}
             />
           </div>

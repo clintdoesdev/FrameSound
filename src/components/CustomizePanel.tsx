@@ -210,13 +210,12 @@ const PresetSquareSVG = () => (
 )
 const PresetGlassBezelSVG = () => (
   <svg viewBox="0 0 60 45" width="60" height="45" fill="none">
-    {/* Outer bezel frame */}
-    <rect x="7" y="3" width="46" height="39" rx="5" fill="rgba(255,255,255,0.14)" stroke="rgba(255,255,255,0.10)" strokeWidth="0.6"/>
-    {/* Album art inset */}
-    <rect x="11" y="7" width="38" height="24" rx="3" fill="rgba(255,255,255,0.28)"/>
-    {/* Text in bezel below art */}
-    <rect x="11" y="34" width="18" height="2" rx="1" fill="rgba(255,255,255,0.80)"/>
-    <rect x="11" y="38" width="13" height="1.4" rx="0.7" fill="rgba(255,255,255,0.35)"/>
+    {/* Full-bleed art */}
+    <rect x="7" y="3" width="46" height="39" rx="5" fill="rgba(255,255,255,0.20)"/>
+    {/* Floating frosted glass panel over the art */}
+    <rect x="10" y="26" width="40" height="13" rx="6" fill="rgba(255,255,255,0.30)" stroke="rgba(255,255,255,0.55)" strokeWidth="0.6"/>
+    <rect x="14" y="30" width="17" height="1.8" rx="0.9" fill="rgba(255,255,255,0.85)"/>
+    <rect x="14" y="34" width="12" height="1.3" rx="0.65" fill="rgba(255,255,255,0.45)"/>
   </svg>
 )
 const PresetNowPlayingSVG = () => (
@@ -723,9 +722,9 @@ export default function CustomizePanel({ config, onChange, accentColor }: Props)
         </div>
         {config.preset === 'glass' && (
           <StyledSlider
-            value={config.artPadding} min={0} max={100} step={4}
+            value={config.artPadding} min={0} max={60} step={2}
             onChange={v => onChange({ artPadding: v })}
-            label="Art Size" suffix="px"
+            label="Panel Inset" suffix="px"
           />
         )}
       </Section>

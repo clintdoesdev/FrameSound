@@ -159,80 +159,103 @@ const CardCanvas = forwardRef<HTMLDivElement, Props>(function CardCanvas(
   }
 
   // ── GLASS ─────────────────────────────────────────────────────
+  // True liquid glass: full-bleed art behind, a genuinely translucent
+  // frosted panel (real backdrop-filter refraction, not a fake overlay)
+  // floats over it, with a bright contour rim tracing its whole edge —
+  // the same "chip floating in a track" language as an iOS glass pill.
   if (config.preset === 'glass') {
-    // Soft internal light — smaller ellipse so it fully fades before card edges
-    const reflectionGlow = (
-      <div style={{
-        position: 'absolute', inset: 0, zIndex: 1, pointerEvents: 'none',
-        background: accentColor
-          ? [
-              `radial-gradient(ellipse 70% 42% at 50% -5%, ${accentColor}42 0%, transparent 55%)`,
-              `radial-gradient(ellipse 40% 28% at 18% 10%, rgba(255,255,255,0.11) 0%, transparent 50%)`,
-            ].join(', ')
-          : 'radial-gradient(ellipse 40% 28% at 18% 10%, rgba(255,255,255,0.08) 0%, transparent 50%)',
-      }} />
-    )
+    const inset = config.artPadding // reused: panel inset from card edges
+    const fallbackBg = accentColor
+      ? `linear-gradient(160deg, color-mix(in srgb, ${accentColor} 22%, #2b2b30) 0%, #232327 45%, #18181a 100%)`
+      : 'linear-gradient(160deg, #2b2b30 0%, #232327 45%, #18181a 100%)'
 
     return (
       <div ref={ref} style={{
         position: 'relative', overflow: 'hidden', width: '100%', aspectRatio: '4 / 5',
         borderRadius: '28px', fontFamily, containerType: 'inline-size',
-        background: accentColor
-          ? `linear-gradient(160deg, color-mix(in srgb, ${accentColor} 16%, #27272b) 0%, #232327 40%, #1c1c1e 100%)`
-          : '#232327',
-        border: '1px solid rgba(255,255,255,0.11)',
-        display: 'flex', flexDirection: 'column',
+        background: fallbackBg,
         boxShadow: shadow,
       }}>
-        {glossOverlay}
-        {reflectionGlow}
-        <Watermark position="bottom-right" />
+        {config.showAlbumArt && track.coverUrl && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={coverSrc} crossOrigin="anonymous" loading="eager" alt=""
+            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', display: 'block', border: 'none', outline: 'none', zIndex: 0 }}
+          />
+        )}
+        {/* Gentle top/bottom depth so the glass panel reads clearly against busy art */}
+        <div style={{
+          position: 'absolute', inset: 0, zIndex: 1, pointerEvents: 'none',
+          background: 'linear-gradient(180deg, rgba(0,0,0,0.10) 0%, transparent 30%, transparent 60%, rgba(0,0,0,0.30) 100%)',
+        }} />
+        <Watermark position="top-right" />
         {grainOverlay}
         {experimentalLayers}
 
-        {config.showAlbumArt && (
-          <div style={{
-            flex: 1, minHeight: 0,
-            margin: `${config.artPadding}px ${config.artPadding}px 0`,
-            borderRadius: '18px',
-            overflow: 'hidden', position: 'relative',
-            boxShadow: 'inset 0 3px 10px rgba(0,0,0,0.65)',
-            background: '#111',
-          }}>
-            {track.coverUrl && (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={coverSrc} crossOrigin="anonymous" loading="eager" alt=""
-                style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', display: 'block', border: 'none', outline: 'none' }}
-              />
-            )}
-            <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '40%', background: 'linear-gradient(180deg, rgba(255,255,255,0.07) 0%, transparent 100%)', zIndex: 2, pointerEvents: 'none' }} />
-          </div>
-        )}
-
+        {/* Floating frosted glass panel — a blurred clone of the art (real `filter`,
+            not `backdrop-filter`: Chromium doesn't sample <img> backdrops reliably,
+            and `filter` rasterizes safely in exports) sits clipped beneath a
+            translucent tint, giving genuine optical frosting. */}
         <div style={{
-          flexShrink: 0, position: 'relative', zIndex: 6,
-          padding: '14px 16px 18px', display: 'flex', flexDirection: 'column', gap: 3,
-          textAlign: config.textAlign,
+          position: 'absolute', left: inset, right: inset, bottom: inset,
+          zIndex: 5, borderRadius: 20, overflow: 'hidden',
+          border: '1px solid rgba(255,255,255,0.32)',
+          boxShadow: [
+            'inset 0 1.5px 0 rgba(255,255,255,0.65)',
+            'inset 0 -1px 0 rgba(255,255,255,0.14)',
+            '0 2px 0 rgba(255,255,255,0.10)',
+            '0 22px 44px -14px rgba(0,0,0,0.55)',
+            '0 6px 16px -6px rgba(0,0,0,0.38)',
+          ].join(', '),
         }}>
-          {config.showTitle && (
-            <p style={{ margin: 0, fontSize: 26, fontWeight: 800, color: '#fff', letterSpacing: '-0.03em', lineHeight: 1.15 }}>{track.title}</p>
+          {config.showAlbumArt && track.coverUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={coverSrc} crossOrigin="anonymous" loading="eager" alt="" aria-hidden
+              style={{
+                position: 'absolute', inset: 0, width: '100%', height: '100%',
+                objectFit: 'cover', objectPosition: 'center 80%',
+                filter: 'blur(20px) saturate(170%) brightness(1.05)',
+                transform: 'scale(1.15)', display: 'block', border: 'none', outline: 'none',
+              }}
+            />
+          ) : (
+            <div style={{ position: 'absolute', inset: 0, background: fallbackBg }} />
           )}
-          {config.showArtist && (
-            <p style={{ margin: 0, fontSize: 15, fontWeight: 400, color: 'rgba(255,255,255,0.55)' }}>{track.artist}</p>
-          )}
-          <MetaRow color="rgba(255,255,255,0.22)" size={11} gap={5} />
-          {config.showLyrics && config.lyricQuote && (
-            <p style={{
-              margin: 0, marginTop: 6, fontSize: 12, fontStyle: 'italic',
-              color: 'rgba(255,255,255,0.44)', lineHeight: 1.5,
-              borderLeft: `2px solid ${accentColor ? accentColor + '40' : 'rgba(255,255,255,0.15)'}`,
-              paddingLeft: 8,
-              display: '-webkit-box',
-              WebkitLineClamp: 2,
-              WebkitBoxOrient: 'vertical' as const,
-              overflow: 'hidden',
-            } as React.CSSProperties}>{config.lyricQuote}</p>
-          )}
+          {/* Translucency tint over the blurred backdrop */}
+          <div style={{
+            position: 'absolute', inset: 0,
+            background: 'linear-gradient(155deg, rgba(255,255,255,0.26) 0%, rgba(255,255,255,0.10) 55%, rgba(255,255,255,0.19) 100%)',
+          }} />
+          {/* Diagonal sheen sweep across the glass */}
+          <div style={{
+            position: 'absolute', inset: 0, zIndex: 0, pointerEvents: 'none',
+            background: 'radial-gradient(120% 70% at 15% -20%, rgba(255,255,255,0.35), transparent 55%)',
+            mixBlendMode: 'screen',
+          }} />
+          <div style={{
+            position: 'relative', zIndex: 1,
+            padding: '16px 18px 18px', display: 'flex', flexDirection: 'column', gap: 3,
+            textAlign: config.textAlign,
+          }}>
+            {config.showTitle && (
+              <p style={{ margin: 0, fontSize: 24, fontWeight: 800, color: '#fff', letterSpacing: '-0.03em', lineHeight: 1.15 }}>{track.title}</p>
+            )}
+            {config.showArtist && (
+              <p style={{ margin: 0, fontSize: 14, fontWeight: 400, color: 'rgba(255,255,255,0.68)' }}>{track.artist}</p>
+            )}
+            <MetaRow color="rgba(255,255,255,0.42)" size={11} gap={5} />
+            {config.showLyrics && config.lyricQuote && (
+              <p style={{
+                margin: 0, marginTop: 6, fontSize: 12, fontStyle: 'italic',
+                color: 'rgba(255,255,255,0.55)', lineHeight: 1.5,
+                borderLeft: `2px solid ${accentColor ? accentColor + '55' : 'rgba(255,255,255,0.25)'}`,
+                paddingLeft: 8,
+                display: '-webkit-box',
+                WebkitLineClamp: 2,
+                WebkitBoxOrient: 'vertical' as const,
+                overflow: 'hidden',
+              } as React.CSSProperties}>{config.lyricQuote}</p>
+            )}
+          </div>
         </div>
       </div>
     )

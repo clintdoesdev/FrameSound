@@ -11,6 +11,9 @@ type Props = {
 }
 
 function proxySrc(url: string) {
+  // data:/blob: sources are already same-origin and self-contained; sending
+  // them through the proxy just yields a 403 and a broken image.
+  if (!/^https?:/i.test(url)) return url
   return `/api/proxy-image?url=${encodeURIComponent(url)}`
 }
 

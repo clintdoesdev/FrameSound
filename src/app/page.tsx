@@ -13,6 +13,8 @@ import AudioPreview from '@/components/AudioPreview'
 import RecentTracks, { addRecentTrack } from '@/components/RecentTracks'
 import { useConfigHistory } from '@/lib/useConfigHistory'
 import { decodeConfig, buildShareUrl } from '@/lib/permalink'
+import TrackSearch from '@/components/TrackSearch'
+import BatchExport from '@/components/BatchExport'
 
 const BackIcon = () => (
   <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -271,6 +273,7 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null)
   const [accentColor, setAccentColor] = useState<string | null>(null)
   const [shareCopied, setShareCopied] = useState(false)
+  const [batchOpen, setBatchOpen] = useState(false)
 
   // cardRef → hidden off-screen export card (what dom-to-image captures)
   const cardRef = useRef<HTMLDivElement>(null!)
@@ -407,6 +410,18 @@ export default function Home() {
     )
   }, [config, track?.id])
 
+  const selectSearchResult = useCallback((t: TrackData) => {
+    setTrack(t)
+    addRecentTrack(t)
+    setUrl('')
+    setError(null)
+    startNewTrack()
+    setLyrics(null)
+    getLyrics(t.artist, t.title).then(r => {
+      setLyrics(r.lines.length > 0 ? r.lines : null)
+    })
+  }, [startNewTrack])
+
   const handleUrlInput = (val: string) => {
     setUrl(val)
     if (val.includes('spotify.com/track/') || val.includes('spotify:track:')) {
@@ -434,14 +449,14 @@ export default function Home() {
   }, [startNewTrack])
 
   const urlBar = (
-    <div style={{ position: 'relative', width: '100%' }}>
+    <TrackSearch onSelect={selectSearchResult} query={url}>
       <div className="input" style={{ height: 52, paddingLeft: 16, paddingRight: 16, fontSize: 15 }}>
         <span style={{ color: 'var(--fg-3)', flexShrink: 0 }}><LinkIcon /></span>
         <input
           value={url}
           onChange={e => handleUrlInput(e.target.value)}
           onPaste={handlePaste}
-          placeholder="Paste a Spotify track link…"
+          placeholder="Search a song, or paste a Spotify link…"
           spellCheck={false}
           style={{ fontSize: 15 }}
         />
@@ -453,11 +468,11 @@ export default function Home() {
           }} />
         )}
       </div>
-    </div>
+    </TrackSearch>
   )
 
   const heroUrlBar = (
-    <div style={{ position: 'relative', width: '100%' }}>
+    <TrackSearch onSelect={selectSearchResult} query={url}>
       <div className="input" style={{
         height: 62, paddingLeft: 20, paddingRight: 8, fontSize: 16,
         borderRadius: 16, border: '1px solid var(--line)',
@@ -469,7 +484,7 @@ export default function Home() {
           value={url}
           onChange={e => handleUrlInput(e.target.value)}
           onPaste={handlePaste}
-          placeholder="Paste a Spotify track link…"
+          placeholder="Search a song, or paste a Spotify link…"
           spellCheck={false}
           autoFocus
           style={{ fontSize: 16 }}
@@ -500,7 +515,7 @@ export default function Home() {
           Paste
         </button>
       </div>
-    </div>
+    </TrackSearch>
   )
 
   // ── EMPTY STATE ──────────────────────────────────────────────
@@ -588,7 +603,7 @@ export default function Home() {
               <div style={{ marginTop: 10, fontSize: 13, color: 'var(--danger)', textAlign: 'center' }}>{error}</div>
             )}
             <div style={{ marginTop: 10, fontSize: 13, color: 'var(--fg-3)', textAlign: 'center' }}>
-              spotify.com/track/… links only
+              Search by name, or paste a track link
             </div>
           </div>
 
@@ -739,6 +754,12 @@ export default function Home() {
             title="Copy a link to this card" aria-label="Copy share link"
             style={{ height: 32, borderRadius: 8, fontSize: 12, gap: 6, padding: '0 10px' }}
           ><ShareIcon />{shareCopied ? 'Copied' : 'Share'}</button>
+          <button
+            onClick={() => setBatchOpen(true)}
+            className="btn" data-variant="ghost"
+            title="Export a playlist or album as a zip"
+            style={{ height: 32, borderRadius: 8, fontSize: 12, padding: '0 10px' }}
+          >Batch</button>
         </div>
       </nav>
 
@@ -843,6 +864,10 @@ export default function Home() {
           )}
         </div>
       </div>
+
+      {batchOpen && (
+        <BatchExport config={config} accentColor={accentColor} onClose={() => setBatchOpen(false)} />
+      )}
 
       <style>{`
         @media (max-width: 768px) {

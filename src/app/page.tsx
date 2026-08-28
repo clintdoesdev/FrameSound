@@ -695,42 +695,9 @@ export default function Home() {
           {/* Card preview — the card's own glass/shadow treatment does the work;
               no competing outer frame, just breathing room. */}
           <div style={{ padding: '8px 4px' }}>
-            {track && (() => {
-              const canvas = <CardCanvas ref={cardRef} track={track} config={config} exportMode accentColor={accentColor} />
-              const needsGhost = config.preset === 'minimal' || config.preset === 'story'
-              if (!needsGhost) return canvas
-
-              const isStory = config.preset === 'story'
-              const radius = isStory ? '24px' : '20px'
-              const ghostDeepBg = accentColor
-                ? `linear-gradient(135deg, ${accentColor}14 0%, ${accentColor}06 100%)`
-                : 'linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 60%, #1a1a1a 100%)'
-              const ghostMidBg = accentColor
-                ? `linear-gradient(135deg, ${accentColor}20 0%, ${accentColor}10 100%)`
-                : 'linear-gradient(135deg, #222 0%, #333 55%, #222 100%)'
-
-              return (
-                <div style={{ position: 'relative' }}>
-                  <div style={{
-                    position: 'absolute', inset: 0, borderRadius: radius,
-                    background: ghostDeepBg,
-                    opacity: isStory ? 0.45 : 0.4,
-                    filter: `blur(${isStory ? 5 : 4}px)`,
-                    transform: isStory ? 'translateY(14px) scaleY(0.96)' : 'translateY(14px) scaleX(0.96)',
-                    transformOrigin: 'bottom center', zIndex: 0,
-                  }} />
-                  <div style={{
-                    position: 'absolute', inset: 0, borderRadius: radius,
-                    background: ghostMidBg,
-                    opacity: 0.6,
-                    filter: `blur(${isStory ? 2.5 : 2}px)`,
-                    transform: isStory ? 'translateY(7px) scaleY(0.98)' : 'translateY(8px) scaleX(0.98)',
-                    transformOrigin: 'bottom center', zIndex: 0,
-                  }} />
-                  <div style={{ position: 'relative', zIndex: 1 }}>{canvas}</div>
-                </div>
-              )
-            })()}
+            {track && (
+              <CardCanvas ref={cardRef} track={track} config={config} exportMode accentColor={accentColor} />
+            )}
           </div>
 
           {/* Audio preview */}

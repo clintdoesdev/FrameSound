@@ -171,43 +171,6 @@ const AlignRightIcon = () => (
 )
 
 // ── Preset SVG illustrations ───────────────────────────────────
-const PresetPosterSVG = () => (
-  <svg viewBox="0 0 60 45" width="60" height="45" fill="none">
-    <rect x="8" y="4" width="44" height="37" rx="3" fill="rgba(255,255,255,0.10)"/>
-    <rect x="8" y="26" width="44" height="15" rx="0" fill="url(#pg)"/>
-    <defs><linearGradient id="pg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="rgba(0,0,0,0)"/><stop offset="100%" stopColor="rgba(0,0,0,0.8)"/></linearGradient></defs>
-    <rect x="13" y="30" width="22" height="2" rx="1" fill="rgba(255,255,255,0.9)"/>
-    <rect x="13" y="34" width="16" height="1.5" rx="0.75" fill="rgba(255,255,255,0.5)"/>
-    <rect x="13" y="37.5" width="10" height="1.2" rx="0.6" fill="rgba(255,255,255,0.3)"/>
-  </svg>
-)
-const PresetMinimalSVG = () => (
-  <svg viewBox="0 0 60 45" width="60" height="45" fill="none">
-    <rect x="8" y="8" width="44" height="29" rx="3" fill="rgba(255,255,255,0.06)"/>
-    <rect x="8" y="8" width="20" height="29" rx="3" fill="rgba(255,255,255,0.18)"/>
-    <rect x="32" y="16" width="16" height="2" rx="1" fill="rgba(255,255,255,0.7)"/>
-    <rect x="32" y="20.5" width="12" height="1.5" rx="0.75" fill="rgba(255,255,255,0.4)"/>
-    <rect x="32" y="25" width="10" height="1.2" rx="0.6" fill="rgba(255,255,255,0.25)"/>
-  </svg>
-)
-const PresetStorySVG = () => (
-  <svg viewBox="0 0 60 45" width="60" height="45" fill="none">
-    <rect x="20" y="3" width="20" height="39" rx="3" fill="rgba(255,255,255,0.10)"/>
-    <rect x="24" y="8" width="12" height="12" rx="2" fill="rgba(255,255,255,0.25)"/>
-    <rect x="22" y="24" width="16" height="2" rx="1" fill="rgba(255,255,255,0.7)"/>
-    <rect x="23" y="28" width="14" height="1.5" rx="0.75" fill="rgba(255,255,255,0.35)"/>
-    <rect x="25" y="31.5" width="10" height="1.2" rx="0.6" fill="rgba(255,255,255,0.2)"/>
-  </svg>
-)
-const PresetSquareSVG = () => (
-  <svg viewBox="0 0 60 45" width="60" height="45" fill="none">
-    <rect x="12" y="5" width="36" height="35" rx="3" fill="rgba(255,255,255,0.08)"/>
-    <rect x="20" y="10" width="20" height="14" rx="2" fill="rgba(255,255,255,0.22)"/>
-    <rect x="17" y="27" width="18" height="2" rx="1" fill="rgba(255,255,255,0.7)"/>
-    <rect x="17" y="31" width="14" height="1.5" rx="0.75" fill="rgba(255,255,255,0.35)"/>
-    <rect x="17" y="34.5" width="10" height="1.2" rx="0.6" fill="rgba(255,255,255,0.2)"/>
-  </svg>
-)
 const PresetGlassBezelSVG = () => (
   <svg viewBox="0 0 60 45" width="60" height="45" fill="none">
     {/* Full-bleed art */}
@@ -218,28 +181,62 @@ const PresetGlassBezelSVG = () => (
     <rect x="14" y="34" width="12" height="1.3" rx="0.65" fill="rgba(255,255,255,0.45)"/>
   </svg>
 )
-const PresetNowPlayingSVG = () => (
+const PresetTicketSVG = () => (
   <svg viewBox="0 0 60 45" width="60" height="45" fill="none">
-    {/* Card background */}
-    <rect x="3" y="8" width="54" height="29" rx="4" fill="rgba(255,255,255,0.06)"/>
-    {/* Left colour strip */}
-    <rect x="3" y="8" width="19" height="29" rx="4" fill="rgba(255,255,255,0.22)"/>
-    {/* Cover right-side rounded corners of strip (make right edge flat) */}
-    <rect x="16" y="8" width="6" height="29" fill="rgba(255,255,255,0.22)"/>
-    {/* Text lines on right */}
-    <rect x="28" y="15" width="21" height="2.2" rx="1" fill="rgba(255,255,255,0.75)"/>
-    <rect x="28" y="20" width="15" height="1.6" rx="0.8" fill="rgba(255,255,255,0.40)"/>
-    <rect x="28" y="25" width="10" height="1.2" rx="0.6" fill="rgba(255,255,255,0.22)"/>
+    {/* Art */}
+    <rect x="14" y="1" width="32" height="26" rx="5" fill="rgba(255,255,255,0.20)"/>
+    {/* Glass strip overlap */}
+    <rect x="11" y="20" width="38" height="8" rx="3.5" fill="rgba(255,255,255,0.34)" stroke="rgba(255,255,255,0.5)" strokeWidth="0.5"/>
+    {/* Ticket stub */}
+    <rect x="7" y="31" width="46" height="12" rx="4" fill="rgba(255,255,255,0.16)"/>
+    <circle cx="7" cy="37" r="3" fill="#0d0d0e"/>
+    <circle cx="53" cy="37" r="3" fill="#0d0d0e"/>
+    <rect x="12" y="34" width="8" height="6" rx="1.5" fill="rgba(255,255,255,0.3)"/>
+    <rect x="24" y="35" width="20" height="1.6" rx="0.8" fill="rgba(255,255,255,0.55)"/>
+    <rect x="24" y="38.2" width="14" height="1.3" rx="0.65" fill="rgba(255,255,255,0.3)"/>
+  </svg>
+)
+const PresetTagSVG = () => (
+  <svg viewBox="0 0 60 45" width="60" height="45" fill="none">
+    <rect x="14" y="1" width="32" height="26" rx="5" fill="rgba(255,255,255,0.20)"/>
+    <rect x="11" y="20" width="38" height="8" rx="3.5" fill="rgba(255,255,255,0.30)" stroke="rgba(255,255,255,0.48)" strokeWidth="0.5"/>
+    <rect x="7" y="31" width="46" height="12" rx="4" fill="rgba(255,255,255,0.16)"/>
+    <circle cx="7" cy="37" r="3" fill="#0d0d0e"/>
+    <circle cx="53" cy="37" r="3" fill="#0d0d0e"/>
+    <rect x="26" y="34" width="8" height="8" rx="2.2" fill="rgba(255,255,255,0.65)"/>
+    <rect x="28.5" y="36.5" width="3" height="3" rx="0.8" fill="rgba(0,0,0,0.55)"/>
+  </svg>
+)
+const PresetProfileSVG = () => (
+  <svg viewBox="0 0 60 45" width="60" height="45" fill="none">
+    <rect x="1" y="1" width="58" height="43" rx="6" fill="rgba(255,255,255,0.05)"/>
+    <rect x="6" y="6" width="48" height="18" rx="4" fill="rgba(255,255,255,0.22)"/>
+    <circle cx="15" cy="24" r="7" fill="rgba(20,20,20,0.9)" stroke="rgba(255,255,255,0.25)" strokeWidth="1"/>
+    <rect x="25" y="27" width="20" height="2" rx="1" fill="rgba(255,255,255,0.7)"/>
+    <rect x="25" y="31.5" width="14" height="1.4" rx="0.7" fill="rgba(255,255,255,0.35)"/>
+    <rect x="8" y="37" width="18" height="4" rx="2" fill="rgba(255,255,255,0.14)"/>
+  </svg>
+)
+const PresetPlayerSVG = () => (
+  <svg viewBox="0 0 60 45" width="60" height="45" fill="none">
+    <rect x="1" y="1" width="58" height="43" rx="6" fill="rgba(255,255,255,0.06)"/>
+    <rect x="10" y="6" width="40" height="33" rx="8" fill="rgba(255,255,255,0.14)" stroke="rgba(255,255,255,0.22)" strokeWidth="0.6"/>
+    <circle cx="17" cy="12" r="3" fill="rgba(255,255,255,0.3)"/>
+    <rect x="22" y="10" width="16" height="1.6" rx="0.8" fill="rgba(255,255,255,0.6)"/>
+    <rect x="22" y="13" width="10" height="1.2" rx="0.6" fill="rgba(255,255,255,0.3)"/>
+    <rect x="14" y="18" width="32" height="14" rx="4" fill="rgba(255,255,255,0.24)"/>
+    <circle cx="24" cy="37" r="2.6" fill="rgba(255,255,255,0.35)"/>
+    <circle cx="30" cy="37" r="3.4" fill="rgba(255,255,255,0.6)"/>
+    <circle cx="36" cy="37" r="2.6" fill="rgba(255,255,255,0.35)"/>
   </svg>
 )
 
 const PRESET_SVG: Record<string, React.ReactNode> = {
-  glass:      <PresetGlassBezelSVG />,
-  poster:     <PresetPosterSVG />,
-  minimal:    <PresetMinimalSVG />,
-  story:      <PresetStorySVG />,
-  square:     <PresetSquareSVG />,
-  nowplaying: <PresetNowPlayingSVG />,
+  glass:   <PresetGlassBezelSVG />,
+  ticket:  <PresetTicketSVG />,
+  tag:     <PresetTagSVG />,
+  profile: <PresetProfileSVG />,
+  player:  <PresetPlayerSVG />,
 }
 
 // ── Font map for rendering cards in their own typeface ─────────
@@ -413,12 +410,11 @@ function ToggleItem({ label, value, onChange, icon, accent }: {
 }
 
 const PRESETS = [
-  { id: 'glass',      name: 'Glass'      },
-  { id: 'nowplaying', name: 'Now Playing'},
-  { id: 'poster',     name: 'Poster'     },
-  { id: 'minimal',    name: 'Minimal'    },
-  { id: 'story',      name: 'Story'      },
-  { id: 'square',     name: 'Square'     },
+  { id: 'glass',   name: 'Glass'   },
+  { id: 'ticket',  name: 'Ticket'  },
+  { id: 'tag',     name: 'Tag'     },
+  { id: 'profile', name: 'Profile' },
+  { id: 'player',  name: 'Player'  },
 ] as const
 
 const FONTS: { value: CardConfig['font']; label: string; tag: string; weight: number; size: number }[] = [
@@ -566,14 +562,22 @@ export default function CustomizePanel({ config, onChange, accentColor }: Props)
                 onClick={() => onChange({ preset: p.id })}
                 className="dock-tile"
                 style={{
-                  background: sel ? (ac ? `${ac}26` : 'var(--accent-quiet)') : 'var(--glass-faint)',
+                  background: 'transparent',
                   border: `1.5px solid ${sel ? act : 'var(--glass-border)'}`,
                   borderRadius: 10, cursor: 'pointer', padding: '10px 8px 8px',
                   display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
                   minHeight: 90,
+                  boxShadow: sel ? `0 0 0 3px ${ac ? `${ac}22` : 'var(--accent-quiet)'} inset` : 'none',
                 }}
               >
-                <div style={{ opacity: sel ? 1 : 0.6, transition: 'opacity 120ms' }}>
+                {/* Fixed-dark preview canvas — this mirrors the exported card's own
+                    (always-dark) look, so it must stay legible independent of the
+                    app's light/dark theme. */}
+                <div style={{
+                  width: '100%', borderRadius: 7, background: '#1c1c1e',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  opacity: sel ? 1 : 0.72, transition: 'opacity 120ms',
+                }}>
                   {PRESET_SVG[p.id]}
                 </div>
                 <span style={{

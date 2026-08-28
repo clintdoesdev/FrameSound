@@ -12,6 +12,7 @@ import ExportBar from '@/components/ExportBar'
 import AudioPreview from '@/components/AudioPreview'
 import RecentTracks, { addRecentTrack } from '@/components/RecentTracks'
 import { useConfigHistory } from '@/lib/useConfigHistory'
+import { decodeConfig, buildShareUrl } from '@/lib/permalink'
 
 const BackIcon = () => (
   <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -24,6 +25,13 @@ const UndoIcon = ({ flip }: { flip?: boolean }) => (
     strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
     style={flip ? { transform: 'scaleX(-1)' } : undefined}>
     <path d="M9 14 4 9l5-5"/><path d="M4 9h9a7 7 0 0 1 0 14h-3"/>
+  </svg>
+)
+
+const ShareIcon = () => (
+  <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor"
+    strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7"/><path d="M12 15V3"/><path d="m8 7 4-4 4 4"/>
   </svg>
 )
 
@@ -262,6 +270,7 @@ export default function Home() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [accentColor, setAccentColor] = useState<string | null>(null)
+  const [shareCopied, setShareCopied] = useState(false)
 
   // cardRef → hidden off-screen export card (what dom-to-image captures)
   const cardRef = useRef<HTMLDivElement>(null!)
@@ -366,6 +375,37 @@ export default function Home() {
     }
     setLoading(false)
   }, [startNewTrack])
+
+  // ── Restore a shared card from the URL ────────────────────────
+  const restoredRef = useRef(false)
+  /* eslint-disable react-hooks/set-state-in-effect */
+  useEffect(() => {
+    if (restoredRef.current) return
+    restoredRef.current = true
+    const { config: shared, trackId } = decodeConfig(window.location.search)
+    // Order matters: loading a track calls startNewTrack(), which clears the
+    // lyric quote. Apply the shared config after that settles, or the restored
+    // quote is wiped by the very fetch that the link asked for.
+    if (trackId) {
+      fetchTrack(`https://open.spotify.com/track/${trackId}`).then(() => {
+        if (Object.keys(shared).length) resetHere(shared)
+      })
+    } else if (Object.keys(shared).length) {
+      resetHere(shared)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+  /* eslint-enable react-hooks/set-state-in-effect */
+
+  const copyShareLink = useCallback(() => {
+    navigator.clipboard.writeText(buildShareUrl(config, track?.id)).then(
+      () => {
+        setShareCopied(true)
+        setTimeout(() => setShareCopied(false), 1600)
+      },
+      () => { /* clipboard blocked — nothing useful to fall back to here */ },
+    )
+  }, [config, track?.id])
 
   const handleUrlInput = (val: string) => {
     setUrl(val)
@@ -693,6 +733,12 @@ export default function Home() {
             title="Redo (⇧⌘Z)" aria-label="Redo"
             style={{ height: 32, width: 32, borderRadius: 8 }}
           ><UndoIcon flip /></button>
+          <button
+            onClick={copyShareLink}
+            className="btn" data-variant="ghost"
+            title="Copy a link to this card" aria-label="Copy share link"
+            style={{ height: 32, borderRadius: 8, fontSize: 12, gap: 6, padding: '0 10px' }}
+          ><ShareIcon />{shareCopied ? 'Copied' : 'Share'}</button>
         </div>
       </nav>
 
@@ -783,6 +829,7 @@ export default function Home() {
               <LyricsPanel
                 lines={lyrics ?? []}
                 loading={false}
+                value={config.lyricQuote}
                 onQuoteChange={handleQuoteChange}
                 accentColor={accentColor}
               />

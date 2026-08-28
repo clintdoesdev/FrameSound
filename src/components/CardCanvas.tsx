@@ -148,15 +148,22 @@ const CardCanvas = forwardRef<HTMLDivElement, Props>(function CardCanvas(
   const fx = <>{grainOverlay}{vignetteOverlay}{scanlineOverlay}{holoOverlay}</>
 
   // ── Shared bits ───────────────────────────────────────────────
-  const Art = ({ radius, position = 'center' }: { radius: number; position?: string }) =>
+  // Focal point and zoom are user-controlled: `cover` alone crops to centre,
+  // which throws away the subject on plenty of real album art.
+  const artPos = `${config.artX}% ${config.artY}%`
+  const artScale = config.artZoom / 100
+
+  const Art = ({ radius }: { radius: number }) =>
     config.showAlbumArt && track.coverUrl ? (
       // eslint-disable-next-line @next/next/no-img-element
       <img src={coverSrc} crossOrigin="anonymous" loading="eager" alt=""
         style={{
           position: 'absolute', inset: 0, width: '100%', height: '100%',
-          objectFit: 'cover', objectPosition: position, display: 'block',
+          objectFit: 'cover', objectPosition: artPos, display: 'block',
           border: 'none', outline: 'none', borderRadius: u(radius),
           filter: withTint(),
+          transform: artScale === 1 ? undefined : `scale(${artScale})`,
+          transformOrigin: artPos,
         }}
       />
     ) : null
@@ -235,16 +242,24 @@ const CardCanvas = forwardRef<HTMLDivElement, Props>(function CardCanvas(
     )
   }
 
+  // `clamp` is the preset's own ceiling; the user setting narrows within it so
+  // a tight layout can't be overrun by asking for four lines.
   const Lyric = ({ size, color, clamp = 2, rule }: {
     size: number; color: string; clamp?: number; rule?: string
-  }) => config.showLyrics && config.lyricQuote ? (
-    <p style={{
-      margin: 0, fontSize: u(size), fontStyle: 'italic', color, lineHeight: 1.45,
-      ...(rule ? { borderLeft: `${u(2)} solid ${rule}`, paddingLeft: u(8) } : {}),
-      display: '-webkit-box', WebkitLineClamp: clamp,
-      WebkitBoxOrient: 'vertical' as const, overflow: 'hidden',
-    } as React.CSSProperties}>{config.lyricQuote}</p>
-  ) : null
+  }) => {
+    if (!config.showLyrics || !config.lyricQuote) return null
+    const text = config.lyricStyle === 'quoted' ? `\u201C${config.lyricQuote}\u201D` : config.lyricQuote
+    return (
+      <p style={{
+        margin: 0, fontSize: u(size * (config.lyricScale / 100)),
+        fontStyle: config.lyricStyle === 'italic' ? 'italic' : 'normal',
+        color, lineHeight: 1.45,
+        ...(rule ? { borderLeft: `${u(2)} solid ${rule}`, paddingLeft: u(8) } : {}),
+        display: '-webkit-box', WebkitLineClamp: Math.min(config.lyricLines, clamp + 2),
+        WebkitBoxOrient: 'vertical' as const, overflow: 'hidden',
+      } as React.CSSProperties}>{text}</p>
+    )
+  }
 
   const ShuffleIcon = ({ size }: { size: number }) => (
     <svg viewBox="0 0 16 16" width={u(size)} height={u(size)} fill="none" stroke="currentColor"

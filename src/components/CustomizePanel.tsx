@@ -171,6 +171,17 @@ const IconGrain = () => (
     <circle cx="14" cy="14" r="1" opacity="0.5"/>
   </svg>
 )
+const IconCrop = () => (
+  <svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M4.5 1v10.5H15"/><path d="M1 4.5h10.5V15"/>
+  </svg>
+)
+const IconExport = () => (
+  <svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M8 1.5v8"/><path d="m5 6.5 3 3 3-3"/><path d="M2.5 12.5h11"/>
+  </svg>
+)
+
 const AlignLeftIcon = () => (
   <svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor">
     <rect x="1" y="3" width="14" height="1.5" rx="0.75"/>
@@ -772,6 +783,34 @@ export default function CustomizePanel({ config, onChange, accentColor }: Props)
           ]}
         />
 
+        {/* Lyric typography — only meaningful when a quote is showing */}
+        {config.showLyrics && (
+          <>
+            <div style={{ height: 1, background: 'var(--panel-line)' }} />
+            <PillRow
+              value={config.lyricStyle}
+              onChange={v => onChange({ lyricStyle: v })}
+              accent={act}
+              options={[
+                { value: 'italic', label: 'Italic' },
+                { value: 'plain',  label: 'Plain' },
+                { value: 'quoted', label: '“Quote”' },
+              ]}
+            />
+            <StyledSlider
+              value={config.lyricLines} min={1} max={4} step={1}
+              onChange={v => onChange({ lyricLines: v })}
+              label="Lyric lines" suffix=""
+            />
+            <StyledSlider
+              value={config.lyricScale} min={70} max={150} step={5}
+              onChange={v => onChange({ lyricScale: v })}
+              label="Lyric size" suffix="%"
+            />
+            <div style={{ height: 1, background: 'var(--panel-line)' }} />
+          </>
+        )}
+
         {/* Text align */}
         <div style={{ display: 'flex', gap: 6 }}>
           {([
@@ -795,6 +834,38 @@ export default function CustomizePanel({ config, onChange, accentColor }: Props)
         </div>
       </Section>
 
+      {/* ── ARTWORK ── */}
+      {config.showAlbumArt && (
+        <Section icon={<IconCrop />} label="Artwork">
+          <p style={{ fontSize: 11, color: 'var(--fg-3)', lineHeight: 1.5, margin: 0 }}>
+            Reframe the cover when the default centre crop cuts off the subject.
+          </p>
+          <StyledSlider
+            value={config.artZoom} min={100} max={200} step={5}
+            onChange={v => onChange({ artZoom: v })}
+            label="Zoom" suffix="%"
+          />
+          <StyledSlider
+            value={config.artX} min={0} max={100} step={1}
+            onChange={v => onChange({ artX: v })}
+            label="Horizontal" suffix="%"
+          />
+          <StyledSlider
+            value={config.artY} min={0} max={100} step={1}
+            onChange={v => onChange({ artY: v })}
+            label="Vertical" suffix="%"
+          />
+          <button
+            type="button"
+            onClick={() => onChange({ artZoom: 100, artX: 50, artY: 50 })}
+            style={{
+              height: 28, borderRadius: 8, border: 0, cursor: 'pointer',
+              background: 'var(--panel-well)', color: 'var(--fg-2)', fontSize: 11, fontWeight: 600,
+            }}
+          >Recentre</button>
+        </Section>
+      )}
+
       {/* ── VISIBILITY ── */}
       <Section icon={<IconEye />} label="Visibility">
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4 }}>
@@ -812,6 +883,41 @@ export default function CustomizePanel({ config, onChange, accentColor }: Props)
             label="Panel Inset" suffix="px"
           />
         )}
+      </Section>
+
+      {/* ── EXPORT ── */}
+      <Section icon={<IconExport />} label="Export size">
+        <p style={{ fontSize: 11, color: 'var(--fg-3)', lineHeight: 1.5, margin: 0 }}>
+          The card is centred and framed to fit — never cropped.
+        </p>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 5 }}>
+          {([
+            { v: 'auto',   label: 'Auto',    hint: 'Padded square' },
+            { v: 'tight',  label: 'Tight',   hint: 'No padding' },
+            { v: 'square', label: 'Square',  hint: '1:1 post' },
+            { v: 'story',  label: 'Story',   hint: '9:16' },
+            { v: 'wide',   label: 'Wide',    hint: '16:9' },
+          ] as const).map(o => {
+            const sel = config.exportSize === o.v
+            return (
+              <button
+                key={o.v}
+                type="button"
+                aria-pressed={sel}
+                onClick={() => onChange({ exportSize: o.v })}
+                style={{
+                  padding: '7px 9px', borderRadius: 9, border: 0, cursor: 'pointer',
+                  background: 'var(--panel-well)',
+                  outline: sel ? `1.5px solid ${act}` : '1.5px solid transparent',
+                  textAlign: 'left',
+                }}
+              >
+                <span style={{ display: 'block', fontSize: 11.5, fontWeight: 600, color: sel ? act : 'var(--fg-1)' }}>{o.label}</span>
+                <span style={{ display: 'block', fontSize: 9.5, color: 'var(--fg-3)', marginTop: 1 }}>{o.hint}</span>
+              </button>
+            )
+          })}
+        </div>
       </Section>
 
       {/* ── EXPERIMENTAL ── */}

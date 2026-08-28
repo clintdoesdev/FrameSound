@@ -79,9 +79,19 @@ async function waitReady(el: HTMLElement): Promise<void> {
   await Promise.all(imgs.map(img => img.decode().catch(() => {})))
 }
 
-async function composeSquare(
+// Target canvas per export size. `tight` keeps the card's own bounds; the rest
+// letterbox the card into a platform aspect so it can be posted without a crop.
+const SIZE_RATIO: Record<Exclude<CardConfig['exportSize'], 'tight'>, number | null> = {
+  auto:   1,        // legacy behaviour: padded square
+  square: 1,        // 1:1 feed post
+  story:  9 / 16,   // 9:16 story / reel
+  wide:   16 / 9,   // 16:9 link preview
+}
+
+async function compose(
   cardDataUrl: string,
   bg: string | null,
+  size: CardConfig['exportSize'],
   format: 'png' | 'jpeg',
   quality: number
 ): Promise<string> {
@@ -90,19 +100,31 @@ async function composeSquare(
     img.onload = () => {
       const w = img.width
       const h = img.height
-      const maxDim = Math.max(w, h)
-      const pad = Math.round(maxDim * 0.10)
-      const size = maxDim + pad * 2
       const canvas = document.createElement('canvas')
-      canvas.width = size
-      canvas.height = size
+
+      if (size === 'tight') {
+        canvas.width = w
+        canvas.height = h
+      } else {
+        const ratio = SIZE_RATIO[size] ?? 1
+        // Pad by 10% of the card's long edge, then grow whichever axis the
+        // target aspect needs — so the card is never cropped, only framed.
+        const pad = Math.round(Math.max(w, h) * 0.10)
+        const cw = w + pad * 2
+        const ch = h + pad * 2
+        canvas.width = Math.round(Math.max(cw, ch * ratio))
+        canvas.height = Math.round(Math.max(ch, cw / ratio))
+      }
+
       const ctx = canvas.getContext('2d')
       if (!ctx) { reject(new Error('no 2d ctx')); return }
       if (bg) {
         ctx.fillStyle = bg
-        ctx.fillRect(0, 0, size, size)
+        ctx.fillRect(0, 0, canvas.width, canvas.height)
       }
-      ctx.drawImage(img, Math.round((size - w) / 2), Math.round((size - h) / 2))
+      ctx.drawImage(img,
+        Math.round((canvas.width - w) / 2),
+        Math.round((canvas.height - h) / 2))
       resolve(canvas.toDataURL(`image/${format}`, quality))
     }
     img.onerror = () => reject(new Error('img load failed'))
@@ -133,7 +155,7 @@ export default function ExportBar({ cardRef, track, config, onConfigChange, acce
     try {
       const { toPng } = await import('html-to-image')
       const cardUrl = await toPng(el, { pixelRatio: 3 })
-      const url = await composeSquare(cardUrl, '#000000', 'png', 1)
+      const url = await compose(cardUrl, '#000000', config.exportSize, 'png', 1)
       const a = document.createElement('a')
       a.href = url; a.download = `${filename}.png`; a.click()
       showToast('Saved ✓')
@@ -142,7 +164,7 @@ export default function ExportBar({ cardRef, track, config, onConfigChange, acce
       const msg = e instanceof Error ? e.message.slice(0, 50) : 'Unknown error'
       showToast(`Failed: ${msg}`)
     } finally { restore(); setBusy(null) }
-  }, [cardRef, busy, filename])
+  }, [cardRef, busy, filename, config.exportSize])
 
   const exportJPG = useCallback(async () => {
     if (!cardRef.current) { showToast('No card to export'); return }
@@ -153,7 +175,8 @@ export default function ExportBar({ cardRef, track, config, onConfigChange, acce
     const restore = await inlineImages(el)
     try {
       const { toPng } = await import('html-to-image')
-      const url = await toPng(el, { pixelRatio: 2 })
+      const cardUrl = await toPng(el, { pixelRatio: 2 })
+      const url = await compose(cardUrl, '#000000', config.exportSize, 'png', 1)
       const a = document.createElement('a')
       a.href = url; a.download = `${filename}.png`; a.click()
       showToast('Saved ✓')
@@ -162,7 +185,7 @@ export default function ExportBar({ cardRef, track, config, onConfigChange, acce
       const msg = e instanceof Error ? e.message.slice(0, 50) : 'Unknown error'
       showToast(`Failed: ${msg}`)
     } finally { restore(); setBusy(null) }
-  }, [cardRef, busy, filename])
+  }, [cardRef, busy, filename, config.exportSize])
 
   const exportTransparent = useCallback(async () => {
     if (!cardRef.current) { showToast('No card to export'); return }
@@ -177,7 +200,7 @@ export default function ExportBar({ cardRef, track, config, onConfigChange, acce
     try {
       const { toPng } = await import('html-to-image')
       const cardUrl = await toPng(el, { pixelRatio: 2 })
-      const url = await composeSquare(cardUrl, null, 'png', 1)
+      const url = await compose(cardUrl, null, config.exportSize, 'png', 1)
       const a = document.createElement('a')
       a.href = url; a.download = `${filename}-alpha.png`; a.click()
       showToast('Saved ✓')
@@ -186,7 +209,7 @@ export default function ExportBar({ cardRef, track, config, onConfigChange, acce
       const msg = e instanceof Error ? e.message.slice(0, 50) : 'Unknown error'
       showToast(`Failed: ${msg}`)
     } finally { restore(); onConfigChange({ bgStyle: prevBgStyle }); setBusy(null) }
-  }, [cardRef, busy, filename, config.bgStyle, onConfigChange])
+  }, [cardRef, busy, filename, config.bgStyle, config.exportSize, onConfigChange])
 
   const copyClipboard = useCallback(async () => {
     if (!cardRef.current) { showToast('No card to export'); return }
@@ -198,7 +221,7 @@ export default function ExportBar({ cardRef, track, config, onConfigChange, acce
     try {
       const { toPng } = await import('html-to-image')
       const cardUrl = await toPng(el, { pixelRatio: 2 })
-      const url = await composeSquare(cardUrl, '#000000', 'png', 1)
+      const url = await compose(cardUrl, '#000000', config.exportSize, 'png', 1)
       const res = await fetch(url)
       const blob = await res.blob()
       await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })])
@@ -208,7 +231,7 @@ export default function ExportBar({ cardRef, track, config, onConfigChange, acce
       const msg = e instanceof Error ? e.message.slice(0, 50) : 'Unknown error'
       showToast(`Failed: ${msg}`)
     } finally { restore(); setBusy(null) }
-  }, [cardRef, busy])
+  }, [cardRef, busy, config.exportSize])
 
   // No dep array on purpose: refresh the published closure every render so the
   // shortcut never fires a stale `busy` capture.

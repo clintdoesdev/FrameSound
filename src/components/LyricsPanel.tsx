@@ -1,10 +1,12 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 
 type Props = {
   lines: string[]
   loading: boolean
+  /** Current quote from config — lets a restored/shared quote survive mount. */
+  value?: string
   onQuoteChange: (quote: string) => void
   accentColor?: string | null
 }
@@ -15,27 +17,37 @@ const MusicIcon = () => (
   </svg>
 )
 
-export default function LyricsPanel({ lines, loading, onQuoteChange, accentColor }: Props) {
+export default function LyricsPanel({ lines, loading, value, onQuoteChange, accentColor }: Props) {
   const ac = accentColor ?? 'var(--accent)'
+  // Seeded from the incoming quote so a card restored from a shared link keeps
+  // its lyric. The quote is emitted on interaction only — an effect-driven
+  // upward sync would clobber that value on mount.
   const [selected, setSelected] = useState<string[]>([])
-  const [custom, setCustom] = useState('')
+  const [custom, setCustom] = useState(value ?? '')
 
-  // eslint-disable-next-line react-hooks/set-state-in-effect
-  useEffect(() => { setSelected([]); setCustom('') }, [lines])
-
+  // Clear the local selection when a different track's lyrics arrive. The page
+  // resets config.lyricQuote itself, so this must not emit.
+  const firstRun = useRef(true)
   useEffect(() => {
-    onQuoteChange(custom.trim() || selected.join('\n'))
-  }, [selected, custom, onQuoteChange])
+    if (firstRun.current) { firstRun.current = false; return }
+    setSelected([])
+    setCustom('')
+  }, [lines])
 
-  const toggleLine = (line: string) => {
-    setSelected(prev =>
-      prev.includes(line)
-        ? prev.filter(l => l !== line)
-        : prev.length < 2 ? [...prev, line] : [prev[1], line]
-    )
+  const emit = (sel: string[], cus: string) => {
+    setSelected(sel)
+    setCustom(cus)
+    onQuoteChange(cus.trim() || sel.join('\n'))
   }
 
-  const clearAll = () => { setSelected([]); setCustom('') }
+  const toggleLine = (line: string) => {
+    const next = selected.includes(line)
+      ? selected.filter(l => l !== line)
+      : selected.length < 2 ? [...selected, line] : [selected[1], line]
+    emit(next, custom)
+  }
+
+  const clearAll = () => emit([], '')
   const activeQuote = custom.trim() || selected.join('\n')
   const hasSelection = selected.length > 0 || !!custom.trim()
 
@@ -83,11 +95,9 @@ export default function LyricsPanel({ lines, loading, onQuoteChange, accentColor
 
       {/* Quote preview */}
       {hasSelection && (
-        <div style={{
+        <div className="glass-soft" style={{
           margin: '10px 16px 2px',
           padding: '10px 14px',
-          background: 'var(--bg-1)',
-          border: '1px solid var(--line)',
           borderLeft: `3px solid ${ac}`,
           borderRadius: '0 8px 8px 0',
           animation: 'fadeIn 0.2s ease both',
@@ -117,7 +127,7 @@ export default function LyricsPanel({ lines, loading, onQuoteChange, accentColor
                   background: isSel ? `${ac}18` : 'transparent',
                   border: 'none',
                   borderLeft: `3px solid ${isSel ? ac : 'transparent'}`,
-                  color: isSel ? '#ffffff' : isMaxed ? 'rgba(255,255,255,0.3)' : 'rgba(255,255,255,0.65)',
+                  color: isSel ? 'var(--fg)' : isMaxed ? 'var(--fg-4)' : 'var(--fg-2)',
                   cursor: isMaxed ? 'not-allowed' : 'pointer',
                   fontSize: 13.5, lineHeight: 1.5,
                   transition: 'background 100ms, color 100ms',
@@ -148,20 +158,20 @@ export default function LyricsPanel({ lines, loading, onQuoteChange, accentColor
         </div>
         <textarea
           value={custom}
-          onChange={e => setCustom(e.target.value)}
+          onChange={e => emit(selected, e.target.value)}
           placeholder={showLines ? 'Override with your own text…' : 'Type your lyric quote…'}
           rows={2}
           style={{
             width: '100%', resize: 'none',
-            background: 'var(--bg-inset)',
-            border: '1px solid var(--line)',
+            background: 'var(--glass-faint)',
+            border: '1px solid var(--glass-border)',
             borderRadius: 8, padding: '9px 11px',
             fontSize: 13, color: 'var(--fg)', fontFamily: 'inherit',
             outline: 'none', lineHeight: 1.5,
             transition: 'border-color 150ms',
           }}
           onFocus={e => { e.currentTarget.style.borderColor = ac }}
-          onBlur={e => { e.currentTarget.style.borderColor = 'var(--line)' }}
+          onBlur={e => { e.currentTarget.style.borderColor = 'var(--glass-border)' }}
         />
       </div>
     </div>

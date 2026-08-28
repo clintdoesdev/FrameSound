@@ -38,21 +38,14 @@ export default function RecentTracks({ onSelect }: Props) {
             key={track.id}
             onClick={() => onSelect(track)}
             title={`${track.title} — ${track.artist}`}
+            className="glass dock-tile"
             style={{
               position: 'relative', width: 44, height: 44,
-              borderRadius: 6, overflow: 'hidden', flexShrink: 0,
-              border: '1px solid var(--line)', cursor: 'pointer',
-              background: 'var(--bg-2)', padding: 0,
-              transition: 'border-color 120ms, transform 120ms',
+              borderRadius: 10, overflow: 'hidden', flexShrink: 0,
+              cursor: 'pointer', padding: 0,
             }}
-            onMouseEnter={e => {
-              e.currentTarget.style.borderColor = 'var(--accent)'
-              e.currentTarget.style.transform = 'scale(1.06)'
-            }}
-            onMouseLeave={e => {
-              e.currentTarget.style.borderColor = 'var(--line)'
-              e.currentTarget.style.transform = 'scale(1)'
-            }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent)' }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--glass-border)' }}
           >
             {track.coverUrl ? (
               <Image src={track.coverUrl} alt={track.title} fill style={{ objectFit: 'cover' }} unoptimized />

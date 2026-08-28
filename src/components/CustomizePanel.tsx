@@ -6,11 +6,34 @@ import { CardConfig } from '@/types'
 type SavedPreset = { id: string; name: string; config: CardConfig }
 
 const STORAGE_KEY = 'framesound-saved-presets'
+
+// Presets that existed in earlier versions. Without this map a stale saved
+// preset silently falls through to the default branch and renders as the
+// wrong card, which reads as data loss to whoever saved it.
+const LEGACY_PRESETS: Record<string, CardConfig['preset']> = {
+  poster:     'bloom',
+  square:     'bezel',
+  minimal:    'profile',
+  nowplaying: 'player',
+  story:      'bloom',
+}
+const VALID_PRESETS: CardConfig['preset'][] =
+  ['glass', 'bezel', 'bloom', 'ticket', 'tag', 'profile', 'player']
+
+function migratePreset(p: string): CardConfig['preset'] {
+  if ((VALID_PRESETS as string[]).includes(p)) return p as CardConfig['preset']
+  return LEGACY_PRESETS[p] ?? 'glass'
+}
+
 function loadSavedPresets(): SavedPreset[] {
   if (typeof window === 'undefined') return []
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
-    return raw ? (JSON.parse(raw) as SavedPreset[]) : []
+    const list = raw ? (JSON.parse(raw) as SavedPreset[]) : []
+    return list.map(p => ({
+      ...p,
+      config: { ...p.config, preset: migratePreset(p.config?.preset as string) },
+    }))
   } catch { return [] }
 }
 function persistPresets(list: SavedPreset[]) {
@@ -24,7 +47,7 @@ type Props = {
 }
 
 // Returns accent as a text-safe color. If the extracted album color is too dark
-// to read against a near-black panel (#0d0d0d), fall back to the CSS default.
+// to read against a translucent glass panel, fall back to the CSS default.
 function textAccent(hex: string | null | undefined): string {
   if (!hex || !/^#[0-9a-f]{6}$/i.test(hex)) return 'var(--accent)'
   const r = parseInt(hex.slice(1, 3), 16) / 255
@@ -148,6 +171,17 @@ const IconGrain = () => (
     <circle cx="14" cy="14" r="1" opacity="0.5"/>
   </svg>
 )
+const IconCrop = () => (
+  <svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M4.5 1v10.5H15"/><path d="M1 4.5h10.5V15"/>
+  </svg>
+)
+const IconExport = () => (
+  <svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M8 1.5v8"/><path d="m5 6.5 3 3 3-3"/><path d="M2.5 12.5h11"/>
+  </svg>
+)
+
 const AlignLeftIcon = () => (
   <svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor">
     <rect x="1" y="3" width="14" height="1.5" rx="0.75"/>
@@ -170,77 +204,101 @@ const AlignRightIcon = () => (
   </svg>
 )
 
-// ── Preset SVG illustrations ───────────────────────────────────
-const PresetPosterSVG = () => (
-  <svg viewBox="0 0 60 45" width="60" height="45" fill="none">
-    <rect x="8" y="4" width="44" height="37" rx="3" fill="rgba(255,255,255,0.10)"/>
-    <rect x="8" y="26" width="44" height="15" rx="0" fill="url(#pg)"/>
-    <defs><linearGradient id="pg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="rgba(0,0,0,0)"/><stop offset="100%" stopColor="rgba(0,0,0,0.8)"/></linearGradient></defs>
-    <rect x="13" y="30" width="22" height="2" rx="1" fill="rgba(255,255,255,0.9)"/>
-    <rect x="13" y="34" width="16" height="1.5" rx="0.75" fill="rgba(255,255,255,0.5)"/>
-    <rect x="13" y="37.5" width="10" height="1.2" rx="0.6" fill="rgba(255,255,255,0.3)"/>
-  </svg>
+// ── Preset thumbnails ──────────────────────────────────────────
+// Each is a miniature of the card it selects, drawn on a fixed dark plate
+// (the exported card is always dark, regardless of the app's theme).
+const TB = { w: 44, h: 36 }
+const Plate = ({ children }: { children: React.ReactNode }) => (
+  <svg viewBox="0 0 44 36" width={TB.w} height={TB.h} fill="none">{children}</svg>
 )
-const PresetMinimalSVG = () => (
-  <svg viewBox="0 0 60 45" width="60" height="45" fill="none">
-    <rect x="8" y="8" width="44" height="29" rx="3" fill="rgba(255,255,255,0.06)"/>
-    <rect x="8" y="8" width="20" height="29" rx="3" fill="rgba(255,255,255,0.18)"/>
-    <rect x="32" y="16" width="16" height="2" rx="1" fill="rgba(255,255,255,0.7)"/>
-    <rect x="32" y="20.5" width="12" height="1.5" rx="0.75" fill="rgba(255,255,255,0.4)"/>
-    <rect x="32" y="25" width="10" height="1.2" rx="0.6" fill="rgba(255,255,255,0.25)"/>
-  </svg>
+
+const PresetGlassSVG = () => (
+  <Plate>
+    <rect x="6" y="1" width="32" height="34" rx="4.5" fill="rgba(255,255,255,0.22)"/>
+    <rect x="9" y="22" width="26" height="10" rx="4" fill="rgba(255,255,255,0.32)" stroke="rgba(255,255,255,0.6)" strokeWidth="0.6"/>
+    <rect x="12" y="25" width="12" height="1.7" rx="0.85" fill="rgba(255,255,255,0.9)"/>
+    <rect x="12" y="28.5" width="8" height="1.2" rx="0.6" fill="rgba(255,255,255,0.5)"/>
+  </Plate>
 )
-const PresetStorySVG = () => (
-  <svg viewBox="0 0 60 45" width="60" height="45" fill="none">
-    <rect x="20" y="3" width="20" height="39" rx="3" fill="rgba(255,255,255,0.10)"/>
-    <rect x="24" y="8" width="12" height="12" rx="2" fill="rgba(255,255,255,0.25)"/>
-    <rect x="22" y="24" width="16" height="2" rx="1" fill="rgba(255,255,255,0.7)"/>
-    <rect x="23" y="28" width="14" height="1.5" rx="0.75" fill="rgba(255,255,255,0.35)"/>
-    <rect x="25" y="31.5" width="10" height="1.2" rx="0.6" fill="rgba(255,255,255,0.2)"/>
-  </svg>
+const PresetTicketSVG = () => (
+  <Plate>
+    <rect x="6" y="1" width="32" height="27" rx="4.5" fill="rgba(255,255,255,0.10)"/>
+    <rect x="9" y="3.5" width="26" height="15" rx="3" fill="rgba(255,255,255,0.30)"/>
+    <rect x="11" y="21" width="13" height="1.7" rx="0.85" fill="rgba(255,255,255,0.75)"/>
+    <rect x="11" y="24.3" width="9" height="1.2" rx="0.6" fill="rgba(255,255,255,0.4)"/>
+    <rect x="11" y="27" width="22" height="8" rx="2.5" fill="rgba(255,255,255,0.5)"/>
+    <circle cx="11" cy="28" r="1.9" fill="#1c1c1e"/>
+    <circle cx="33" cy="28" r="1.9" fill="#1c1c1e"/>
+    <rect x="13.5" y="29.5" width="5" height="4" rx="1" fill="rgba(0,0,0,0.45)"/>
+    <rect x="20.5" y="30" width="10" height="1.3" rx="0.65" fill="rgba(0,0,0,0.42)"/>
+  </Plate>
 )
-const PresetSquareSVG = () => (
-  <svg viewBox="0 0 60 45" width="60" height="45" fill="none">
-    <rect x="12" y="5" width="36" height="35" rx="3" fill="rgba(255,255,255,0.08)"/>
-    <rect x="20" y="10" width="20" height="14" rx="2" fill="rgba(255,255,255,0.22)"/>
-    <rect x="17" y="27" width="18" height="2" rx="1" fill="rgba(255,255,255,0.7)"/>
-    <rect x="17" y="31" width="14" height="1.5" rx="0.75" fill="rgba(255,255,255,0.35)"/>
-    <rect x="17" y="34.5" width="10" height="1.2" rx="0.6" fill="rgba(255,255,255,0.2)"/>
-  </svg>
+const PresetTagSVG = () => (
+  <Plate>
+    <rect x="6" y="1" width="32" height="27" rx="4.5" fill="rgba(255,255,255,0.10)"/>
+    <rect x="9" y="3.5" width="26" height="15" rx="3" fill="rgba(255,255,255,0.30)"/>
+    <rect x="11" y="21" width="13" height="1.7" rx="0.85" fill="rgba(255,255,255,0.75)"/>
+    <rect x="11" y="24.3" width="9" height="1.2" rx="0.6" fill="rgba(255,255,255,0.4)"/>
+    <rect x="11" y="27" width="22" height="8" rx="2.5" fill="rgba(255,255,255,0.5)"/>
+    <circle cx="11" cy="28" r="1.9" fill="#1c1c1e"/>
+    <circle cx="33" cy="28" r="1.9" fill="#1c1c1e"/>
+    <rect x="19.5" y="29.5" width="5" height="5" rx="1.5" fill="rgba(0,0,0,0.5)"/>
+  </Plate>
 )
-const PresetGlassBezelSVG = () => (
-  <svg viewBox="0 0 60 45" width="60" height="45" fill="none">
-    {/* Outer bezel frame */}
-    <rect x="7" y="3" width="46" height="39" rx="5" fill="rgba(255,255,255,0.14)" stroke="rgba(255,255,255,0.10)" strokeWidth="0.6"/>
-    {/* Album art inset */}
-    <rect x="11" y="7" width="38" height="24" rx="3" fill="rgba(255,255,255,0.28)"/>
-    {/* Text in bezel below art */}
-    <rect x="11" y="34" width="18" height="2" rx="1" fill="rgba(255,255,255,0.80)"/>
-    <rect x="11" y="38" width="13" height="1.4" rx="0.7" fill="rgba(255,255,255,0.35)"/>
-  </svg>
+const PresetProfileSVG = () => (
+  <Plate>
+    <rect x="4" y="1" width="36" height="34" rx="5" fill="rgba(255,255,255,0.07)"/>
+    <rect x="7" y="4" width="30" height="16" rx="3.5" fill="rgba(255,255,255,0.28)"/>
+    <rect x="8" y="15" width="9" height="9" rx="2.5" fill="rgba(255,255,255,0.55)" stroke="#1c1c1e" strokeWidth="1.2"/>
+    <rect x="19" y="17.5" width="11" height="1.7" rx="0.85" fill="rgba(255,255,255,0.7)"/>
+    <rect x="19" y="20.8" width="7" height="1.2" rx="0.6" fill="rgba(255,255,255,0.35)"/>
+    <rect x="8" y="27" width="20" height="1.4" rx="0.7" fill="rgba(255,255,255,0.28)"/>
+    <rect x="8" y="30.3" width="14" height="1.4" rx="0.7" fill="rgba(255,255,255,0.18)"/>
+  </Plate>
 )
-const PresetNowPlayingSVG = () => (
-  <svg viewBox="0 0 60 45" width="60" height="45" fill="none">
-    {/* Card background */}
-    <rect x="3" y="8" width="54" height="29" rx="4" fill="rgba(255,255,255,0.06)"/>
-    {/* Left colour strip */}
-    <rect x="3" y="8" width="19" height="29" rx="4" fill="rgba(255,255,255,0.22)"/>
-    {/* Cover right-side rounded corners of strip (make right edge flat) */}
-    <rect x="16" y="8" width="6" height="29" fill="rgba(255,255,255,0.22)"/>
-    {/* Text lines on right */}
-    <rect x="28" y="15" width="21" height="2.2" rx="1" fill="rgba(255,255,255,0.75)"/>
-    <rect x="28" y="20" width="15" height="1.6" rx="0.8" fill="rgba(255,255,255,0.40)"/>
-    <rect x="28" y="25" width="10" height="1.2" rx="0.6" fill="rgba(255,255,255,0.22)"/>
-  </svg>
+const PresetPlayerSVG = () => (
+  <Plate>
+    <rect x="1" y="1" width="42" height="34" rx="5" fill="rgba(255,255,255,0.07)"/>
+    <rect x="8" y="4" width="28" height="28" rx="6" fill="rgba(255,255,255,0.16)" stroke="rgba(255,255,255,0.26)" strokeWidth="0.7"/>
+    <circle cx="12.5" cy="8.5" r="2.2" fill="rgba(255,255,255,0.4)"/>
+    <rect x="16.5" y="7.3" width="9" height="1.3" rx="0.65" fill="rgba(255,255,255,0.6)"/>
+    <rect x="10.5" y="12" width="23" height="12" rx="3" fill="rgba(255,255,255,0.3)"/>
+    <rect x="10.5" y="26" width="23" height="1.2" rx="0.6" fill="rgba(255,255,255,0.3)"/>
+    <circle cx="17" cy="30" r="1.8" fill="rgba(255,255,255,0.35)"/>
+    <circle cx="22" cy="30" r="2.4" fill="rgba(255,255,255,0.75)"/>
+    <circle cx="27" cy="30" r="1.8" fill="rgba(255,255,255,0.35)"/>
+  </Plate>
+)
+const PresetBezelSVG = () => (
+  <Plate>
+    <rect x="6" y="1" width="32" height="34" rx="5" fill="rgba(255,255,255,0.13)" stroke="rgba(255,255,255,0.34)" strokeWidth="0.7"/>
+    <rect x="9.5" y="4" width="25" height="19" rx="3.5" fill="rgba(255,255,255,0.42)"/>
+    <rect x="9.5" y="26" width="15" height="2.2" rx="1.1" fill="rgba(255,255,255,0.85)"/>
+    <rect x="9.5" y="30" width="10" height="1.5" rx="0.75" fill="rgba(255,255,255,0.42)"/>
+  </Plate>
+)
+const PresetBloomSVG = () => (
+  <Plate>
+    <rect x="6" y="1" width="32" height="34" rx="5" fill="url(#bloomG)"/>
+    <defs>
+      <linearGradient id="bloomG" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stopColor="rgba(255,255,255,0.42)"/>
+        <stop offset="100%" stopColor="rgba(255,255,255,0.14)"/>
+      </linearGradient>
+    </defs>
+    <rect x="10" y="24" width="16" height="2.4" rx="1.2" fill="rgba(255,255,255,0.92)"/>
+    <rect x="10" y="28.4" width="11" height="1.6" rx="0.8" fill="rgba(255,255,255,0.5)"/>
+  </Plate>
 )
 
 const PRESET_SVG: Record<string, React.ReactNode> = {
-  glass:      <PresetGlassBezelSVG />,
-  poster:     <PresetPosterSVG />,
-  minimal:    <PresetMinimalSVG />,
-  story:      <PresetStorySVG />,
-  square:     <PresetSquareSVG />,
-  nowplaying: <PresetNowPlayingSVG />,
+  glass:   <PresetGlassSVG />,
+  bezel:   <PresetBezelSVG />,
+  bloom:   <PresetBloomSVG />,
+  ticket:  <PresetTicketSVG />,
+  tag:     <PresetTagSVG />,
+  profile: <PresetProfileSVG />,
+  player:  <PresetPlayerSVG />,
 }
 
 // ── Font map for rendering cards in their own typeface ─────────
@@ -256,42 +314,45 @@ const FONT_CSS_VAR: Record<CardConfig['font'], string> = {
   oswald:           'var(--font-oswald)',
 }
 
-// ── Section accordion ──────────────────────────────────────────
+// ── Section — solid widget card with a circular icon badge ──────
+// Deliberately opaque rather than glass: the accent is sampled from album art,
+// and tinting every large surface with it turned the whole panel muddy.
 function Section({ icon, label, children }: {
   icon: React.ReactNode; label: string; children: React.ReactNode
 }) {
   const [open, setOpen] = useState(true)
   return (
-    <div style={{ borderBottom: '1px solid rgba(255,255,255,0.06)', marginBottom: 4 }}>
+    <div style={{
+      borderRadius: 16, margin: '0 8px 8px',
+      background: 'var(--panel)', border: '1px solid var(--panel-line)',
+    }}>
       <button
+        type="button"
+        aria-expanded={open}
         onClick={() => setOpen(o => !o)}
         style={{
           width: '100%', border: 0, background: 'transparent', cursor: 'pointer',
-          display: 'flex', alignItems: 'center', gap: 8,
-          padding: '13px 16px 12px',
-          borderBottom: open ? '1px solid rgba(255,255,255,0.05)' : 'none',
-          color: 'rgba(255,255,255,0.25)',
+          display: 'flex', alignItems: 'center', gap: 9, padding: '10px 12px',
         }}
       >
-        <span style={{ display: 'flex', color: 'rgba(255,255,255,0.25)' }}>{icon}</span>
         <span style={{
-          flex: 1, textAlign: 'left',
-          fontFamily: 'var(--font-mono)', fontSize: 10, fontWeight: 600,
-          letterSpacing: '0.12em', textTransform: 'uppercase',
-          color: open ? 'rgba(255,255,255,0.7)' : 'rgba(255,255,255,0.35)',
+          width: 26, height: 26, borderRadius: '50%', flexShrink: 0,
+          background: 'var(--panel-badge)', color: 'var(--fg-2)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>{icon}</span>
+        <span style={{
+          flex: 1, textAlign: 'left', fontSize: 11.5, fontWeight: 600,
+          letterSpacing: '0.02em', color: 'var(--fg-1)',
         }}>
           {label}
         </span>
-        <svg viewBox="0 0 10 10" width="9" height="9" fill="none" stroke="rgba(255,255,255,0.25)" strokeWidth="1.5" strokeLinecap="round">
-          <path d={open ? 'm2 3.5 3 3 3-3' : 'm2 6.5 3-3 3 3'} />
+        <svg viewBox="0 0 10 10" width="9" height="9" fill="none" stroke="var(--fg-3)" strokeWidth="1.6" strokeLinecap="round"
+          style={{ transform: open ? 'none' : 'rotate(-90deg)', transition: 'transform 200ms' }}>
+          <path d="m2 3.5 3 3 3-3" />
         </svg>
       </button>
-      <div style={{
-        overflow: 'hidden',
-        maxHeight: open ? 9999 : 0,
-        transition: 'max-height 300ms ease',
-      }}>
-        <div style={{ padding: '14px 16px 18px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <div style={{ overflow: 'hidden', maxHeight: open ? 9999 : 0, transition: 'max-height 300ms ease' }}>
+        <div style={{ padding: '2px 12px 13px', display: 'flex', flexDirection: 'column', gap: 13 }}>
           {children}
         </div>
       </div>
@@ -306,19 +367,17 @@ function PillRow<T extends string>({ value, options, onChange, accent }: {
   onChange: (v: T) => void
   accent?: string
 }) {
-  const accentRgb = accent ?? 'var(--accent)'
   return (
-    <div style={{ display: 'flex', gap: 6 }}>
+    <div style={{ display: 'flex', gap: 4, background: 'var(--panel-well)', borderRadius: 999, padding: 3 }}>
       {options.map((o, i) => {
         const selected = value === o.value
         return (
-          <button key={i} onClick={() => onChange(o.value)} style={{
-            flex: 1, height: 36, borderRadius: 999, border: 0, cursor: 'pointer',
-            fontSize: 12, fontWeight: 500,
-            background: selected ? (accent?.startsWith('#') ? `${accent}33` : 'var(--accent-quiet)') : '#1a1a1a',
-            color: selected ? (accent ?? 'var(--accent)') : 'rgba(255,255,255,0.5)',
-            outline: selected ? `1px solid ${accentRgb}` : '1px solid rgba(255,255,255,0.08)',
-            transition: 'all 120ms',
+          <button key={i} type="button" aria-pressed={selected} onClick={() => onChange(o.value)} style={{
+            flex: 1, height: 28, borderRadius: 999, border: 0, cursor: 'pointer',
+            fontSize: 11.5, fontWeight: 600,
+            background: selected ? (accent ?? 'var(--accent)') : 'transparent',
+            color: selected ? '#0d0d0f' : 'var(--fg-2)',
+            transition: 'background 130ms, color 130ms',
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
           }}>{o.label}</button>
         )
@@ -336,23 +395,23 @@ function StyledSlider({ value, min, max, step, onChange, trackStyle, label, suff
   suffix?: string
 }) {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)' }}>{label}</span>
-        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'rgba(255,255,255,0.7)' }}>{value}{suffix ?? (label.includes('Hue') ? '°' : 'px')}</span>
+        <span style={{ fontSize: 11.5, color: 'var(--fg-2)' }}>{label}</span>
+        <span className="tnum" style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--fg-1)' }}>{value}{suffix ?? (label.includes('Hue') ? '°' : 'px')}</span>
       </div>
-      <div style={{ position: 'relative', height: 24, display: 'flex', alignItems: 'center' }}>
+      <div style={{ position: 'relative', height: 18, display: 'flex', alignItems: 'center' }}>
         <div style={{
-          position: 'absolute', inset: 0, top: '50%', transform: 'translateY(-50%)',
-          height: 6, borderRadius: 3,
-          background: trackStyle?.background ?? `linear-gradient(to right, #1a1a1a, rgba(255,255,255,0.25))`,
+          position: 'absolute', left: 0, right: 0, top: '50%', transform: 'translateY(-50%)',
+          height: 4, borderRadius: 2,
+          background: trackStyle?.background ?? 'var(--panel-well-2)',
           ...trackStyle,
         }} />
         <input
           type="range" min={min} max={max} step={step} value={value}
           onChange={e => onChange(Number(e.target.value))}
           style={{
-            position: 'relative', width: '100%', height: 24,
+            position: 'relative', width: '100%', height: 18,
             appearance: 'none', WebkitAppearance: 'none',
             background: 'transparent', cursor: 'pointer', zIndex: 1,
           }}
@@ -360,15 +419,15 @@ function StyledSlider({ value, min, max, step, onChange, trackStyle, label, suff
         <style>{`
           input[type=range]::-webkit-slider-thumb {
             -webkit-appearance: none;
-            width: 16px; height: 16px; border-radius: 50%;
+            width: 13px; height: 13px; border-radius: 50%;
             background: #fff;
-            box-shadow: 0 0 0 3px #000, 0 1px 4px rgba(0,0,0,0.6);
+            box-shadow: 0 1px 4px rgba(0,0,0,0.45);
             cursor: pointer;
           }
           input[type=range]::-moz-range-thumb {
-            width: 16px; height: 16px; border-radius: 50%;
+            width: 13px; height: 13px; border-radius: 50%;
             background: #fff; border: none;
-            box-shadow: 0 0 0 3px #000, 0 1px 4px rgba(0,0,0,0.6);
+            box-shadow: 0 1px 4px rgba(0,0,0,0.45);
             cursor: pointer;
           }
         `}</style>
@@ -383,44 +442,57 @@ function ToggleItem({ label, value, onChange, icon, accent }: {
   icon: React.ReactNode; accent?: string
 }) {
   return (
-    <div
+    <button
+      type="button"
+      role="switch"
+      aria-checked={value}
       onClick={() => onChange(!value)}
       style={{
-        display: 'flex', alignItems: 'center', gap: 8,
-        height: 40, padding: '0 10px',
-        borderRadius: 8, cursor: 'pointer',
-        background: value ? (accent?.startsWith('#') ? `${accent}26` : 'var(--accent-quiet)') : 'transparent',
-        borderLeft: value ? `2px solid ${accent ?? 'var(--accent)'}` : '2px solid transparent',
-        transition: 'all 150ms',
+        display: 'flex', alignItems: 'center', gap: 7, width: '100%',
+        height: 32, padding: '0 8px', border: 0, font: 'inherit', textAlign: 'left',
+        borderRadius: 9, cursor: 'pointer',
+        background: 'var(--panel-well)',
+        transition: 'background 150ms',
       }}
     >
-      <span style={{ color: value ? (accent ?? 'var(--accent)') : 'rgba(255,255,255,0.3)', display: 'flex', flexShrink: 0 }}>{icon}</span>
-      <span style={{ flex: 1, fontSize: 12, color: value ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.45)' }}>{label}</span>
+      <span style={{ color: value ? (accent ?? 'var(--accent)') : 'var(--fg-3)', display: 'flex', flexShrink: 0 }}>{icon}</span>
+      <span style={{ flex: 1, fontSize: 11.5, color: value ? 'var(--fg)' : 'var(--fg-3)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{label}</span>
       <div style={{
-        width: 36, height: 20, borderRadius: 999, flexShrink: 0,
-        background: value ? (accent?.startsWith('#') ? `${accent}99` : 'var(--accent)') : '#2a2a2a',
+        width: 28, height: 16, borderRadius: 999, flexShrink: 0,
+        background: value ? (accent ?? 'var(--accent)') : 'var(--panel-well-2)',
         position: 'relative', transition: 'background 150ms',
       }}>
         <span style={{
-          position: 'absolute', top: 3, left: value ? 18 : 3,
-          width: 14, height: 14, borderRadius: '50%',
-          background: value ? '#fff' : 'rgba(255,255,255,0.5)',
+          position: 'absolute', top: 2.5, left: value ? 14 : 2.5,
+          width: 11, height: 11, borderRadius: '50%',
+          background: '#fff',
           transition: 'left 150ms',
-          boxShadow: '0 1px 3px rgba(0,0,0,0.4)',
+          boxShadow: '0 1px 2px rgba(0,0,0,0.35)',
           display: 'block',
         }} />
       </div>
-    </div>
+    </button>
   )
 }
 
+// Curated one-tap looks so the panel is useful before anyone has saved anything.
+const STARTERS: { name: string; patch: Partial<CardConfig> }[] = [
+  { name: 'Clean',   patch: { preset: 'bezel', bgStyle: 'blurred-art', textColor: 'auto', glowEnabled: false, grainEnabled: false, vignetteEnabled: false, scanlinesEnabled: false, holoEnabled: false } },
+  { name: 'Poster',  patch: { preset: 'bloom', bgStyle: 'blurred-art', textAlign: 'left', vignetteEnabled: true, vignetteStrength: 40, grainEnabled: true, grainOpacity: 18 } },
+  { name: 'Stub',    patch: { preset: 'ticket', bgStyle: 'blurred-art', grainEnabled: true, grainOpacity: 14 } },
+  { name: 'Retro',   patch: { preset: 'bezel', bgStyle: 'blurred-art', grainEnabled: true, grainOpacity: 34, scanlinesEnabled: true, scanlinesOpacity: 16, vignetteEnabled: true, vignetteStrength: 55 } },
+  { name: 'Neon',    patch: { preset: 'glass', bgStyle: 'gradient', glowEnabled: true, glowStrength: 70, holoEnabled: true, holoOpacity: 22 } },
+  { name: 'Paper',   patch: { preset: 'bezel', bgStyle: 'solid', bgColor: '#f2ece2', textColor: 'auto', grainEnabled: true, grainOpacity: 22, glowEnabled: false } },
+]
+
 const PRESETS = [
-  { id: 'glass',      name: 'Glass'      },
-  { id: 'nowplaying', name: 'Now Playing'},
-  { id: 'poster',     name: 'Poster'     },
-  { id: 'minimal',    name: 'Minimal'    },
-  { id: 'story',      name: 'Story'      },
-  { id: 'square',     name: 'Square'     },
+  { id: 'glass',   name: 'Glass'   },
+  { id: 'bezel',   name: 'Bezel'   },
+  { id: 'bloom',   name: 'Bloom'   },
+  { id: 'ticket',  name: 'Ticket'  },
+  { id: 'tag',     name: 'Tag'     },
+  { id: 'profile', name: 'Profile' },
+  { id: 'player',  name: 'Player'  },
 ] as const
 
 const FONTS: { value: CardConfig['font']; label: string; tag: string; weight: number; size: number }[] = [
@@ -438,7 +510,6 @@ const FONTS: { value: CardConfig['font']; label: string; tag: string; weight: nu
 const HUE_GRADIENT = 'linear-gradient(to right, hsl(0,80%,50%), hsl(45,80%,50%), hsl(90,80%,50%), hsl(135,80%,50%), hsl(180,80%,50%), hsl(225,80%,50%), hsl(270,80%,50%), hsl(315,80%,50%), hsl(360,80%,50%))'
 
 export default function CustomizePanel({ config, onChange, accentColor }: Props) {
-  const ac = accentColor ?? undefined          // raw hex — safe for bg tints
   const act = textAccent(accentColor)          // luminance-checked — safe for text/border
 
   const [savedPresets, setSavedPresets] = useState<SavedPreset[]>(() => loadSavedPresets())
@@ -446,7 +517,7 @@ export default function CustomizePanel({ config, onChange, accentColor }: Props)
   const [showSaveInput, setShowSaveInput] = useState(false)
 
   return (
-    <div style={{ background: '#0d0d0d', flex: 1 }}>
+    <div style={{ flex: 1 }}>
 
       {/* ── SAVED PRESETS ── */}
       <Section icon={<IconBookmark />} label="Saved Presets">
@@ -455,9 +526,9 @@ export default function CustomizePanel({ config, onChange, accentColor }: Props)
           <button
             onClick={() => setShowSaveInput(true)}
             style={{
-              width: '100%', height: 36, borderRadius: 8, border: '1px dashed rgba(255,255,255,0.15)',
+              width: '100%', height: 32, borderRadius: 9, border: '1px dashed var(--panel-well-2)',
               background: 'transparent', cursor: 'pointer',
-              fontSize: 12, color: 'rgba(255,255,255,0.45)',
+              fontSize: 12, color: 'var(--fg-2)',
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
             }}
           >
@@ -482,8 +553,8 @@ export default function CustomizePanel({ config, onChange, accentColor }: Props)
               }}
               placeholder="Preset name…"
               style={{
-                flex: 1, height: 34, borderRadius: 6, border: '1px solid rgba(255,255,255,0.15)',
-                background: 'rgba(255,255,255,0.06)', color: '#fff', fontSize: 12, padding: '0 10px',
+                flex: 1, height: 32, borderRadius: 8, border: 0,
+                background: 'var(--panel-well)', color: 'var(--fg)', fontSize: 12, padding: '0 10px',
                 outline: 'none',
               }}
             />
@@ -499,7 +570,7 @@ export default function CustomizePanel({ config, onChange, accentColor }: Props)
               }}
               style={{
                 height: 34, width: 56, borderRadius: 6, border: 0,
-                background: ac ? `${ac}33` : '#252525',
+                background: accentColor ?? 'var(--accent)',
                 color: act, cursor: 'pointer', fontSize: 12, fontWeight: 600,
               }}
             >Save</button>
@@ -507,7 +578,7 @@ export default function CustomizePanel({ config, onChange, accentColor }: Props)
               onClick={() => { setSaveName(''); setShowSaveInput(false) }}
               style={{
                 height: 34, width: 34, borderRadius: 6, border: 0,
-                background: 'transparent', color: 'rgba(255,255,255,0.4)',
+                background: 'transparent', color: 'var(--fg-3)',
                 cursor: 'pointer', fontSize: 16,
               }}
             >✕</button>
@@ -522,14 +593,14 @@ export default function CustomizePanel({ config, onChange, accentColor }: Props)
                 <button
                   onClick={() => onChange(p.config)}
                   style={{
-                    flex: 1, height: 34, borderRadius: 7, border: '1px solid rgba(255,255,255,0.09)',
-                    background: '#1a1a1a', cursor: 'pointer', textAlign: 'left',
-                    padding: '0 10px', fontSize: 12, color: 'rgba(255,255,255,0.75)',
+                    flex: 1, height: 32, borderRadius: 8, border: 0,
+                    background: 'var(--panel-well)', cursor: 'pointer', textAlign: 'left',
+                    padding: '0 10px', fontSize: 12, color: 'var(--fg-1)',
                     display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                   }}
                 >
                   <span>{p.name}</span>
-                  <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', fontFamily: 'var(--font-mono)' }}>
+                  <span style={{ fontSize: 10, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)' }}>
                     {p.config.preset}
                   </span>
                 </button>
@@ -542,7 +613,7 @@ export default function CustomizePanel({ config, onChange, accentColor }: Props)
                   style={{
                     width: 28, height: 34, borderRadius: 7, border: 0,
                     background: 'transparent', cursor: 'pointer',
-                    color: 'rgba(255,255,255,0.25)', fontSize: 14,
+                    color: 'var(--fg-3)', fontSize: 14,
                   }}
                 >✕</button>
               </div>
@@ -550,38 +621,60 @@ export default function CustomizePanel({ config, onChange, accentColor }: Props)
           </div>
         )}
 
-        {savedPresets.length === 0 && !showSaveInput && (
-          <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.25)', margin: 0 }}>
-            No saved presets yet. Save your current settings to quickly restore them.
-          </p>
-        )}
+        {/* Starters — always available, so this section is never a dead end */}
+        <div>
+          <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--fg-3)', marginBottom: 6 }}>
+            Quick looks
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 5 }}>
+            {STARTERS.map(st => (
+              <button
+                key={st.name}
+                type="button"
+                onClick={() => onChange(st.patch)}
+                style={{
+                  height: 28, borderRadius: 8, border: 0, cursor: 'pointer',
+                  background: 'var(--panel-well)', color: 'var(--fg-1)',
+                  fontSize: 11, fontWeight: 600,
+                }}
+              >{st.name}</button>
+            ))}
+          </div>
+        </div>
       </Section>
 
       {/* ── PRESET ── */}
       <Section icon={<IconLayers />} label="Preset">
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6 }}>
           {PRESETS.map(p => {
             const sel = config.preset === p.id
             return (
               <button
                 key={p.id}
+                type="button"
+                aria-pressed={sel}
+                title={`${p.name} preset`}
                 onClick={() => onChange({ preset: p.id })}
                 style={{
-                  background: sel ? (ac ? `${ac}26` : 'var(--accent-quiet)') : '#1a1a1a',
-                  border: `1.5px solid ${sel ? act : 'rgba(255,255,255,0.08)'}`,
-                  borderRadius: 10, cursor: 'pointer', padding: '10px 8px 8px',
-                  display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
-                  transition: 'border-color 120ms, background 120ms',
-                  minHeight: 90,
+                  background: 'transparent', border: 0, padding: 0, cursor: 'pointer',
+                  display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5,
                 }}
               >
-                <div style={{ opacity: sel ? 1 : 0.6, transition: 'opacity 120ms' }}>
-                  {PRESET_SVG[p.id]}
-                </div>
+                {/* Fixed-dark preview plate — mirrors the exported card's own
+                    (always-dark) look, so it stays legible in either app theme. */}
                 <span style={{
-                  fontFamily: 'var(--font-poppins)', fontSize: 10, fontWeight: 600,
-                  letterSpacing: '0.08em', textTransform: 'uppercase',
-                  color: sel ? act : 'rgba(255,255,255,0.55)',
+                  width: '100%', height: 46, borderRadius: 9, background: '#1c1c1e',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  border: `1.5px solid ${sel ? act : 'transparent'}`,
+                  opacity: sel ? 1 : 0.6,
+                  transition: 'opacity 130ms, border-color 130ms',
+                }}>
+                  {PRESET_SVG[p.id]}
+                </span>
+                <span style={{
+                  fontSize: 9.5, fontWeight: 600, letterSpacing: '0.05em',
+                  textTransform: 'uppercase',
+                  color: sel ? act : 'var(--fg-3)',
                 }}>{p.name}</span>
               </button>
             )
@@ -609,7 +702,7 @@ export default function CustomizePanel({ config, onChange, accentColor }: Props)
               <div style={{
                 width: 32, height: 32, borderRadius: 8,
                 background: config.bgColor,
-                border: '1px solid rgba(255,255,255,0.12)',
+                border: '1px solid var(--panel-well-2)',
                 cursor: 'pointer',
                 overflow: 'hidden',
               }}>
@@ -620,7 +713,7 @@ export default function CustomizePanel({ config, onChange, accentColor }: Props)
                 />
               </div>
             </div>
-            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'rgba(255,255,255,0.55)' }}>{config.bgColor.toUpperCase()}</span>
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--fg-2)' }}>{config.bgColor.toUpperCase()}</span>
           </div>
         )}
 
@@ -641,16 +734,17 @@ export default function CustomizePanel({ config, onChange, accentColor }: Props)
             return (
               <button
                 key={f.value}
+                type="button"
+                aria-pressed={sel}
                 onClick={() => onChange({ font: f.value })}
                 style={{
-                  height: 72, borderRadius: 10, border: 0,
-                  background: sel ? (ac ? `${ac}22` : 'rgba(100,120,255,0.12)') : '#161616',
-                  outline: sel ? `1.5px solid ${act}` : '1.5px solid rgba(255,255,255,0.07)',
+                  height: 52, borderRadius: 9, border: 0,
+                  background: 'var(--panel-well)',
+                  outline: sel ? `1.5px solid ${act}` : '1.5px solid transparent',
                   cursor: 'pointer',
                   display: 'flex', flexDirection: 'column',
                   alignItems: 'flex-start', justifyContent: 'flex-end',
-                  padding: '0 10px 9px',
-                  transition: 'outline-color 120ms, background 120ms',
+                  padding: '0 8px 7px',
                   overflow: 'hidden',
                   position: 'relative',
                 }}
@@ -658,20 +752,19 @@ export default function CustomizePanel({ config, onChange, accentColor }: Props)
                 {/* Font name rendered in its own typeface */}
                 <span style={{
                   fontFamily: FONT_CSS_VAR[f.value],
-                  fontSize: f.size,
+                  fontSize: f.size * 0.78,
                   fontWeight: f.weight,
                   lineHeight: 1,
-                  color: sel ? act : 'rgba(255,255,255,0.80)',
+                  color: sel ? act : 'var(--fg-1)',
                   letterSpacing: f.value === 'bebas' || f.value === 'oswald' ? '0.04em' : f.value === 'raleway' ? '0.06em' : '0',
                   display: 'block', width: '100%',
                   whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
                 }}>{f.label}</span>
                 {/* Category tag */}
                 <span style={{
-                  fontFamily: 'var(--font-mono)', fontSize: 9,
-                  color: sel ? act : 'rgba(255,255,255,0.25)',
+                  fontSize: 8, color: sel ? act : 'var(--fg-3)',
                   letterSpacing: '0.08em', textTransform: 'uppercase',
-                  marginTop: 4,
+                  marginTop: 3,
                 }}>{f.tag}</span>
               </button>
             )
@@ -690,6 +783,34 @@ export default function CustomizePanel({ config, onChange, accentColor }: Props)
           ]}
         />
 
+        {/* Lyric typography — only meaningful when a quote is showing */}
+        {config.showLyrics && (
+          <>
+            <div style={{ height: 1, background: 'var(--panel-line)' }} />
+            <PillRow
+              value={config.lyricStyle}
+              onChange={v => onChange({ lyricStyle: v })}
+              accent={act}
+              options={[
+                { value: 'italic', label: 'Italic' },
+                { value: 'plain',  label: 'Plain' },
+                { value: 'quoted', label: '“Quote”' },
+              ]}
+            />
+            <StyledSlider
+              value={config.lyricLines} min={1} max={4} step={1}
+              onChange={v => onChange({ lyricLines: v })}
+              label="Lyric lines" suffix=""
+            />
+            <StyledSlider
+              value={config.lyricScale} min={70} max={150} step={5}
+              onChange={v => onChange({ lyricScale: v })}
+              label="Lyric size" suffix="%"
+            />
+            <div style={{ height: 1, background: 'var(--panel-line)' }} />
+          </>
+        )}
+
         {/* Text align */}
         <div style={{ display: 'flex', gap: 6 }}>
           {([
@@ -699,11 +820,12 @@ export default function CustomizePanel({ config, onChange, accentColor }: Props)
           ]).map(o => {
             const sel = config.textAlign === o.value
             return (
-              <button key={o.value} onClick={() => onChange({ textAlign: o.value })} style={{
-                width: 40, height: 40, borderRadius: 8, border: 0, cursor: 'pointer',
-                background: sel ? (ac ? `${ac}33` : 'var(--accent-quiet)') : '#1a1a1a',
-                color: sel ? act : 'rgba(255,255,255,0.4)',
-                outline: sel ? `1.5px solid ${act}` : '1.5px solid rgba(255,255,255,0.08)',
+              <button key={o.value} type="button" aria-pressed={sel}
+                aria-label={`Align ${o.value}`}
+                onClick={() => onChange({ textAlign: o.value })} style={{
+                width: 34, height: 30, borderRadius: 8, border: 0, cursor: 'pointer',
+                background: sel ? (accentColor ?? 'var(--accent)') : 'var(--panel-well)',
+                color: sel ? '#0d0d0f' : 'var(--fg-3)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 transition: 'all 120ms',
               }}>{o.icon}</button>
@@ -711,6 +833,38 @@ export default function CustomizePanel({ config, onChange, accentColor }: Props)
           })}
         </div>
       </Section>
+
+      {/* ── ARTWORK ── */}
+      {config.showAlbumArt && (
+        <Section icon={<IconCrop />} label="Artwork">
+          <p style={{ fontSize: 11, color: 'var(--fg-3)', lineHeight: 1.5, margin: 0 }}>
+            Reframe the cover when the default centre crop cuts off the subject.
+          </p>
+          <StyledSlider
+            value={config.artZoom} min={100} max={200} step={5}
+            onChange={v => onChange({ artZoom: v })}
+            label="Zoom" suffix="%"
+          />
+          <StyledSlider
+            value={config.artX} min={0} max={100} step={1}
+            onChange={v => onChange({ artX: v })}
+            label="Horizontal" suffix="%"
+          />
+          <StyledSlider
+            value={config.artY} min={0} max={100} step={1}
+            onChange={v => onChange({ artY: v })}
+            label="Vertical" suffix="%"
+          />
+          <button
+            type="button"
+            onClick={() => onChange({ artZoom: 100, artX: 50, artY: 50 })}
+            style={{
+              height: 28, borderRadius: 8, border: 0, cursor: 'pointer',
+              background: 'var(--panel-well)', color: 'var(--fg-2)', fontSize: 11, fontWeight: 600,
+            }}
+          >Recentre</button>
+        </Section>
+      )}
 
       {/* ── VISIBILITY ── */}
       <Section icon={<IconEye />} label="Visibility">
@@ -724,16 +878,51 @@ export default function CustomizePanel({ config, onChange, accentColor }: Props)
         </div>
         {config.preset === 'glass' && (
           <StyledSlider
-            value={config.artPadding} min={0} max={100} step={4}
+            value={config.artPadding} min={0} max={60} step={2}
             onChange={v => onChange({ artPadding: v })}
-            label="Art Size" suffix="px"
+            label="Panel Inset" suffix="px"
           />
         )}
       </Section>
 
+      {/* ── EXPORT ── */}
+      <Section icon={<IconExport />} label="Export size">
+        <p style={{ fontSize: 11, color: 'var(--fg-3)', lineHeight: 1.5, margin: 0 }}>
+          The card is centred and framed to fit — never cropped.
+        </p>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 5 }}>
+          {([
+            { v: 'auto',   label: 'Auto',    hint: 'Padded square' },
+            { v: 'tight',  label: 'Tight',   hint: 'No padding' },
+            { v: 'square', label: 'Square',  hint: '1:1 post' },
+            { v: 'story',  label: 'Story',   hint: '9:16' },
+            { v: 'wide',   label: 'Wide',    hint: '16:9' },
+          ] as const).map(o => {
+            const sel = config.exportSize === o.v
+            return (
+              <button
+                key={o.v}
+                type="button"
+                aria-pressed={sel}
+                onClick={() => onChange({ exportSize: o.v })}
+                style={{
+                  padding: '7px 9px', borderRadius: 9, border: 0, cursor: 'pointer',
+                  background: 'var(--panel-well)',
+                  outline: sel ? `1.5px solid ${act}` : '1.5px solid transparent',
+                  textAlign: 'left',
+                }}
+              >
+                <span style={{ display: 'block', fontSize: 11.5, fontWeight: 600, color: sel ? act : 'var(--fg-1)' }}>{o.label}</span>
+                <span style={{ display: 'block', fontSize: 9.5, color: 'var(--fg-3)', marginTop: 1 }}>{o.hint}</span>
+              </button>
+            )
+          })}
+        </div>
+      </Section>
+
       {/* ── EXPERIMENTAL ── */}
       <Section icon={<IconBeaker />} label="Experimental">
-        <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.28)', lineHeight: 1.5, margin: 0 }}>
+        <p style={{ fontSize: 11, color: 'var(--fg-3)', lineHeight: 1.5, margin: 0 }}>
           These effects render in the preview and in exported images.
         </p>
 

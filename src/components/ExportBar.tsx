@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useCallback } from 'react'
+import React, { useState, useCallback, useEffect } from 'react'
 import { TrackData, CardConfig } from '@/types'
 
 type Props = {
@@ -9,6 +9,8 @@ type Props = {
   config: CardConfig
   onConfigChange: (updates: Partial<CardConfig>) => void
   accentColor?: string | null
+  /** Lets the page trigger an export from a keyboard shortcut. */
+  actionsRef?: React.MutableRefObject<{ exportPng: () => void } | null>
 }
 
 type Busy = 'png' | 'jpg' | 'transparent' | 'clipboard' | null
@@ -77,9 +79,19 @@ async function waitReady(el: HTMLElement): Promise<void> {
   await Promise.all(imgs.map(img => img.decode().catch(() => {})))
 }
 
-async function composeSquare(
+// Target canvas per export size. `tight` keeps the card's own bounds; the rest
+// letterbox the card into a platform aspect so it can be posted without a crop.
+const SIZE_RATIO: Record<Exclude<CardConfig['exportSize'], 'tight'>, number | null> = {
+  auto:   1,        // legacy behaviour: padded square
+  square: 1,        // 1:1 feed post
+  story:  9 / 16,   // 9:16 story / reel
+  wide:   16 / 9,   // 16:9 link preview
+}
+
+async function compose(
   cardDataUrl: string,
   bg: string | null,
+  size: CardConfig['exportSize'],
   format: 'png' | 'jpeg',
   quality: number
 ): Promise<string> {
@@ -88,19 +100,31 @@ async function composeSquare(
     img.onload = () => {
       const w = img.width
       const h = img.height
-      const maxDim = Math.max(w, h)
-      const pad = Math.round(maxDim * 0.10)
-      const size = maxDim + pad * 2
       const canvas = document.createElement('canvas')
-      canvas.width = size
-      canvas.height = size
+
+      if (size === 'tight') {
+        canvas.width = w
+        canvas.height = h
+      } else {
+        const ratio = SIZE_RATIO[size] ?? 1
+        // Pad by 10% of the card's long edge, then grow whichever axis the
+        // target aspect needs — so the card is never cropped, only framed.
+        const pad = Math.round(Math.max(w, h) * 0.10)
+        const cw = w + pad * 2
+        const ch = h + pad * 2
+        canvas.width = Math.round(Math.max(cw, ch * ratio))
+        canvas.height = Math.round(Math.max(ch, cw / ratio))
+      }
+
       const ctx = canvas.getContext('2d')
       if (!ctx) { reject(new Error('no 2d ctx')); return }
       if (bg) {
         ctx.fillStyle = bg
-        ctx.fillRect(0, 0, size, size)
+        ctx.fillRect(0, 0, canvas.width, canvas.height)
       }
-      ctx.drawImage(img, Math.round((size - w) / 2), Math.round((size - h) / 2))
+      ctx.drawImage(img,
+        Math.round((canvas.width - w) / 2),
+        Math.round((canvas.height - h) / 2))
       resolve(canvas.toDataURL(`image/${format}`, quality))
     }
     img.onerror = () => reject(new Error('img load failed'))
@@ -110,7 +134,7 @@ async function composeSquare(
 
 const supportsClipboard = typeof window !== 'undefined' && typeof ClipboardItem !== 'undefined'
 
-export default function ExportBar({ cardRef, track, config, onConfigChange, accentColor }: Props) {
+export default function ExportBar({ cardRef, track, config, onConfigChange, accentColor, actionsRef }: Props) {
   const [busy, setBusy] = useState<Busy>(null)
   const [toast, setToast] = useState<string | null>(null)
 
@@ -131,7 +155,7 @@ export default function ExportBar({ cardRef, track, config, onConfigChange, acce
     try {
       const { toPng } = await import('html-to-image')
       const cardUrl = await toPng(el, { pixelRatio: 3 })
-      const url = await composeSquare(cardUrl, '#000000', 'png', 1)
+      const url = await compose(cardUrl, '#000000', config.exportSize, 'png', 1)
       const a = document.createElement('a')
       a.href = url; a.download = `${filename}.png`; a.click()
       showToast('Saved ✓')
@@ -140,7 +164,7 @@ export default function ExportBar({ cardRef, track, config, onConfigChange, acce
       const msg = e instanceof Error ? e.message.slice(0, 50) : 'Unknown error'
       showToast(`Failed: ${msg}`)
     } finally { restore(); setBusy(null) }
-  }, [cardRef, busy, filename])
+  }, [cardRef, busy, filename, config.exportSize])
 
   const exportJPG = useCallback(async () => {
     if (!cardRef.current) { showToast('No card to export'); return }
@@ -151,7 +175,8 @@ export default function ExportBar({ cardRef, track, config, onConfigChange, acce
     const restore = await inlineImages(el)
     try {
       const { toPng } = await import('html-to-image')
-      const url = await toPng(el, { pixelRatio: 2 })
+      const cardUrl = await toPng(el, { pixelRatio: 2 })
+      const url = await compose(cardUrl, '#000000', config.exportSize, 'png', 1)
       const a = document.createElement('a')
       a.href = url; a.download = `${filename}.png`; a.click()
       showToast('Saved ✓')
@@ -160,7 +185,7 @@ export default function ExportBar({ cardRef, track, config, onConfigChange, acce
       const msg = e instanceof Error ? e.message.slice(0, 50) : 'Unknown error'
       showToast(`Failed: ${msg}`)
     } finally { restore(); setBusy(null) }
-  }, [cardRef, busy, filename])
+  }, [cardRef, busy, filename, config.exportSize])
 
   const exportTransparent = useCallback(async () => {
     if (!cardRef.current) { showToast('No card to export'); return }
@@ -175,7 +200,7 @@ export default function ExportBar({ cardRef, track, config, onConfigChange, acce
     try {
       const { toPng } = await import('html-to-image')
       const cardUrl = await toPng(el, { pixelRatio: 2 })
-      const url = await composeSquare(cardUrl, null, 'png', 1)
+      const url = await compose(cardUrl, null, config.exportSize, 'png', 1)
       const a = document.createElement('a')
       a.href = url; a.download = `${filename}-alpha.png`; a.click()
       showToast('Saved ✓')
@@ -184,7 +209,7 @@ export default function ExportBar({ cardRef, track, config, onConfigChange, acce
       const msg = e instanceof Error ? e.message.slice(0, 50) : 'Unknown error'
       showToast(`Failed: ${msg}`)
     } finally { restore(); onConfigChange({ bgStyle: prevBgStyle }); setBusy(null) }
-  }, [cardRef, busy, filename, config.bgStyle, onConfigChange])
+  }, [cardRef, busy, filename, config.bgStyle, config.exportSize, onConfigChange])
 
   const copyClipboard = useCallback(async () => {
     if (!cardRef.current) { showToast('No card to export'); return }
@@ -196,7 +221,7 @@ export default function ExportBar({ cardRef, track, config, onConfigChange, acce
     try {
       const { toPng } = await import('html-to-image')
       const cardUrl = await toPng(el, { pixelRatio: 2 })
-      const url = await composeSquare(cardUrl, '#000000', 'png', 1)
+      const url = await compose(cardUrl, '#000000', config.exportSize, 'png', 1)
       const res = await fetch(url)
       const blob = await res.blob()
       await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })])
@@ -206,13 +231,19 @@ export default function ExportBar({ cardRef, track, config, onConfigChange, acce
       const msg = e instanceof Error ? e.message.slice(0, 50) : 'Unknown error'
       showToast(`Failed: ${msg}`)
     } finally { restore(); setBusy(null) }
-  }, [cardRef, busy])
+  }, [cardRef, busy, config.exportSize])
+
+  // No dep array on purpose: refresh the published closure every render so the
+  // shortcut never fires a stale `busy` capture.
+  useEffect(() => {
+    if (actionsRef) actionsRef.current = { exportPng: exportPNG }
+  })
 
   const btnBase = (isActive: boolean): React.CSSProperties => ({
-    flex: 1, height: 48, borderRadius: 8, border: 0,
+    flex: 1, height: 44, borderRadius: 10, border: 0,
     cursor: isActive ? 'default' : 'pointer',
-    background: isActive ? (accentColor ? `${accentColor}30` : '#252525') : '#1a1a1a',
-    color: '#ffffff',
+    background: isActive ? (accentColor ?? 'var(--accent)') : 'var(--panel-well)',
+    color: 'var(--fg)',
     display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4,
     transform: isActive ? 'scale(0.97)' : 'scale(1)',
     transition: 'transform 100ms, background 120ms',
@@ -222,16 +253,16 @@ export default function ExportBar({ cardRef, track, config, onConfigChange, acce
   const labelSty: React.CSSProperties = {
     fontFamily: 'var(--font-poppins)', fontSize: 10, fontWeight: 600,
     letterSpacing: '0.08em', textTransform: 'uppercase',
-    color: 'rgba(255,255,255,0.85)',
+    color: 'var(--fg-1)',
   }
 
 
   return (
     <div style={{
-      borderTop: '1px solid rgba(255,255,255,0.08)',
-      padding: '8px 12px',
-      background: '#0d0d0d',
-      height: 64,
+      background: 'var(--bg)',
+      borderTop: '1px solid var(--panel-line)',
+      padding: '8px 10px',
+      height: 60,
       flexShrink: 0,
       position: 'relative',
       display: 'flex', alignItems: 'center',
@@ -246,20 +277,17 @@ export default function ExportBar({ cardRef, track, config, onConfigChange, acce
 
       {toast && (
         <div style={{
-          position: 'absolute', bottom: 76, left: '50%',
+          background: 'var(--panel)', border: '1px solid var(--panel-line)',
+          boxShadow: '0 12px 32px rgba(0,0,0,0.5)',
+          position: 'absolute', bottom: 72, left: '50%',
           transform: 'translateX(-50%)',
           minWidth: 230,
-          background: 'rgba(18,18,18,0.94)',
-          backdropFilter: 'blur(24px)',
-          WebkitBackdropFilter: 'blur(24px)',
           borderRadius: 14,
-          border: '1px solid rgba(255,255,255,0.10)',
           borderLeft: `3px solid ${accentColor ?? 'var(--accent)'}`,
           padding: '13px 20px',
           display: 'flex', alignItems: 'center', gap: 10,
           pointerEvents: 'none',
           animation: 'slideUpToast 0.25s cubic-bezier(0.34,1.56,0.64,1) both',
-          boxShadow: '0 8px 32px rgba(0,0,0,0.55)',
           zIndex: 50,
         }}>
           <svg viewBox="0 0 16 16" width="16" height="16" fill="none"
@@ -267,25 +295,26 @@ export default function ExportBar({ cardRef, track, config, onConfigChange, acce
             strokeLinecap="round" strokeLinejoin="round">
             <path d="M3 8l4 4 6-7"/>
           </svg>
-          <span style={{ fontSize: 13, fontWeight: 500, color: 'rgba(255,255,255,0.88)', whiteSpace: 'nowrap' }}>{toast}</span>
+          <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--fg)', whiteSpace: 'nowrap' }}>{toast}</span>
         </div>
       )}
 
       <div style={{ display: 'flex', gap: 6, width: '100%' }}>
-        <button style={btnBase(busy === 'png')} onClick={exportPNG} disabled={!!busy}>
+        <button className="dock-tile" style={btnBase(busy === 'png')} onClick={exportPNG} disabled={!!busy}>
           {busy === 'png' ? <Spinner /> : <DlIcon />}
           <span style={labelSty}>PNG 3×</span>
         </button>
-        <button style={btnBase(busy === 'jpg')} onClick={exportJPG} disabled={!!busy}>
+        <button className="dock-tile" style={btnBase(busy === 'jpg')} onClick={exportJPG} disabled={!!busy}>
           {busy === 'jpg' ? <Spinner /> : <DlIcon />}
           <span style={labelSty}>PNG 2×</span>
         </button>
-        <button style={btnBase(busy === 'transparent')} onClick={exportTransparent} disabled={!!busy}>
+        <button className="dock-tile" style={btnBase(busy === 'transparent')} onClick={exportTransparent} disabled={!!busy}>
           {busy === 'transparent' ? <Spinner /> : <AlphaIcon />}
           <span style={labelSty}>Alpha</span>
         </button>
         {supportsClipboard && (
           <button
+            className="dock-tile"
             style={{ ...btnBase(busy === 'clipboard'), flex: 'none', width: 48 }}
             onClick={copyClipboard} disabled={!!busy}
             title="Copy to clipboard"

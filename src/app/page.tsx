@@ -11,10 +11,29 @@ import CustomizePanel from '@/components/CustomizePanel'
 import ExportBar from '@/components/ExportBar'
 import AudioPreview from '@/components/AudioPreview'
 import RecentTracks, { addRecentTrack } from '@/components/RecentTracks'
+import { useConfigHistory } from '@/lib/useConfigHistory'
+import { decodeConfig, buildShareUrl } from '@/lib/permalink'
+import TrackSearch from '@/components/TrackSearch'
+import BatchExport from '@/components/BatchExport'
 
 const BackIcon = () => (
   <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M19 12H5M12 5l-7 7 7 7"/>
+  </svg>
+)
+
+const UndoIcon = ({ flip }: { flip?: boolean }) => (
+  <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor"
+    strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+    style={flip ? { transform: 'scaleX(-1)' } : undefined}>
+    <path d="M9 14 4 9l5-5"/><path d="M4 9h9a7 7 0 0 1 0 14h-3"/>
+  </svg>
+)
+
+const ShareIcon = () => (
+  <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor"
+    strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7"/><path d="M12 15V3"/><path d="m8 7 4-4 4 4"/>
   </svg>
 )
 
@@ -24,6 +43,10 @@ const LinkIcon = () => (
     <path d="M14 10a4 4 0 0 1 0 5.6l-3 3a4 4 0 1 1-5.6-5.6L6.9 11.5"/>
   </svg>
 )
+
+// Order matches the settings panel, so the 1–7 shortcuts line up with the grid.
+const PRESET_ORDER: CardConfig['preset'][] =
+  ['glass', 'bezel', 'bloom', 'ticket', 'tag', 'profile', 'player']
 
 function Logo() {
   return (
@@ -244,18 +267,60 @@ function DemoMinCardView({ title, artist, color, rotate, anim, dur, delay, pos }
 export default function Home() {
   const [url, setUrl] = useState('')
   const [track, setTrack] = useState<TrackData | null>(null)
-  const [config, setConfig] = useState<CardConfig>(defaultConfig)
+  const { config, update: updateConfig, resetHere, undo, redo, canUndo, canRedo } = useConfigHistory(defaultConfig)
   const [lyrics, setLyrics] = useState<string[] | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [accentColor, setAccentColor] = useState<string | null>(null)
+  const [shareCopied, setShareCopied] = useState(false)
+  const [batchOpen, setBatchOpen] = useState(false)
 
   // cardRef → hidden off-screen export card (what dom-to-image captures)
   const cardRef = useRef<HTMLDivElement>(null!)
+  // ExportBar refreshes this every render, so the shortcut always calls the
+  // current closure rather than a stale one captured at mount.
+  const exportActions = useRef<{ exportPng: () => void } | null>(null)
+  // Loading a track keeps the user's styling but starts a fresh undo timeline,
+  // so undo can't walk back into a different song's state.
+  const startNewTrack = useCallback(() => {
+    resetHere({ lyricQuote: '' })
+  }, [resetHere])
 
-  const updateConfig = useCallback((updates: Partial<CardConfig>) => {
-    setConfig(prev => ({ ...prev, ...updates }))
-  }, [])
+  // Stable reference — LyricsPanel depends on this identity in a useEffect;
+  // an inline arrow here would change every render and loop indefinitely.
+  const handleQuoteChange = useCallback((q: string) => {
+    updateConfig({ lyricQuote: q })
+  }, [updateConfig])
+
+  // ── Keyboard shortcuts ────────────────────────────────────────
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const el = e.target as HTMLElement | null
+      const typing = !!el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable)
+      const mod = e.metaKey || e.ctrlKey
+
+      if (mod && e.key.toLowerCase() === 'z') {
+        if (typing) return
+        e.preventDefault()
+        if (e.shiftKey) redo(); else undo()
+        return
+      }
+      if (mod && e.key.toLowerCase() === 'e') {
+        e.preventDefault()
+        exportActions.current?.exportPng()
+        return
+      }
+      if (typing || mod || e.altKey) return
+      // 1–7 jump straight to a preset
+      const n = Number(e.key)
+      if (n >= 1 && n <= PRESET_ORDER.length) {
+        e.preventDefault()
+        updateConfig({ preset: PRESET_ORDER[n - 1] })
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [undo, redo, updateConfig])
 
   // Extract accent colour from album art with colorthief
   useEffect(() => {
@@ -304,8 +369,7 @@ export default function Home() {
     if (result.data) {
       setTrack(result.data)
       addRecentTrack(result.data)
-      // Reset lyric quote when new track loads
-      setConfig(prev => ({ ...prev, lyricQuote: '' }))
+      startNewTrack()
       getLyrics(result.data.artist, result.data.title).then(r => {
         setLyrics(r.lines.length > 0 ? r.lines : null)
       })
@@ -313,7 +377,50 @@ export default function Home() {
       setError(result.error ?? 'Failed to fetch track')
     }
     setLoading(false)
+  }, [startNewTrack])
+
+  // ── Restore a shared card from the URL ────────────────────────
+  const restoredRef = useRef(false)
+  /* eslint-disable react-hooks/set-state-in-effect */
+  useEffect(() => {
+    if (restoredRef.current) return
+    restoredRef.current = true
+    const { config: shared, trackId } = decodeConfig(window.location.search)
+    // Order matters: loading a track calls startNewTrack(), which clears the
+    // lyric quote. Apply the shared config after that settles, or the restored
+    // quote is wiped by the very fetch that the link asked for.
+    if (trackId) {
+      fetchTrack(`https://open.spotify.com/track/${trackId}`).then(() => {
+        if (Object.keys(shared).length) resetHere(shared)
+      })
+    } else if (Object.keys(shared).length) {
+      resetHere(shared)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+  /* eslint-enable react-hooks/set-state-in-effect */
+
+  const copyShareLink = useCallback(() => {
+    navigator.clipboard.writeText(buildShareUrl(config, track?.id)).then(
+      () => {
+        setShareCopied(true)
+        setTimeout(() => setShareCopied(false), 1600)
+      },
+      () => { /* clipboard blocked — nothing useful to fall back to here */ },
+    )
+  }, [config, track?.id])
+
+  const selectSearchResult = useCallback((t: TrackData) => {
+    setTrack(t)
+    addRecentTrack(t)
+    setUrl('')
+    setError(null)
+    startNewTrack()
+    setLyrics(null)
+    getLyrics(t.artist, t.title).then(r => {
+      setLyrics(r.lines.length > 0 ? r.lines : null)
+    })
+  }, [startNewTrack])
 
   const handleUrlInput = (val: string) => {
     setUrl(val)
@@ -334,23 +441,24 @@ export default function Home() {
   const loadFromRecent = useCallback((t: TrackData) => {
     setTrack(t)
     setUrl(`https://open.spotify.com/track/${t.id}`)
-    setConfig(prev => ({ ...prev, lyricQuote: '' }))
+    startNewTrack()
     setLyrics(null)
     getLyrics(t.artist, t.title).then(r => {
       setLyrics(r.lines.length > 0 ? r.lines : null)
     })
-  }, [])
+  }, [startNewTrack])
 
   const urlBar = (
-    <div style={{ position: 'relative', width: '100%' }}>
+    <TrackSearch onSelect={selectSearchResult} query={url}>
       <div className="input" style={{ height: 52, paddingLeft: 16, paddingRight: 16, fontSize: 15 }}>
         <span style={{ color: 'var(--fg-3)', flexShrink: 0 }}><LinkIcon /></span>
         <input
           value={url}
           onChange={e => handleUrlInput(e.target.value)}
           onPaste={handlePaste}
-          placeholder="Paste a Spotify track link…"
+          placeholder="Search a song, or paste a Spotify link…"
           spellCheck={false}
+          autoComplete="off"
           style={{ fontSize: 15 }}
         />
         {loading && (
@@ -361,11 +469,11 @@ export default function Home() {
           }} />
         )}
       </div>
-    </div>
+    </TrackSearch>
   )
 
   const heroUrlBar = (
-    <div style={{ position: 'relative', width: '100%' }}>
+    <TrackSearch onSelect={selectSearchResult} query={url}>
       <div className="input" style={{
         height: 62, paddingLeft: 20, paddingRight: 8, fontSize: 16,
         borderRadius: 16, border: '1px solid var(--line)',
@@ -377,8 +485,9 @@ export default function Home() {
           value={url}
           onChange={e => handleUrlInput(e.target.value)}
           onPaste={handlePaste}
-          placeholder="Paste a Spotify track link…"
+          placeholder="Search a song, or paste a Spotify link…"
           spellCheck={false}
+          autoComplete="off"
           autoFocus
           style={{ fontSize: 16 }}
         />
@@ -408,7 +517,7 @@ export default function Home() {
           Paste
         </button>
       </div>
-    </div>
+    </TrackSearch>
   )
 
   // ── EMPTY STATE ──────────────────────────────────────────────
@@ -496,7 +605,7 @@ export default function Home() {
               <div style={{ marginTop: 10, fontSize: 13, color: 'var(--danger)', textAlign: 'center' }}>{error}</div>
             )}
             <div style={{ marginTop: 10, fontSize: 13, color: 'var(--fg-3)', textAlign: 'center' }}>
-              spotify.com/track/… links only
+              Search by name, or paste a track link
             </div>
           </div>
 
@@ -536,15 +645,15 @@ export default function Home() {
   // ── LOADING STATE ────────────────────────────────────────────
   if (loading) {
     return (
-      <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--bg)' }}>
+      <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--editor-bg)', position: 'relative' }}>
         {/* Nav */}
         <nav style={{
           height: 56, display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          padding: '0 24px', borderBottom: '1px solid var(--line-soft)',
-          background: 'var(--bg)', flexShrink: 0,
+          padding: '0 20px', background: 'var(--editor-bg)',
+          borderBottom: '1px solid var(--panel-line)', flexShrink: 0,
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div className="animate-pulse-slow" style={{ width: 72, height: 28, borderRadius: 8, background: 'rgba(255,255,255,0.06)' }} />
+            <div className="animate-pulse-slow" style={{ width: 72, height: 28, borderRadius: 8, background: 'var(--panel-well)' }} />
             <Logo />
           </div>
         </nav>
@@ -552,66 +661,42 @@ export default function Home() {
         {/* Editor two-column skeleton */}
         <div style={{ display: 'flex', flex: 1, maxWidth: 1280, margin: '0 auto', width: '100%' }} className="editor-layout">
           {/* Left column */}
-          <div style={{ flex: 1, padding: '32px 24px 24px', display: 'flex', flexDirection: 'column', gap: 20 }}
+          <div style={{ flex: 1, padding: '28px 24px 24px', display: 'flex', flexDirection: 'column', gap: 18 }}
             className="left-col">
-            {/* URL bar shimmer */}
+            <div className="animate-pulse-slow" style={{ height: 52, borderRadius: 12, background: 'var(--panel-well)' }} />
             <div className="animate-pulse-slow" style={{
-              height: 52, borderRadius: 14,
-              background: 'rgba(255,255,255,0.05)',
-              border: '1px solid rgba(255,255,255,0.07)',
+              width: '100%', aspectRatio: '4 / 5', borderRadius: 28, background: 'var(--panel-well)',
             }} />
-            {/* Card glass placeholder */}
-            <div style={{
-              borderRadius: 22, padding: 20,
-              background: 'rgba(255,255,255,0.04)',
-              backdropFilter: 'blur(24px)',
-              WebkitBackdropFilter: 'blur(24px)',
-              border: '1px solid rgba(255,255,255,0.09)',
-            }}>
-              <div className="animate-pulse-slow" style={{
-                width: '100%', aspectRatio: '1 / 1', borderRadius: 16,
-                background: 'rgba(255,255,255,0.07)',
-              }} />
-            </div>
-            {/* Audio bar shimmer */}
-            <div className="animate-pulse-slow" style={{
-              height: 52, borderRadius: 12,
-              background: 'rgba(255,255,255,0.04)',
-              border: '1px solid rgba(255,255,255,0.06)',
-            }} />
+            <div className="animate-pulse-slow" style={{ height: 52, borderRadius: 12, background: 'var(--panel-well)' }} />
           </div>
 
           {/* Right column */}
-          <div style={{
-            width: 340, flexShrink: 0,
-            borderLeft: '1px solid var(--line)',
+          <div className="right-col" style={{
+            width: 336, flexShrink: 0,
             display: 'flex', flexDirection: 'column',
-          }} className="right-col">
+            background: 'var(--editor-bg)', borderLeft: '1px solid var(--panel-line)',
+            overflow: 'hidden',
+          }}>
             {/* Track meta shimmer */}
             <div style={{
-              padding: '12px 20px',
-              borderBottom: '1px solid rgba(255,255,255,0.06)',
+              padding: '12px 16px',
+              borderBottom: '1px solid var(--panel-line)',
               display: 'flex', gap: 12, alignItems: 'center',
             }}>
               <div className="animate-pulse-slow" style={{
-                width: 36, height: 36, borderRadius: 6,
-                background: 'rgba(255,255,255,0.09)', flexShrink: 0,
+                width: 36, height: 36, borderRadius: 8,
+                background: 'var(--panel-well)', flexShrink: 0,
               }} />
               <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 7 }}>
-                <div className="animate-pulse-slow" style={{ height: 11, width: '68%', borderRadius: 6, background: 'rgba(255,255,255,0.09)' }} />
-                <div className="animate-pulse-slow" style={{ height: 9, width: '44%', borderRadius: 6, background: 'rgba(255,255,255,0.05)', animationDelay: '0.1s' }} />
+                <div className="animate-pulse-slow" style={{ height: 11, width: '68%', borderRadius: 6, background: 'var(--panel-well)' }} />
+                <div className="animate-pulse-slow" style={{ height: 9, width: '44%', borderRadius: 6, background: 'var(--panel-well)', animationDelay: '0.1s' }} />
               </div>
             </div>
-            {/* Settings section glass blocks */}
-            {([110, 155, 195, 135] as number[]).map((h, i) => (
+            {/* Settings widget blocks */}
+            {([104, 148, 186, 128] as number[]).map((h, i) => (
               <div key={i} className="animate-pulse-slow" style={{
-                margin: '8px 10px',
-                height: h,
-                borderRadius: 12,
-                background: 'rgba(255,255,255,0.04)',
-                backdropFilter: 'blur(12px)',
-                WebkitBackdropFilter: 'blur(12px)',
-                border: '1px solid rgba(255,255,255,0.07)',
+                margin: '8px', height: h, borderRadius: 16,
+                background: 'var(--panel)', border: '1px solid var(--panel-line)',
                 animationDelay: `${i * 0.12}s`,
               }} />
             ))}
@@ -622,7 +707,7 @@ export default function Home() {
           @media (max-width: 768px) {
             .editor-layout { flex-direction: column !important; }
             .left-col { width: 100% !important; }
-            .right-col { width: 100% !important; border-left: none !important; border-top: 1px solid var(--line) !important; }
+            .right-col { width: 100% !important; margin: 0 16px 16px !important; }
           }
         `}</style>
       </div>
@@ -631,14 +716,15 @@ export default function Home() {
 
   // ── LOADED STATE ─────────────────────────────────────────────
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--bg)' }}>
+    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--editor-bg)', position: 'relative' }}>
       {accentColor && <style>{`:root { --accent: ${accentColor}; }`}</style>}
 
       {/* Nav */}
       <nav style={{
         height: 56, display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '0 24px', borderBottom: '1px solid var(--line-soft)',
-        background: 'var(--bg)', flexShrink: 0, position: 'sticky', top: 0, zIndex: 20,
+        padding: '0 20px', background: 'var(--editor-bg)',
+        borderBottom: '1px solid var(--panel-line)',
+        flexShrink: 0, position: 'sticky', top: 0, zIndex: 20,
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <button
@@ -651,6 +737,32 @@ export default function Home() {
           </button>
           <Logo />
         </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <button
+            onClick={undo} disabled={!canUndo}
+            className="btn" data-variant="ghost" data-icon-only="true"
+            title="Undo (⌘Z)" aria-label="Undo"
+            style={{ height: 32, width: 32, borderRadius: 8 }}
+          ><UndoIcon /></button>
+          <button
+            onClick={redo} disabled={!canRedo}
+            className="btn" data-variant="ghost" data-icon-only="true"
+            title="Redo (⇧⌘Z)" aria-label="Redo"
+            style={{ height: 32, width: 32, borderRadius: 8 }}
+          ><UndoIcon flip /></button>
+          <button
+            onClick={copyShareLink}
+            className="btn" data-variant="ghost"
+            title="Copy a link to this card" aria-label="Copy share link"
+            style={{ height: 32, borderRadius: 8, fontSize: 12, gap: 6, padding: '0 10px' }}
+          ><ShareIcon />{shareCopied ? 'Copied' : 'Share'}</button>
+          <button
+            onClick={() => setBatchOpen(true)}
+            className="btn" data-variant="ghost"
+            title="Export a playlist or album as a zip"
+            style={{ height: 32, borderRadius: 8, fontSize: 12, padding: '0 10px' }}
+          >Batch</button>
+        </div>
       </nav>
 
       {/* Split layout */}
@@ -658,135 +770,106 @@ export default function Home() {
         flex: 1, display: 'flex',
         flexDirection: 'row',
         alignItems: 'flex-start',
-        maxWidth: 1280, margin: '0 auto', width: '100%',
+        width: '100%',
         padding: '0',
+        position: 'relative', zIndex: 1,
         animation: 'fadeIn 0.35s ease both',
       }}
         className="editor-layout"
       >
         {/* ── LEFT: Card + Audio + Recent ─────────────────── */}
         <div style={{
-          flex: '0 0 auto',
-          width: 'min(560px, 100%)',
-          padding: '32px 24px 24px',
+          flex: 1, minWidth: 0,
+          padding: '28px 24px 24px',
           display: 'flex', flexDirection: 'column', gap: 20,
           position: 'sticky', top: 56, maxHeight: 'calc(100vh - 56px)',
           overflowY: 'auto',
         }}
           className="scroll left-col"
         >
-          {/* URL bar stays at top of left col */}
-          <div>
-            {urlBar}
-            {error && (
-              <div style={{ marginTop: 8, fontSize: 13, color: 'var(--danger)' }}>{error}</div>
-            )}
+          {/* Stage column — the card sets its own width ceiling so it stays a
+              believable card rather than stretching across a wide viewport. */}
+          <div style={{ width: '100%', maxWidth: 470, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 18 }}>
+            <div>
+              {urlBar}
+              {error && (
+                <div style={{ marginTop: 8, fontSize: 13, color: 'var(--danger)' }}>{error}</div>
+              )}
+            </div>
+
+            {/* The card's own shadow does the framing — no competing outer panel. */}
+            <div style={{ padding: '6px 2px' }}>
+              {track && (
+                <CardCanvas ref={cardRef} track={track} config={config} exportMode accentColor={accentColor} />
+              )}
+            </div>
+
+            {track?.previewUrl && <AudioPreview previewUrl={track.previewUrl} trackId={track.id} accentColor={accentColor} />}
+
+            <RecentTracks onSelect={loadFromRecent} />
           </div>
-
-          {/* Card preview — fills container, aspect ratio maintained by the card itself */}
-          <div style={{
-            background: 'var(--bg-1)', borderRadius: 12,
-            border: '1px solid var(--line)',
-            padding: 20, overflow: 'hidden',
-          }}>
-            {track && (() => {
-              const canvas = <CardCanvas ref={cardRef} track={track} config={config} exportMode accentColor={accentColor} />
-              const needsGhost = config.preset === 'minimal' || config.preset === 'story'
-              if (!needsGhost) return canvas
-
-              const isStory = config.preset === 'story'
-              const radius = isStory ? '24px' : '20px'
-              const ghostDeepBg = accentColor
-                ? `linear-gradient(135deg, ${accentColor}14 0%, ${accentColor}06 100%)`
-                : 'linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 60%, #1a1a1a 100%)'
-              const ghostMidBg = accentColor
-                ? `linear-gradient(135deg, ${accentColor}20 0%, ${accentColor}10 100%)`
-                : 'linear-gradient(135deg, #222 0%, #333 55%, #222 100%)'
-
-              return (
-                <div style={{ position: 'relative' }}>
-                  <div style={{
-                    position: 'absolute', inset: 0, borderRadius: radius,
-                    background: ghostDeepBg,
-                    opacity: isStory ? 0.45 : 0.4,
-                    filter: `blur(${isStory ? 5 : 4}px)`,
-                    transform: isStory ? 'translateY(14px) scaleY(0.96)' : 'translateY(14px) scaleX(0.96)',
-                    transformOrigin: 'bottom center', zIndex: 0,
-                  }} />
-                  <div style={{
-                    position: 'absolute', inset: 0, borderRadius: radius,
-                    background: ghostMidBg,
-                    opacity: 0.6,
-                    filter: `blur(${isStory ? 2.5 : 2}px)`,
-                    transform: isStory ? 'translateY(7px) scaleY(0.98)' : 'translateY(8px) scaleX(0.98)',
-                    transformOrigin: 'bottom center', zIndex: 0,
-                  }} />
-                  <div style={{ position: 'relative', zIndex: 1 }}>{canvas}</div>
-                </div>
-              )
-            })()}
-          </div>
-
-          {/* Audio preview */}
-          {track?.previewUrl && <AudioPreview previewUrl={track.previewUrl} trackId={track.id} accentColor={accentColor} />}
-
-          {/* Recent tracks */}
-          <RecentTracks onSelect={loadFromRecent} />
         </div>
 
         {/* ── RIGHT: Lyrics + Customize + Export ──────────── */}
-        <div style={{
-          width: 340, flexShrink: 0,
-          borderLeft: '1px solid var(--line)',
+        <div className="right-col" style={{
+          width: 336, flexShrink: 0,
           display: 'flex', flexDirection: 'column',
           height: 'calc(100vh - 56px)',
           position: 'sticky', top: 56,
+          background: 'var(--editor-bg)',
+          borderLeft: '1px solid var(--panel-line)',
           overflow: 'hidden',
-        }} className="right-col">
+        }}>
           {/* Track meta strip */}
           {track && (
             <div style={{
-              padding: '12px 20px', borderBottom: '1px solid var(--line-soft)',
-              display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0,
+              padding: '11px 14px', borderBottom: '1px solid var(--panel-line)',
+              display: 'flex', alignItems: 'center', gap: 11, flexShrink: 0,
             }}>
-              <div style={{ width: 36, height: 36, borderRadius: 6, overflow: 'hidden', flexShrink: 0, position: 'relative', background: 'var(--bg-2)' }}>
+              <div style={{ width: 34, height: 34, borderRadius: 9, overflow: 'hidden', flexShrink: 0, position: 'relative', background: 'var(--panel-well)' }}>
                 {track.coverUrl && (
                   <Image src={track.coverUrl} alt={track.title} fill style={{ objectFit: 'cover' }} unoptimized />
                 )}
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontFamily: 'var(--font-syne)', fontSize: 13, fontWeight: 600, color: 'var(--fg)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--fg)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {track.title}
                 </div>
-                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.60)', marginTop: 2 }}>{track.artist}</div>
-                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.40)', marginTop: 1 }}>
-                  {track.releaseYear} · {track.duration}
+                <div style={{ fontSize: 11, color: 'var(--fg-3)', marginTop: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {track.artist} · {track.releaseYear} · {track.duration}
                 </div>
               </div>
             </div>
           )}
 
-          {/* Lyrics panel */}
-          <div style={{ borderBottom: '1px solid var(--line-soft)', flexShrink: 0 }}>
-            <LyricsPanel
-              lines={lyrics ?? []}
-              loading={false}
-              onQuoteChange={q => updateConfig({ lyricQuote: q })}
-              accentColor={accentColor}
-            />
-          </div>
-
-          {/* Customize panel — scrollable */}
-          <div className="scroll" style={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
+          {/* Everything below scrolls as one column of widget cards */}
+          <div className="scroll" style={{ flex: 1, overflowY: 'auto', minHeight: 0, paddingTop: 8 }}>
+            <div style={{
+              margin: '0 8px 8px', borderRadius: 16,
+              background: 'var(--panel)', border: '1px solid var(--panel-line)',
+              overflow: 'hidden',
+            }}>
+              <LyricsPanel
+                lines={lyrics ?? []}
+                loading={false}
+                value={config.lyricQuote}
+                onQuoteChange={handleQuoteChange}
+                accentColor={accentColor}
+              />
+            </div>
             <CustomizePanel config={config} onChange={updateConfig} accentColor={accentColor} />
           </div>
 
           {/* Export bar — sticky at bottom */}
           {track && (
-            <ExportBar cardRef={cardRef} track={track} config={config} onConfigChange={updateConfig} accentColor={accentColor} />
+            <ExportBar cardRef={cardRef} track={track} config={config} onConfigChange={updateConfig} accentColor={accentColor} actionsRef={exportActions} />
           )}
         </div>
       </div>
+
+      {batchOpen && (
+        <BatchExport config={config} accentColor={accentColor} onClose={() => setBatchOpen(false)} />
+      )}
 
       <style>{`
         @media (max-width: 768px) {
@@ -802,6 +885,8 @@ export default function Home() {
             height: auto !important;
             position: static !important;
             overflow: visible !important;
+            border-left: none !important;
+            border-top: 1px solid var(--panel-line) !important;
           }
         }
       `}</style>

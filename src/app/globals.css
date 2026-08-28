@@ -58,6 +58,29 @@
 
   /* Landing page floating card accent */
   --hero-bg: oklch(0.12 0.008 80);
+
+  /* Editor widget surfaces — deliberately opaque. The accent is sampled from
+     album art, so tinting large chrome with it muddies the whole panel. */
+  --editor-bg:   #0a0a0b;
+  --panel:       #17171a;
+  --panel-line:  rgba(255,255,255,0.06);
+  --panel-badge: rgba(255,255,255,0.07);
+  --panel-well:  #232327;
+  --panel-well-2:#2c2c31;
+
+  /* Liquid glass surfaces */
+  --glass:          oklch(1 0 0 / 0.06);
+  --glass-strong:   oklch(1 0 0 / 0.10);
+  --glass-faint:    oklch(1 0 0 / 0.03);
+  --glass-border:   oklch(1 0 0 / 0.13);
+  --glass-border-2: oklch(1 0 0 / 0.22);
+  --glass-highlight:oklch(1 0 0 / 0.45);
+  --glass-blur: 28px;
+  --glass-shadow:
+    0 1px 0 var(--glass-highlight) inset,
+    0 -1px 0 oklch(1 0 0 / 0.05) inset,
+    0 24px 60px -24px oklch(0 0 0 / 0.6),
+    0 8px 20px -10px oklch(0 0 0 / 0.4);
 }
 
 /* ─── System light theme ────────────────────────────────────── */
@@ -86,6 +109,25 @@
     --shadow-lg: 0 1px 0 oklch(1 0 0 / 1) inset, 0 18px 48px oklch(0 0 0 / 0.12);
 
     --hero-bg: oklch(0.96 0.006 80);
+
+    --editor-bg:   #eeeef1;
+    --panel:       #ffffff;
+    --panel-line:  rgba(0,0,0,0.07);
+    --panel-badge: rgba(0,0,0,0.05);
+    --panel-well:  #f0f0f3;
+    --panel-well-2:#e3e3e8;
+
+    --glass:          oklch(1 0 0 / 0.55);
+    --glass-strong:   oklch(1 0 0 / 0.72);
+    --glass-faint:    oklch(1 0 0 / 0.34);
+    --glass-border:   oklch(0 0 0 / 0.07);
+    --glass-border-2: oklch(0 0 0 / 0.12);
+    --glass-highlight:oklch(1 0 0 / 0.85);
+    --glass-shadow:
+      0 1px 0 var(--glass-highlight) inset,
+      0 -1px 0 oklch(0 0 0 / 0.03) inset,
+      0 24px 50px -24px oklch(0 0 0 / 0.16),
+      0 6px 16px -10px oklch(0 0 0 / 0.10);
   }
 }
 
@@ -145,13 +187,15 @@ input, textarea { font: inherit; color: inherit; }
   display: inline-flex; align-items: center; gap: 8px;
   height: var(--row-h); padding: 0 12px;
   font-family: var(--font); font-size: 13px; font-weight: 500;
-  background: var(--bg-1); color: var(--fg-1);
-  border: 1px solid var(--line); border-radius: var(--r-3);
+  background: var(--glass); color: var(--fg-1);
+  backdrop-filter: blur(calc(var(--glass-blur) * 0.5)) saturate(150%);
+  -webkit-backdrop-filter: blur(calc(var(--glass-blur) * 0.5)) saturate(150%);
+  border: 1px solid var(--glass-border); border-radius: var(--r-3);
   cursor: pointer; white-space: nowrap;
   transition: background 120ms, border-color 120ms, color 120ms, box-shadow 120ms, transform 80ms;
   text-decoration: none;
 }
-.btn:hover { background: var(--bg-2); color: var(--fg); border-color: var(--line-1); }
+.btn:hover { background: var(--glass-strong); color: var(--fg); border-color: var(--glass-border-2); }
 .btn:active { transform: scale(0.97); }
 .btn[data-variant="primary"] {
   background: var(--accent); color: var(--accent-fg);
@@ -166,6 +210,24 @@ input, textarea { font: inherit; color: inherit; }
 .btn[data-size="xl"]  { height: 52px; padding: 0 28px; font-size: 16px; font-weight: 600; border-radius: var(--r-4); }
 .btn[data-icon-only="true"] { padding: 0; width: var(--row-h); justify-content: center; }
 .btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* The settings panel styles its controls inline, so they need an explicit
+   focus ring — without this, keyboard users get no visible position. */
+.right-col button:focus-visible,
+.right-col [role="switch"]:focus-visible,
+.right-col input:focus-visible,
+.right-col textarea:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
 .btn:disabled { opacity: 0.45; cursor: not-allowed; }
 
 /* ─── Glowing CTA button ────────────────────────────────────── */
@@ -181,14 +243,16 @@ input, textarea { font: inherit; color: inherit; }
 .input {
   display: flex; align-items: center; gap: 8px;
   height: var(--row-h); padding: 0 12px;
-  background: var(--bg-inset); border: 1px solid var(--line);
+  background: var(--glass-faint); border: 1px solid var(--glass-border);
+  backdrop-filter: blur(calc(var(--glass-blur) * 0.4)) saturate(140%);
+  -webkit-backdrop-filter: blur(calc(var(--glass-blur) * 0.4)) saturate(140%);
   border-radius: var(--r-3); font-size: 13px; color: var(--fg);
   width: 100%;
   transition: border-color 150ms, background 150ms, box-shadow 150ms;
 }
-.input:hover { border-color: var(--line-1); }
+.input:hover { border-color: var(--glass-border-2); }
 .input:focus-within {
-  border-color: var(--accent); background: var(--bg);
+  border-color: var(--accent); background: var(--bg-inset);
   box-shadow: 0 0 0 3px var(--accent-quiet);
 }
 .input input { flex: 1; min-width: 0; background: transparent; border: 0; outline: none; font-size: 13px; }
@@ -328,5 +392,48 @@ input, textarea { font: inherit; color: inherit; }
   border: 1px solid oklch(1 0 0 / 0.14);
   border-radius: 14px;
 }
+
+/* ─── Liquid glass system ───────────────────────────────────── */
+/* Base frosted surface — layered translucency + specular top edge + soft depth. */
+.glass {
+  position: relative;
+  background: linear-gradient(155deg, var(--glass-strong) 0%, var(--glass) 55%, var(--glass-strong) 100%);
+  backdrop-filter: blur(var(--glass-blur)) saturate(160%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(160%);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+}
+/* Flatter, quieter surface for nested/secondary chrome (rows, chips). */
+.glass-soft {
+  position: relative;
+  background: var(--glass-faint);
+  backdrop-filter: blur(calc(var(--glass-blur) * 0.6)) saturate(140%);
+  -webkit-backdrop-filter: blur(calc(var(--glass-blur) * 0.6)) saturate(140%);
+  border: 1px solid var(--glass-border);
+}
+/* Diagonal sheen sweep — layer as ::before on any `position:relative` glass el. */
+.glass-sheen { overflow: hidden; }
+.glass-sheen::before {
+  content: ''; position: absolute; inset: 0; z-index: 0; pointer-events: none;
+  border-radius: inherit;
+  background: radial-gradient(120% 60% at 18% -12%, oklch(1 0 0 / 0.30), transparent 55%);
+  mix-blend-mode: screen;
+}
+/* Progressive-enhancement liquid distortion — refracts what's behind the edge.
+   The plain blur below is the fallback; browsers that reject the url() filter
+   function simply keep the prior valid declaration (blur stays, no breakage). */
+.glass-liquid {
+  backdrop-filter: blur(var(--glass-blur)) saturate(160%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(160%);
+  backdrop-filter: blur(10px) saturate(160%) url(#liquid-distortion);
+}
+.glass-hairline { border-color: var(--glass-border-2); }
+
+/* Dock-style icon lift — subtle magnify + brighten on hover, tactile press. */
+.dock-tile {
+  transition: transform 180ms cubic-bezier(0.34,1.56,0.64,1), border-color 150ms, background 150ms, box-shadow 150ms;
+}
+.dock-tile:hover { transform: translateY(-2px) scale(1.05); border-color: var(--glass-border-2); }
+.dock-tile:active { transform: translateY(0) scale(0.97); }
 
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }

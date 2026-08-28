@@ -24,7 +24,7 @@ type Props = {
 }
 
 // Returns accent as a text-safe color. If the extracted album color is too dark
-// to read against a near-black panel (#0d0d0d), fall back to the CSS default.
+// to read against a translucent glass panel, fall back to the CSS default.
 function textAccent(hex: string | null | undefined): string {
   if (!hex || !/^#[0-9a-f]{6}$/i.test(hex)) return 'var(--accent)'
   const r = parseInt(hex.slice(1, 3), 16) / 255
@@ -256,33 +256,32 @@ const FONT_CSS_VAR: Record<CardConfig['font'], string> = {
   oswald:           'var(--font-oswald)',
 }
 
-// ── Section accordion ──────────────────────────────────────────
+// ── Section — floating glass card, collapsible ──────────────────
 function Section({ icon, label, children }: {
   icon: React.ReactNode; label: string; children: React.ReactNode
 }) {
   const [open, setOpen] = useState(true)
   return (
-    <div style={{ borderBottom: '1px solid rgba(255,255,255,0.06)', marginBottom: 4 }}>
+    <div className="glass" style={{ borderRadius: 14, margin: '0 10px 10px' }}>
       <button
         onClick={() => setOpen(o => !o)}
         style={{
           width: '100%', border: 0, background: 'transparent', cursor: 'pointer',
           display: 'flex', alignItems: 'center', gap: 8,
-          padding: '13px 16px 12px',
-          borderBottom: open ? '1px solid rgba(255,255,255,0.05)' : 'none',
-          color: 'rgba(255,255,255,0.25)',
+          padding: '12px 14px 11px',
+          borderBottom: open ? '1px solid var(--glass-border)' : 'none',
         }}
       >
-        <span style={{ display: 'flex', color: 'rgba(255,255,255,0.25)' }}>{icon}</span>
+        <span style={{ display: 'flex', color: 'var(--fg-3)' }}>{icon}</span>
         <span style={{
           flex: 1, textAlign: 'left',
           fontFamily: 'var(--font-mono)', fontSize: 10, fontWeight: 600,
           letterSpacing: '0.12em', textTransform: 'uppercase',
-          color: open ? 'rgba(255,255,255,0.7)' : 'rgba(255,255,255,0.35)',
+          color: open ? 'var(--fg-1)' : 'var(--fg-3)',
         }}>
           {label}
         </span>
-        <svg viewBox="0 0 10 10" width="9" height="9" fill="none" stroke="rgba(255,255,255,0.25)" strokeWidth="1.5" strokeLinecap="round">
+        <svg viewBox="0 0 10 10" width="9" height="9" fill="none" stroke="var(--fg-3)" strokeWidth="1.5" strokeLinecap="round">
           <path d={open ? 'm2 3.5 3 3 3-3' : 'm2 6.5 3-3 3 3'} />
         </svg>
       </button>
@@ -291,7 +290,7 @@ function Section({ icon, label, children }: {
         maxHeight: open ? 9999 : 0,
         transition: 'max-height 300ms ease',
       }}>
-        <div style={{ padding: '14px 16px 18px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <div style={{ padding: '13px 14px 15px', display: 'flex', flexDirection: 'column', gap: 16 }}>
           {children}
         </div>
       </div>
@@ -315,9 +314,9 @@ function PillRow<T extends string>({ value, options, onChange, accent }: {
           <button key={i} onClick={() => onChange(o.value)} style={{
             flex: 1, height: 36, borderRadius: 999, border: 0, cursor: 'pointer',
             fontSize: 12, fontWeight: 500,
-            background: selected ? (accent?.startsWith('#') ? `${accent}33` : 'var(--accent-quiet)') : '#1a1a1a',
-            color: selected ? (accent ?? 'var(--accent)') : 'rgba(255,255,255,0.5)',
-            outline: selected ? `1px solid ${accentRgb}` : '1px solid rgba(255,255,255,0.08)',
+            background: selected ? (accent?.startsWith('#') ? `${accent}33` : 'var(--accent-quiet)') : 'var(--glass-faint)',
+            color: selected ? (accent ?? 'var(--accent)') : 'var(--fg-2)',
+            outline: selected ? `1px solid ${accentRgb}` : '1px solid var(--glass-border)',
             transition: 'all 120ms',
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
           }}>{o.label}</button>
@@ -338,14 +337,14 @@ function StyledSlider({ value, min, max, step, onChange, trackStyle, label, suff
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)' }}>{label}</span>
-        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'rgba(255,255,255,0.7)' }}>{value}{suffix ?? (label.includes('Hue') ? '°' : 'px')}</span>
+        <span style={{ fontSize: 12, color: 'var(--fg-2)' }}>{label}</span>
+        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--fg-1)' }}>{value}{suffix ?? (label.includes('Hue') ? '°' : 'px')}</span>
       </div>
       <div style={{ position: 'relative', height: 24, display: 'flex', alignItems: 'center' }}>
         <div style={{
           position: 'absolute', inset: 0, top: '50%', transform: 'translateY(-50%)',
           height: 6, borderRadius: 3,
-          background: trackStyle?.background ?? `linear-gradient(to right, #1a1a1a, rgba(255,255,255,0.25))`,
+          background: trackStyle?.background ?? `linear-gradient(to right, var(--glass-faint), var(--glass-border-2))`,
           ...trackStyle,
         }} />
         <input
@@ -362,13 +361,13 @@ function StyledSlider({ value, min, max, step, onChange, trackStyle, label, suff
             -webkit-appearance: none;
             width: 16px; height: 16px; border-radius: 50%;
             background: #fff;
-            box-shadow: 0 0 0 3px #000, 0 1px 4px rgba(0,0,0,0.6);
+            box-shadow: 0 0 0 3px var(--bg), 0 1px 4px rgba(0,0,0,0.4);
             cursor: pointer;
           }
           input[type=range]::-moz-range-thumb {
             width: 16px; height: 16px; border-radius: 50%;
             background: #fff; border: none;
-            box-shadow: 0 0 0 3px #000, 0 1px 4px rgba(0,0,0,0.6);
+            box-shadow: 0 0 0 3px var(--bg), 0 1px 4px rgba(0,0,0,0.4);
             cursor: pointer;
           }
         `}</style>
@@ -394,19 +393,19 @@ function ToggleItem({ label, value, onChange, icon, accent }: {
         transition: 'all 150ms',
       }}
     >
-      <span style={{ color: value ? (accent ?? 'var(--accent)') : 'rgba(255,255,255,0.3)', display: 'flex', flexShrink: 0 }}>{icon}</span>
-      <span style={{ flex: 1, fontSize: 12, color: value ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.45)' }}>{label}</span>
+      <span style={{ color: value ? (accent ?? 'var(--accent)') : 'var(--fg-3)', display: 'flex', flexShrink: 0 }}>{icon}</span>
+      <span style={{ flex: 1, fontSize: 12, color: value ? 'var(--fg)' : 'var(--fg-3)' }}>{label}</span>
       <div style={{
         width: 36, height: 20, borderRadius: 999, flexShrink: 0,
-        background: value ? (accent?.startsWith('#') ? `${accent}99` : 'var(--accent)') : '#2a2a2a',
+        background: value ? (accent?.startsWith('#') ? `${accent}99` : 'var(--accent)') : 'var(--glass-border-2)',
         position: 'relative', transition: 'background 150ms',
       }}>
         <span style={{
           position: 'absolute', top: 3, left: value ? 18 : 3,
           width: 14, height: 14, borderRadius: '50%',
-          background: value ? '#fff' : 'rgba(255,255,255,0.5)',
+          background: '#fff',
           transition: 'left 150ms',
-          boxShadow: '0 1px 3px rgba(0,0,0,0.4)',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.35)',
           display: 'block',
         }} />
       </div>
@@ -446,7 +445,7 @@ export default function CustomizePanel({ config, onChange, accentColor }: Props)
   const [showSaveInput, setShowSaveInput] = useState(false)
 
   return (
-    <div style={{ background: '#0d0d0d', flex: 1 }}>
+    <div style={{ flex: 1, padding: '10px 0' }}>
 
       {/* ── SAVED PRESETS ── */}
       <Section icon={<IconBookmark />} label="Saved Presets">
@@ -455,9 +454,9 @@ export default function CustomizePanel({ config, onChange, accentColor }: Props)
           <button
             onClick={() => setShowSaveInput(true)}
             style={{
-              width: '100%', height: 36, borderRadius: 8, border: '1px dashed rgba(255,255,255,0.15)',
+              width: '100%', height: 36, borderRadius: 8, border: '1px dashed var(--glass-border-2)',
               background: 'transparent', cursor: 'pointer',
-              fontSize: 12, color: 'rgba(255,255,255,0.45)',
+              fontSize: 12, color: 'var(--fg-2)',
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
             }}
           >
@@ -482,8 +481,8 @@ export default function CustomizePanel({ config, onChange, accentColor }: Props)
               }}
               placeholder="Preset name…"
               style={{
-                flex: 1, height: 34, borderRadius: 6, border: '1px solid rgba(255,255,255,0.15)',
-                background: 'rgba(255,255,255,0.06)', color: '#fff', fontSize: 12, padding: '0 10px',
+                flex: 1, height: 34, borderRadius: 6, border: '1px solid var(--glass-border-2)',
+                background: 'var(--glass-faint)', color: 'var(--fg)', fontSize: 12, padding: '0 10px',
                 outline: 'none',
               }}
             />
@@ -499,7 +498,7 @@ export default function CustomizePanel({ config, onChange, accentColor }: Props)
               }}
               style={{
                 height: 34, width: 56, borderRadius: 6, border: 0,
-                background: ac ? `${ac}33` : '#252525',
+                background: ac ? `${ac}33` : 'var(--glass-strong)',
                 color: act, cursor: 'pointer', fontSize: 12, fontWeight: 600,
               }}
             >Save</button>
@@ -507,7 +506,7 @@ export default function CustomizePanel({ config, onChange, accentColor }: Props)
               onClick={() => { setSaveName(''); setShowSaveInput(false) }}
               style={{
                 height: 34, width: 34, borderRadius: 6, border: 0,
-                background: 'transparent', color: 'rgba(255,255,255,0.4)',
+                background: 'transparent', color: 'var(--fg-3)',
                 cursor: 'pointer', fontSize: 16,
               }}
             >✕</button>
@@ -522,14 +521,14 @@ export default function CustomizePanel({ config, onChange, accentColor }: Props)
                 <button
                   onClick={() => onChange(p.config)}
                   style={{
-                    flex: 1, height: 34, borderRadius: 7, border: '1px solid rgba(255,255,255,0.09)',
-                    background: '#1a1a1a', cursor: 'pointer', textAlign: 'left',
-                    padding: '0 10px', fontSize: 12, color: 'rgba(255,255,255,0.75)',
+                    flex: 1, height: 34, borderRadius: 7, border: '1px solid var(--glass-border)',
+                    background: 'var(--glass-faint)', cursor: 'pointer', textAlign: 'left',
+                    padding: '0 10px', fontSize: 12, color: 'var(--fg-1)',
                     display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                   }}
                 >
                   <span>{p.name}</span>
-                  <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', fontFamily: 'var(--font-mono)' }}>
+                  <span style={{ fontSize: 10, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)' }}>
                     {p.config.preset}
                   </span>
                 </button>
@@ -542,7 +541,7 @@ export default function CustomizePanel({ config, onChange, accentColor }: Props)
                   style={{
                     width: 28, height: 34, borderRadius: 7, border: 0,
                     background: 'transparent', cursor: 'pointer',
-                    color: 'rgba(255,255,255,0.25)', fontSize: 14,
+                    color: 'var(--fg-3)', fontSize: 14,
                   }}
                 >✕</button>
               </div>
@@ -551,7 +550,7 @@ export default function CustomizePanel({ config, onChange, accentColor }: Props)
         )}
 
         {savedPresets.length === 0 && !showSaveInput && (
-          <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.25)', margin: 0 }}>
+          <p style={{ fontSize: 11, color: 'var(--fg-3)', margin: 0 }}>
             No saved presets yet. Save your current settings to quickly restore them.
           </p>
         )}
@@ -566,12 +565,12 @@ export default function CustomizePanel({ config, onChange, accentColor }: Props)
               <button
                 key={p.id}
                 onClick={() => onChange({ preset: p.id })}
+                className="dock-tile"
                 style={{
-                  background: sel ? (ac ? `${ac}26` : 'var(--accent-quiet)') : '#1a1a1a',
-                  border: `1.5px solid ${sel ? act : 'rgba(255,255,255,0.08)'}`,
+                  background: sel ? (ac ? `${ac}26` : 'var(--accent-quiet)') : 'var(--glass-faint)',
+                  border: `1.5px solid ${sel ? act : 'var(--glass-border)'}`,
                   borderRadius: 10, cursor: 'pointer', padding: '10px 8px 8px',
                   display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
-                  transition: 'border-color 120ms, background 120ms',
                   minHeight: 90,
                 }}
               >
@@ -581,7 +580,7 @@ export default function CustomizePanel({ config, onChange, accentColor }: Props)
                 <span style={{
                   fontFamily: 'var(--font-poppins)', fontSize: 10, fontWeight: 600,
                   letterSpacing: '0.08em', textTransform: 'uppercase',
-                  color: sel ? act : 'rgba(255,255,255,0.55)',
+                  color: sel ? act : 'var(--fg-2)',
                 }}>{p.name}</span>
               </button>
             )
@@ -609,7 +608,7 @@ export default function CustomizePanel({ config, onChange, accentColor }: Props)
               <div style={{
                 width: 32, height: 32, borderRadius: 8,
                 background: config.bgColor,
-                border: '1px solid rgba(255,255,255,0.12)',
+                border: '1px solid var(--glass-border-2)',
                 cursor: 'pointer',
                 overflow: 'hidden',
               }}>
@@ -620,7 +619,7 @@ export default function CustomizePanel({ config, onChange, accentColor }: Props)
                 />
               </div>
             </div>
-            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'rgba(255,255,255,0.55)' }}>{config.bgColor.toUpperCase()}</span>
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--fg-2)' }}>{config.bgColor.toUpperCase()}</span>
           </div>
         )}
 
@@ -642,15 +641,15 @@ export default function CustomizePanel({ config, onChange, accentColor }: Props)
               <button
                 key={f.value}
                 onClick={() => onChange({ font: f.value })}
+                className="dock-tile"
                 style={{
                   height: 72, borderRadius: 10, border: 0,
-                  background: sel ? (ac ? `${ac}22` : 'rgba(100,120,255,0.12)') : '#161616',
-                  outline: sel ? `1.5px solid ${act}` : '1.5px solid rgba(255,255,255,0.07)',
+                  background: sel ? (ac ? `${ac}22` : 'rgba(100,120,255,0.12)') : 'var(--glass-faint)',
+                  outline: sel ? `1.5px solid ${act}` : '1.5px solid var(--glass-border)',
                   cursor: 'pointer',
                   display: 'flex', flexDirection: 'column',
                   alignItems: 'flex-start', justifyContent: 'flex-end',
                   padding: '0 10px 9px',
-                  transition: 'outline-color 120ms, background 120ms',
                   overflow: 'hidden',
                   position: 'relative',
                 }}
@@ -661,7 +660,7 @@ export default function CustomizePanel({ config, onChange, accentColor }: Props)
                   fontSize: f.size,
                   fontWeight: f.weight,
                   lineHeight: 1,
-                  color: sel ? act : 'rgba(255,255,255,0.80)',
+                  color: sel ? act : 'var(--fg-1)',
                   letterSpacing: f.value === 'bebas' || f.value === 'oswald' ? '0.04em' : f.value === 'raleway' ? '0.06em' : '0',
                   display: 'block', width: '100%',
                   whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
@@ -669,7 +668,7 @@ export default function CustomizePanel({ config, onChange, accentColor }: Props)
                 {/* Category tag */}
                 <span style={{
                   fontFamily: 'var(--font-mono)', fontSize: 9,
-                  color: sel ? act : 'rgba(255,255,255,0.25)',
+                  color: sel ? act : 'var(--fg-3)',
                   letterSpacing: '0.08em', textTransform: 'uppercase',
                   marginTop: 4,
                 }}>{f.tag}</span>
@@ -701,9 +700,9 @@ export default function CustomizePanel({ config, onChange, accentColor }: Props)
             return (
               <button key={o.value} onClick={() => onChange({ textAlign: o.value })} style={{
                 width: 40, height: 40, borderRadius: 8, border: 0, cursor: 'pointer',
-                background: sel ? (ac ? `${ac}33` : 'var(--accent-quiet)') : '#1a1a1a',
-                color: sel ? act : 'rgba(255,255,255,0.4)',
-                outline: sel ? `1.5px solid ${act}` : '1.5px solid rgba(255,255,255,0.08)',
+                background: sel ? (ac ? `${ac}33` : 'var(--accent-quiet)') : 'var(--glass-faint)',
+                color: sel ? act : 'var(--fg-3)',
+                outline: sel ? `1.5px solid ${act}` : '1.5px solid var(--glass-border)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 transition: 'all 120ms',
               }}>{o.icon}</button>
@@ -733,7 +732,7 @@ export default function CustomizePanel({ config, onChange, accentColor }: Props)
 
       {/* ── EXPERIMENTAL ── */}
       <Section icon={<IconBeaker />} label="Experimental">
-        <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.28)', lineHeight: 1.5, margin: 0 }}>
+        <p style={{ fontSize: 11, color: 'var(--fg-3)', lineHeight: 1.5, margin: 0 }}>
           These effects render in the preview and in exported images.
         </p>
 

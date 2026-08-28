@@ -536,82 +536,76 @@ export default function Home() {
   // ── LOADING STATE ────────────────────────────────────────────
   if (loading) {
     return (
-      <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--bg)' }}>
+      <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--hero-bg)', position: 'relative' }}>
+        {/* Ambient glow — matches loaded state so the transition doesn't jump */}
+        <div style={{ position: 'fixed', inset: 0, zIndex: 0, overflow: 'hidden', pointerEvents: 'none' }}>
+          <div className="hero-grid" style={{ position: 'absolute', inset: 0, opacity: 0.5 }} />
+          <div style={{ position: 'absolute', top: '-10%', left: '-8%', width: 480, height: 480,
+            borderRadius: '50%', background: 'radial-gradient(circle, oklch(from var(--accent) l c h / 0.16) 0%, transparent 65%)',
+            filter: 'blur(90px)' }} />
+          <div style={{ position: 'absolute', bottom: '-14%', right: '-8%', width: 460, height: 460,
+            borderRadius: '50%', background: 'radial-gradient(circle, oklch(0.6 0.18 300 / 0.12) 0%, transparent 65%)',
+            filter: 'blur(90px)' }} />
+        </div>
+
         {/* Nav */}
-        <nav style={{
+        <nav className="glass" style={{
           height: 56, display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          padding: '0 24px', borderBottom: '1px solid var(--line-soft)',
-          background: 'var(--bg)', flexShrink: 0,
+          padding: '0 24px', borderRadius: 0, borderTop: 0, borderLeft: 0, borderRight: 0,
+          flexShrink: 0, position: 'relative', zIndex: 1,
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div className="animate-pulse-slow" style={{ width: 72, height: 28, borderRadius: 8, background: 'rgba(255,255,255,0.06)' }} />
+            <div className="animate-pulse-slow" style={{ width: 72, height: 28, borderRadius: 8, background: 'var(--glass-strong)' }} />
             <Logo />
           </div>
         </nav>
 
         {/* Editor two-column skeleton */}
-        <div style={{ display: 'flex', flex: 1, maxWidth: 1280, margin: '0 auto', width: '100%' }} className="editor-layout">
+        <div style={{ display: 'flex', flex: 1, gap: 16, maxWidth: 1280, margin: '0 auto', width: '100%', position: 'relative', zIndex: 1 }} className="editor-layout">
           {/* Left column */}
           <div style={{ flex: 1, padding: '32px 24px 24px', display: 'flex', flexDirection: 'column', gap: 20 }}
             className="left-col">
             {/* URL bar shimmer */}
-            <div className="animate-pulse-slow" style={{
-              height: 52, borderRadius: 14,
-              background: 'rgba(255,255,255,0.05)',
-              border: '1px solid rgba(255,255,255,0.07)',
-            }} />
+            <div className="animate-pulse-slow glass" style={{ height: 52, borderRadius: 14 }} />
             {/* Card glass placeholder */}
-            <div style={{
-              borderRadius: 22, padding: 20,
-              background: 'rgba(255,255,255,0.04)',
-              backdropFilter: 'blur(24px)',
-              WebkitBackdropFilter: 'blur(24px)',
-              border: '1px solid rgba(255,255,255,0.09)',
-            }}>
+            <div className="glass" style={{ borderRadius: 20, padding: 20 }}>
               <div className="animate-pulse-slow" style={{
                 width: '100%', aspectRatio: '1 / 1', borderRadius: 16,
-                background: 'rgba(255,255,255,0.07)',
+                background: 'var(--glass-strong)',
               }} />
             </div>
             {/* Audio bar shimmer */}
-            <div className="animate-pulse-slow" style={{
-              height: 52, borderRadius: 12,
-              background: 'rgba(255,255,255,0.04)',
-              border: '1px solid rgba(255,255,255,0.06)',
-            }} />
+            <div className="animate-pulse-slow glass" style={{ height: 52, borderRadius: 14 }} />
           </div>
 
           {/* Right column */}
-          <div style={{
+          <div className="glass right-col" style={{
             width: 340, flexShrink: 0,
-            borderLeft: '1px solid var(--line)',
             display: 'flex', flexDirection: 'column',
-          }} className="right-col">
+            marginTop: 16, marginBottom: 16, marginRight: 16,
+            borderRadius: 20, overflow: 'hidden',
+          }}>
             {/* Track meta shimmer */}
             <div style={{
-              padding: '12px 20px',
-              borderBottom: '1px solid rgba(255,255,255,0.06)',
+              padding: '14px 20px',
+              borderBottom: '1px solid var(--glass-border)',
               display: 'flex', gap: 12, alignItems: 'center',
             }}>
               <div className="animate-pulse-slow" style={{
-                width: 36, height: 36, borderRadius: 6,
-                background: 'rgba(255,255,255,0.09)', flexShrink: 0,
+                width: 36, height: 36, borderRadius: 8,
+                background: 'var(--glass-strong)', flexShrink: 0,
               }} />
               <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 7 }}>
-                <div className="animate-pulse-slow" style={{ height: 11, width: '68%', borderRadius: 6, background: 'rgba(255,255,255,0.09)' }} />
-                <div className="animate-pulse-slow" style={{ height: 9, width: '44%', borderRadius: 6, background: 'rgba(255,255,255,0.05)', animationDelay: '0.1s' }} />
+                <div className="animate-pulse-slow" style={{ height: 11, width: '68%', borderRadius: 6, background: 'var(--glass-strong)' }} />
+                <div className="animate-pulse-slow" style={{ height: 9, width: '44%', borderRadius: 6, background: 'var(--glass)', animationDelay: '0.1s' }} />
               </div>
             </div>
             {/* Settings section glass blocks */}
             {([110, 155, 195, 135] as number[]).map((h, i) => (
-              <div key={i} className="animate-pulse-slow" style={{
-                margin: '8px 10px',
+              <div key={i} className="animate-pulse-slow glass" style={{
+                margin: '10px',
                 height: h,
-                borderRadius: 12,
-                background: 'rgba(255,255,255,0.04)',
-                backdropFilter: 'blur(12px)',
-                WebkitBackdropFilter: 'blur(12px)',
-                border: '1px solid rgba(255,255,255,0.07)',
+                borderRadius: 14,
                 animationDelay: `${i * 0.12}s`,
               }} />
             ))}
@@ -622,7 +616,7 @@ export default function Home() {
           @media (max-width: 768px) {
             .editor-layout { flex-direction: column !important; }
             .left-col { width: 100% !important; }
-            .right-col { width: 100% !important; border-left: none !important; border-top: 1px solid var(--line) !important; }
+            .right-col { width: 100% !important; margin: 0 16px 16px !important; }
           }
         `}</style>
       </div>
@@ -631,14 +625,25 @@ export default function Home() {
 
   // ── LOADED STATE ─────────────────────────────────────────────
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--bg)' }}>
+    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--hero-bg)', position: 'relative' }}>
       {accentColor && <style>{`:root { --accent: ${accentColor}; }`}</style>}
 
+      {/* Ambient glow — gives glass surfaces something to refract */}
+      <div style={{ position: 'fixed', inset: 0, zIndex: 0, overflow: 'hidden', pointerEvents: 'none' }}>
+        <div className="hero-grid" style={{ position: 'absolute', inset: 0, opacity: 0.5 }} />
+        <div style={{ position: 'absolute', top: '-10%', left: '-8%', width: 480, height: 480,
+          borderRadius: '50%', background: 'radial-gradient(circle, oklch(from var(--accent) l c h / 0.16) 0%, transparent 65%)',
+          filter: 'blur(90px)' }} />
+        <div style={{ position: 'absolute', bottom: '-14%', right: '-8%', width: 460, height: 460,
+          borderRadius: '50%', background: 'radial-gradient(circle, oklch(0.6 0.18 300 / 0.12) 0%, transparent 65%)',
+          filter: 'blur(90px)' }} />
+      </div>
+
       {/* Nav */}
-      <nav style={{
+      <nav className="glass" style={{
         height: 56, display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '0 24px', borderBottom: '1px solid var(--line-soft)',
-        background: 'var(--bg)', flexShrink: 0, position: 'sticky', top: 0, zIndex: 20,
+        padding: '0 24px', borderRadius: 0, borderTop: 0, borderLeft: 0, borderRight: 0,
+        flexShrink: 0, position: 'sticky', top: 0, zIndex: 20,
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <button
@@ -656,10 +661,11 @@ export default function Home() {
       {/* Split layout */}
       <div style={{
         flex: 1, display: 'flex',
-        flexDirection: 'row',
+        flexDirection: 'row', gap: 16,
         alignItems: 'flex-start',
         maxWidth: 1280, margin: '0 auto', width: '100%',
         padding: '0',
+        position: 'relative', zIndex: 1,
         animation: 'fadeIn 0.35s ease both',
       }}
         className="editor-layout"
@@ -684,9 +690,8 @@ export default function Home() {
           </div>
 
           {/* Card preview — fills container, aspect ratio maintained by the card itself */}
-          <div style={{
-            background: 'var(--bg-1)', borderRadius: 12,
-            border: '1px solid var(--line)',
+          <div className="glass glass-sheen" style={{
+            borderRadius: 20,
             padding: 20, overflow: 'hidden',
           }}>
             {track && (() => {
@@ -735,21 +740,22 @@ export default function Home() {
         </div>
 
         {/* ── RIGHT: Lyrics + Customize + Export ──────────── */}
-        <div style={{
+        <div className="glass right-col" style={{
           width: 340, flexShrink: 0,
-          borderLeft: '1px solid var(--line)',
           display: 'flex', flexDirection: 'column',
-          height: 'calc(100vh - 56px)',
-          position: 'sticky', top: 56,
+          height: 'calc(100vh - 88px)',
+          position: 'sticky', top: 72,
+          marginTop: 16, marginBottom: 16, marginRight: 16,
+          borderRadius: 20,
           overflow: 'hidden',
-        }} className="right-col">
+        }}>
           {/* Track meta strip */}
           {track && (
             <div style={{
-              padding: '12px 20px', borderBottom: '1px solid var(--line-soft)',
+              padding: '14px 20px', borderBottom: '1px solid var(--glass-border)',
               display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0,
             }}>
-              <div style={{ width: 36, height: 36, borderRadius: 6, overflow: 'hidden', flexShrink: 0, position: 'relative', background: 'var(--bg-2)' }}>
+              <div style={{ width: 36, height: 36, borderRadius: 8, overflow: 'hidden', flexShrink: 0, position: 'relative', background: 'var(--bg-2)' }}>
                 {track.coverUrl && (
                   <Image src={track.coverUrl} alt={track.title} fill style={{ objectFit: 'cover' }} unoptimized />
                 )}
@@ -758,8 +764,8 @@ export default function Home() {
                 <div style={{ fontFamily: 'var(--font-syne)', fontSize: 13, fontWeight: 600, color: 'var(--fg)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {track.title}
                 </div>
-                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.60)', marginTop: 2 }}>{track.artist}</div>
-                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.40)', marginTop: 1 }}>
+                <div style={{ fontSize: 11, color: 'var(--fg-2)', marginTop: 2 }}>{track.artist}</div>
+                <div style={{ fontSize: 11, color: 'var(--fg-3)', marginTop: 1 }}>
                   {track.releaseYear} · {track.duration}
                 </div>
               </div>
@@ -767,7 +773,7 @@ export default function Home() {
           )}
 
           {/* Lyrics panel */}
-          <div style={{ borderBottom: '1px solid var(--line-soft)', flexShrink: 0 }}>
+          <div style={{ borderBottom: '1px solid var(--glass-border)', flexShrink: 0 }}>
             <LyricsPanel
               lines={lyrics ?? []}
               loading={false}
@@ -802,6 +808,7 @@ export default function Home() {
             height: auto !important;
             position: static !important;
             overflow: visible !important;
+            margin: 0 16px 16px !important;
           }
         }
       `}</style>

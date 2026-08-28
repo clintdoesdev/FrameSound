@@ -84,7 +84,19 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
   return (
     <html lang="en" data-accent="emerald" className={fontVars}>
-      <body>{children}</body>
+      <body>
+        {/* Hidden liquid-glass distortion filter — referenced via
+            `backdrop-filter: ... url(#liquid-distortion)` as a progressive
+            enhancement (see .glass-liquid in globals.css). Adapted from the
+            liquid-glass-vue reference's feTurbulence/feDisplacementMap rig. */}
+        <svg width="0" height="0" style={{ position: 'absolute' }} aria-hidden="true">
+          <filter id="liquid-distortion" x="-20%" y="-20%" width="140%" height="140%">
+            <feTurbulence type="fractalNoise" baseFrequency="0.008 0.012" numOctaves="2" seed="7" result="turbulence" />
+            <feDisplacementMap in="SourceGraphic" in2="turbulence" scale="18" xChannelSelector="R" yChannelSelector="G" />
+          </filter>
+        </svg>
+        {children}
+      </body>
     </html>
   )
 }

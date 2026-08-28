@@ -83,11 +83,9 @@ export default function LyricsPanel({ lines, loading, onQuoteChange, accentColor
 
       {/* Quote preview */}
       {hasSelection && (
-        <div style={{
+        <div className="glass-soft" style={{
           margin: '10px 16px 2px',
           padding: '10px 14px',
-          background: 'var(--bg-1)',
-          border: '1px solid var(--line)',
           borderLeft: `3px solid ${ac}`,
           borderRadius: '0 8px 8px 0',
           animation: 'fadeIn 0.2s ease both',
@@ -117,7 +115,7 @@ export default function LyricsPanel({ lines, loading, onQuoteChange, accentColor
                   background: isSel ? `${ac}18` : 'transparent',
                   border: 'none',
                   borderLeft: `3px solid ${isSel ? ac : 'transparent'}`,
-                  color: isSel ? '#ffffff' : isMaxed ? 'rgba(255,255,255,0.3)' : 'rgba(255,255,255,0.65)',
+                  color: isSel ? 'var(--fg)' : isMaxed ? 'var(--fg-4)' : 'var(--fg-2)',
                   cursor: isMaxed ? 'not-allowed' : 'pointer',
                   fontSize: 13.5, lineHeight: 1.5,
                   transition: 'background 100ms, color 100ms',
@@ -153,15 +151,15 @@ export default function LyricsPanel({ lines, loading, onQuoteChange, accentColor
           rows={2}
           style={{
             width: '100%', resize: 'none',
-            background: 'var(--bg-inset)',
-            border: '1px solid var(--line)',
+            background: 'var(--glass-faint)',
+            border: '1px solid var(--glass-border)',
             borderRadius: 8, padding: '9px 11px',
             fontSize: 13, color: 'var(--fg)', fontFamily: 'inherit',
             outline: 'none', lineHeight: 1.5,
             transition: 'border-color 150ms',
           }}
           onFocus={e => { e.currentTarget.style.borderColor = ac }}
-          onBlur={e => { e.currentTarget.style.borderColor = 'var(--line)' }}
+          onBlur={e => { e.currentTarget.style.borderColor = 'var(--glass-border)' }}
         />
       </div>
     </div>

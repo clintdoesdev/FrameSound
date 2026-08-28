@@ -209,10 +209,10 @@ export default function ExportBar({ cardRef, track, config, onConfigChange, acce
   }, [cardRef, busy])
 
   const btnBase = (isActive: boolean): React.CSSProperties => ({
-    flex: 1, height: 48, borderRadius: 8, border: 0,
+    flex: 1, height: 48, borderRadius: 10, border: '1px solid var(--glass-border)',
     cursor: isActive ? 'default' : 'pointer',
-    background: isActive ? (accentColor ? `${accentColor}30` : '#252525') : '#1a1a1a',
-    color: '#ffffff',
+    background: isActive ? (accentColor ? `${accentColor}30` : 'var(--glass-strong)') : 'var(--glass-faint)',
+    color: 'var(--fg)',
     display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4,
     transform: isActive ? 'scale(0.97)' : 'scale(1)',
     transition: 'transform 100ms, background 120ms',
@@ -222,15 +222,15 @@ export default function ExportBar({ cardRef, track, config, onConfigChange, acce
   const labelSty: React.CSSProperties = {
     fontFamily: 'var(--font-poppins)', fontSize: 10, fontWeight: 600,
     letterSpacing: '0.08em', textTransform: 'uppercase',
-    color: 'rgba(255,255,255,0.85)',
+    color: 'var(--fg-1)',
   }
 
 
   return (
-    <div style={{
-      borderTop: '1px solid rgba(255,255,255,0.08)',
+    <div className="glass" style={{
+      borderRadius: 0,
+      borderLeft: 0, borderRight: 0, borderBottom: 0,
       padding: '8px 12px',
-      background: '#0d0d0d',
       height: 64,
       flexShrink: 0,
       position: 'relative',
@@ -245,21 +245,16 @@ export default function ExportBar({ cardRef, track, config, onConfigChange, acce
       `}</style>
 
       {toast && (
-        <div style={{
+        <div className="glass" style={{
           position: 'absolute', bottom: 76, left: '50%',
           transform: 'translateX(-50%)',
           minWidth: 230,
-          background: 'rgba(18,18,18,0.94)',
-          backdropFilter: 'blur(24px)',
-          WebkitBackdropFilter: 'blur(24px)',
           borderRadius: 14,
-          border: '1px solid rgba(255,255,255,0.10)',
           borderLeft: `3px solid ${accentColor ?? 'var(--accent)'}`,
           padding: '13px 20px',
           display: 'flex', alignItems: 'center', gap: 10,
           pointerEvents: 'none',
           animation: 'slideUpToast 0.25s cubic-bezier(0.34,1.56,0.64,1) both',
-          boxShadow: '0 8px 32px rgba(0,0,0,0.55)',
           zIndex: 50,
         }}>
           <svg viewBox="0 0 16 16" width="16" height="16" fill="none"
@@ -267,25 +262,26 @@ export default function ExportBar({ cardRef, track, config, onConfigChange, acce
             strokeLinecap="round" strokeLinejoin="round">
             <path d="M3 8l4 4 6-7"/>
           </svg>
-          <span style={{ fontSize: 13, fontWeight: 500, color: 'rgba(255,255,255,0.88)', whiteSpace: 'nowrap' }}>{toast}</span>
+          <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--fg)', whiteSpace: 'nowrap' }}>{toast}</span>
         </div>
       )}
 
       <div style={{ display: 'flex', gap: 6, width: '100%' }}>
-        <button style={btnBase(busy === 'png')} onClick={exportPNG} disabled={!!busy}>
+        <button className="dock-tile" style={btnBase(busy === 'png')} onClick={exportPNG} disabled={!!busy}>
           {busy === 'png' ? <Spinner /> : <DlIcon />}
           <span style={labelSty}>PNG 3×</span>
         </button>
-        <button style={btnBase(busy === 'jpg')} onClick={exportJPG} disabled={!!busy}>
+        <button className="dock-tile" style={btnBase(busy === 'jpg')} onClick={exportJPG} disabled={!!busy}>
           {busy === 'jpg' ? <Spinner /> : <DlIcon />}
           <span style={labelSty}>PNG 2×</span>
         </button>
-        <button style={btnBase(busy === 'transparent')} onClick={exportTransparent} disabled={!!busy}>
+        <button className="dock-tile" style={btnBase(busy === 'transparent')} onClick={exportTransparent} disabled={!!busy}>
           {busy === 'transparent' ? <Spinner /> : <AlphaIcon />}
           <span style={labelSty}>Alpha</span>
         </button>
         {supportsClipboard && (
           <button
+            className="dock-tile"
             style={{ ...btnBase(busy === 'clipboard'), flex: 'none', width: 48 }}
             onClick={copyClipboard} disabled={!!busy}
             title="Copy to clipboard"

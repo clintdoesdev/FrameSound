@@ -542,73 +542,58 @@ export default function Home() {
   // ── LOADING STATE ────────────────────────────────────────────
   if (loading) {
     return (
-      <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--hero-bg)', position: 'relative' }}>
-        {/* Ambient glow — matches loaded state so the transition doesn't jump */}
-        <div style={{ position: 'fixed', inset: 0, zIndex: 0, overflow: 'hidden', pointerEvents: 'none' }}>
-          <div className="hero-grid" style={{ position: 'absolute', inset: 0, opacity: 0.5 }} />
-          <div style={{ position: 'absolute', top: '-10%', left: '-8%', width: 480, height: 480,
-            borderRadius: '50%', background: 'radial-gradient(circle, oklch(from var(--accent) l c h / 0.16) 0%, transparent 65%)',
-            filter: 'blur(90px)' }} />
-          <div style={{ position: 'absolute', bottom: '-14%', right: '-8%', width: 460, height: 460,
-            borderRadius: '50%', background: 'radial-gradient(circle, oklch(0.6 0.18 300 / 0.12) 0%, transparent 65%)',
-            filter: 'blur(90px)' }} />
-        </div>
-
+      <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--editor-bg)', position: 'relative' }}>
         {/* Nav */}
-        <nav className="glass" style={{
+        <nav style={{
           height: 56, display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          padding: '0 24px', borderRadius: 0, borderTop: 0, borderLeft: 0, borderRight: 0,
-          flexShrink: 0, position: 'relative', zIndex: 1,
+          padding: '0 20px', background: 'var(--editor-bg)',
+          borderBottom: '1px solid var(--panel-line)', flexShrink: 0,
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div className="animate-pulse-slow" style={{ width: 72, height: 28, borderRadius: 8, background: 'var(--glass-strong)' }} />
+            <div className="animate-pulse-slow" style={{ width: 72, height: 28, borderRadius: 8, background: 'var(--panel-well)' }} />
             <Logo />
           </div>
         </nav>
 
         {/* Editor two-column skeleton */}
-        <div style={{ display: 'flex', flex: 1, gap: 16, maxWidth: 1280, margin: '0 auto', width: '100%', position: 'relative', zIndex: 1 }} className="editor-layout">
+        <div style={{ display: 'flex', flex: 1, maxWidth: 1280, margin: '0 auto', width: '100%' }} className="editor-layout">
           {/* Left column */}
-          <div style={{ flex: 1, padding: '32px 24px 24px', display: 'flex', flexDirection: 'column', gap: 20 }}
+          <div style={{ flex: 1, padding: '28px 24px 24px', display: 'flex', flexDirection: 'column', gap: 18 }}
             className="left-col">
-            {/* URL bar shimmer */}
-            <div className="animate-pulse-slow glass" style={{ height: 52, borderRadius: 14 }} />
-            {/* Card glass placeholder */}
-            <div className="animate-pulse-slow glass" style={{
-              width: '100%', aspectRatio: '4 / 5', borderRadius: 28,
+            <div className="animate-pulse-slow" style={{ height: 52, borderRadius: 12, background: 'var(--panel-well)' }} />
+            <div className="animate-pulse-slow" style={{
+              width: '100%', aspectRatio: '4 / 5', borderRadius: 28, background: 'var(--panel-well)',
             }} />
-            {/* Audio bar shimmer */}
-            <div className="animate-pulse-slow glass" style={{ height: 52, borderRadius: 14 }} />
+            <div className="animate-pulse-slow" style={{ height: 52, borderRadius: 12, background: 'var(--panel-well)' }} />
           </div>
 
           {/* Right column */}
-          <div className="glass right-col" style={{
-            width: 340, flexShrink: 0,
+          <div className="right-col" style={{
+            width: 336, flexShrink: 0,
             display: 'flex', flexDirection: 'column',
-            marginTop: 16, marginBottom: 16, marginRight: 16,
-            borderRadius: 20, overflow: 'hidden',
+            background: 'var(--editor-bg)', borderLeft: '1px solid var(--panel-line)',
+            overflow: 'hidden',
           }}>
             {/* Track meta shimmer */}
             <div style={{
-              padding: '14px 20px',
-              borderBottom: '1px solid var(--glass-border)',
+              padding: '12px 16px',
+              borderBottom: '1px solid var(--panel-line)',
               display: 'flex', gap: 12, alignItems: 'center',
             }}>
               <div className="animate-pulse-slow" style={{
                 width: 36, height: 36, borderRadius: 8,
-                background: 'var(--glass-strong)', flexShrink: 0,
+                background: 'var(--panel-well)', flexShrink: 0,
               }} />
               <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 7 }}>
-                <div className="animate-pulse-slow" style={{ height: 11, width: '68%', borderRadius: 6, background: 'var(--glass-strong)' }} />
-                <div className="animate-pulse-slow" style={{ height: 9, width: '44%', borderRadius: 6, background: 'var(--glass)', animationDelay: '0.1s' }} />
+                <div className="animate-pulse-slow" style={{ height: 11, width: '68%', borderRadius: 6, background: 'var(--panel-well)' }} />
+                <div className="animate-pulse-slow" style={{ height: 9, width: '44%', borderRadius: 6, background: 'var(--panel-well)', animationDelay: '0.1s' }} />
               </div>
             </div>
-            {/* Settings section glass blocks */}
-            {([110, 155, 195, 135] as number[]).map((h, i) => (
-              <div key={i} className="animate-pulse-slow glass" style={{
-                margin: '10px',
-                height: h,
-                borderRadius: 14,
+            {/* Settings widget blocks */}
+            {([104, 148, 186, 128] as number[]).map((h, i) => (
+              <div key={i} className="animate-pulse-slow" style={{
+                margin: '8px', height: h, borderRadius: 16,
+                background: 'var(--panel)', border: '1px solid var(--panel-line)',
                 animationDelay: `${i * 0.12}s`,
               }} />
             ))}
@@ -628,24 +613,14 @@ export default function Home() {
 
   // ── LOADED STATE ─────────────────────────────────────────────
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--hero-bg)', position: 'relative' }}>
+    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--editor-bg)', position: 'relative' }}>
       {accentColor && <style>{`:root { --accent: ${accentColor}; }`}</style>}
 
-      {/* Ambient glow — gives glass surfaces something to refract */}
-      <div style={{ position: 'fixed', inset: 0, zIndex: 0, overflow: 'hidden', pointerEvents: 'none' }}>
-        <div className="hero-grid" style={{ position: 'absolute', inset: 0, opacity: 0.5 }} />
-        <div style={{ position: 'absolute', top: '-10%', left: '-8%', width: 480, height: 480,
-          borderRadius: '50%', background: 'radial-gradient(circle, oklch(from var(--accent) l c h / 0.16) 0%, transparent 65%)',
-          filter: 'blur(90px)' }} />
-        <div style={{ position: 'absolute', bottom: '-14%', right: '-8%', width: 460, height: 460,
-          borderRadius: '50%', background: 'radial-gradient(circle, oklch(0.6 0.18 300 / 0.12) 0%, transparent 65%)',
-          filter: 'blur(90px)' }} />
-      </div>
-
       {/* Nav */}
-      <nav className="glass" style={{
+      <nav style={{
         height: 56, display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '0 24px', borderRadius: 0, borderTop: 0, borderLeft: 0, borderRight: 0,
+        padding: '0 20px', background: 'var(--editor-bg)',
+        borderBottom: '1px solid var(--panel-line)',
         flexShrink: 0, position: 'sticky', top: 0, zIndex: 20,
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -664,9 +639,9 @@ export default function Home() {
       {/* Split layout */}
       <div style={{
         flex: 1, display: 'flex',
-        flexDirection: 'row', gap: 16,
+        flexDirection: 'row',
         alignItems: 'flex-start',
-        maxWidth: 1280, margin: '0 auto', width: '100%',
+        width: '100%',
         padding: '0',
         position: 'relative', zIndex: 1,
         animation: 'fadeIn 0.35s ease both',
@@ -675,83 +650,83 @@ export default function Home() {
       >
         {/* ── LEFT: Card + Audio + Recent ─────────────────── */}
         <div style={{
-          flex: '0 0 auto',
-          width: 'min(560px, 100%)',
-          padding: '32px 24px 24px',
+          flex: 1, minWidth: 0,
+          padding: '28px 24px 24px',
           display: 'flex', flexDirection: 'column', gap: 20,
           position: 'sticky', top: 56, maxHeight: 'calc(100vh - 56px)',
           overflowY: 'auto',
         }}
           className="scroll left-col"
         >
-          {/* URL bar stays at top of left col */}
-          <div>
-            {urlBar}
-            {error && (
-              <div style={{ marginTop: 8, fontSize: 13, color: 'var(--danger)' }}>{error}</div>
-            )}
+          {/* Stage column — the card sets its own width ceiling so it stays a
+              believable card rather than stretching across a wide viewport. */}
+          <div style={{ width: '100%', maxWidth: 470, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 18 }}>
+            <div>
+              {urlBar}
+              {error && (
+                <div style={{ marginTop: 8, fontSize: 13, color: 'var(--danger)' }}>{error}</div>
+              )}
+            </div>
+
+            {/* The card's own shadow does the framing — no competing outer panel. */}
+            <div style={{ padding: '6px 2px' }}>
+              {track && (
+                <CardCanvas ref={cardRef} track={track} config={config} exportMode accentColor={accentColor} />
+              )}
+            </div>
+
+            {track?.previewUrl && <AudioPreview previewUrl={track.previewUrl} trackId={track.id} accentColor={accentColor} />}
+
+            <RecentTracks onSelect={loadFromRecent} />
           </div>
-
-          {/* Card preview — the card's own glass/shadow treatment does the work;
-              no competing outer frame, just breathing room. */}
-          <div style={{ padding: '8px 4px' }}>
-            {track && (
-              <CardCanvas ref={cardRef} track={track} config={config} exportMode accentColor={accentColor} />
-            )}
-          </div>
-
-          {/* Audio preview */}
-          {track?.previewUrl && <AudioPreview previewUrl={track.previewUrl} trackId={track.id} accentColor={accentColor} />}
-
-          {/* Recent tracks */}
-          <RecentTracks onSelect={loadFromRecent} />
         </div>
 
         {/* ── RIGHT: Lyrics + Customize + Export ──────────── */}
-        <div className="glass right-col" style={{
-          width: 340, flexShrink: 0,
+        <div className="right-col" style={{
+          width: 336, flexShrink: 0,
           display: 'flex', flexDirection: 'column',
-          height: 'calc(100vh - 88px)',
-          position: 'sticky', top: 72,
-          marginTop: 16, marginBottom: 16, marginRight: 16,
-          borderRadius: 20,
+          height: 'calc(100vh - 56px)',
+          position: 'sticky', top: 56,
+          background: 'var(--editor-bg)',
+          borderLeft: '1px solid var(--panel-line)',
           overflow: 'hidden',
         }}>
           {/* Track meta strip */}
           {track && (
             <div style={{
-              padding: '14px 20px', borderBottom: '1px solid var(--glass-border)',
-              display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0,
+              padding: '11px 14px', borderBottom: '1px solid var(--panel-line)',
+              display: 'flex', alignItems: 'center', gap: 11, flexShrink: 0,
             }}>
-              <div style={{ width: 36, height: 36, borderRadius: 8, overflow: 'hidden', flexShrink: 0, position: 'relative', background: 'var(--bg-2)' }}>
+              <div style={{ width: 34, height: 34, borderRadius: 9, overflow: 'hidden', flexShrink: 0, position: 'relative', background: 'var(--panel-well)' }}>
                 {track.coverUrl && (
                   <Image src={track.coverUrl} alt={track.title} fill style={{ objectFit: 'cover' }} unoptimized />
                 )}
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontFamily: 'var(--font-syne)', fontSize: 13, fontWeight: 600, color: 'var(--fg)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--fg)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {track.title}
                 </div>
-                <div style={{ fontSize: 11, color: 'var(--fg-2)', marginTop: 2 }}>{track.artist}</div>
-                <div style={{ fontSize: 11, color: 'var(--fg-3)', marginTop: 1 }}>
-                  {track.releaseYear} · {track.duration}
+                <div style={{ fontSize: 11, color: 'var(--fg-3)', marginTop: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {track.artist} · {track.releaseYear} · {track.duration}
                 </div>
               </div>
             </div>
           )}
 
-          {/* Lyrics panel */}
-          <div style={{ borderBottom: '1px solid var(--glass-border)', flexShrink: 0 }}>
-            <LyricsPanel
-              lines={lyrics ?? []}
-              loading={false}
-              onQuoteChange={handleQuoteChange}
-              accentColor={accentColor}
-            />
-          </div>
-
-          {/* Customize panel — scrollable */}
-          <div className="scroll" style={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
+          {/* Everything below scrolls as one column of widget cards */}
+          <div className="scroll" style={{ flex: 1, overflowY: 'auto', minHeight: 0, paddingTop: 8 }}>
+            <div style={{
+              margin: '0 8px 8px', borderRadius: 16,
+              background: 'var(--panel)', border: '1px solid var(--panel-line)',
+              overflow: 'hidden',
+            }}>
+              <LyricsPanel
+                lines={lyrics ?? []}
+                loading={false}
+                onQuoteChange={handleQuoteChange}
+                accentColor={accentColor}
+              />
+            </div>
             <CustomizePanel config={config} onChange={updateConfig} accentColor={accentColor} />
           </div>
 
@@ -776,7 +751,8 @@ export default function Home() {
             height: auto !important;
             position: static !important;
             overflow: visible !important;
-            margin: 0 16px 16px !important;
+            border-left: none !important;
+            border-top: 1px solid var(--panel-line) !important;
           }
         }
       `}</style>

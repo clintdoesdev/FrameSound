@@ -59,6 +59,15 @@
   /* Landing page floating card accent */
   --hero-bg: oklch(0.12 0.008 80);
 
+  /* Editor widget surfaces — deliberately opaque. The accent is sampled from
+     album art, so tinting large chrome with it muddies the whole panel. */
+  --editor-bg:   #0a0a0b;
+  --panel:       #17171a;
+  --panel-line:  rgba(255,255,255,0.06);
+  --panel-badge: rgba(255,255,255,0.07);
+  --panel-well:  #232327;
+  --panel-well-2:#2c2c31;
+
   /* Liquid glass surfaces */
   --glass:          oklch(1 0 0 / 0.06);
   --glass-strong:   oklch(1 0 0 / 0.10);
@@ -100,6 +109,13 @@
     --shadow-lg: 0 1px 0 oklch(1 0 0 / 1) inset, 0 18px 48px oklch(0 0 0 / 0.12);
 
     --hero-bg: oklch(0.96 0.006 80);
+
+    --editor-bg:   #eeeef1;
+    --panel:       #ffffff;
+    --panel-line:  rgba(0,0,0,0.07);
+    --panel-badge: rgba(0,0,0,0.05);
+    --panel-well:  #f0f0f3;
+    --panel-well-2:#e3e3e8;
 
     --glass:          oklch(1 0 0 / 0.55);
     --glass-strong:   oklch(1 0 0 / 0.72);

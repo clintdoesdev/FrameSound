@@ -69,7 +69,7 @@ export default function AudioPreview({ previewUrl, trackId, accentColor }: Props
   const elapsed = Math.round(progress * dur)
 
   return (
-    <div className="glass" style={{ padding: '12px 20px', borderRadius: 14 }}>
+    <div style={{ padding: '12px 16px', borderRadius: 14, background: 'var(--panel)', border: '1px solid var(--panel-line)' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
         <button onClick={toggle} className="btn" data-variant="primary" data-size="sm" data-icon-only="true"
           style={{ width: 30, height: 30, borderRadius: 999, flexShrink: 0 }}>

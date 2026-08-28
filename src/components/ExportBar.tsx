@@ -209,9 +209,9 @@ export default function ExportBar({ cardRef, track, config, onConfigChange, acce
   }, [cardRef, busy])
 
   const btnBase = (isActive: boolean): React.CSSProperties => ({
-    flex: 1, height: 48, borderRadius: 10, border: '1px solid var(--glass-border)',
+    flex: 1, height: 44, borderRadius: 10, border: 0,
     cursor: isActive ? 'default' : 'pointer',
-    background: isActive ? (accentColor ? `${accentColor}30` : 'var(--glass-strong)') : 'var(--glass-faint)',
+    background: isActive ? (accentColor ?? 'var(--accent)') : 'var(--panel-well)',
     color: 'var(--fg)',
     display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4,
     transform: isActive ? 'scale(0.97)' : 'scale(1)',
@@ -227,11 +227,11 @@ export default function ExportBar({ cardRef, track, config, onConfigChange, acce
 
 
   return (
-    <div className="glass" style={{
-      borderRadius: 0,
-      borderLeft: 0, borderRight: 0, borderBottom: 0,
-      padding: '8px 12px',
-      height: 64,
+    <div style={{
+      background: 'var(--bg)',
+      borderTop: '1px solid var(--panel-line)',
+      padding: '8px 10px',
+      height: 60,
       flexShrink: 0,
       position: 'relative',
       display: 'flex', alignItems: 'center',
@@ -245,8 +245,10 @@ export default function ExportBar({ cardRef, track, config, onConfigChange, acce
       `}</style>
 
       {toast && (
-        <div className="glass" style={{
-          position: 'absolute', bottom: 76, left: '50%',
+        <div style={{
+          background: 'var(--panel)', border: '1px solid var(--panel-line)',
+          boxShadow: '0 12px 32px rgba(0,0,0,0.5)',
+          position: 'absolute', bottom: 72, left: '50%',
           transform: 'translateX(-50%)',
           minWidth: 230,
           borderRadius: 14,

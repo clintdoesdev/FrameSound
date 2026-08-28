@@ -170,69 +170,97 @@ const AlignRightIcon = () => (
   </svg>
 )
 
-// ── Preset SVG illustrations ───────────────────────────────────
-const PresetGlassBezelSVG = () => (
-  <svg viewBox="0 0 60 45" width="60" height="45" fill="none">
-    {/* Full-bleed art */}
-    <rect x="7" y="3" width="46" height="39" rx="5" fill="rgba(255,255,255,0.20)"/>
-    {/* Floating frosted glass panel over the art */}
-    <rect x="10" y="26" width="40" height="13" rx="6" fill="rgba(255,255,255,0.30)" stroke="rgba(255,255,255,0.55)" strokeWidth="0.6"/>
-    <rect x="14" y="30" width="17" height="1.8" rx="0.9" fill="rgba(255,255,255,0.85)"/>
-    <rect x="14" y="34" width="12" height="1.3" rx="0.65" fill="rgba(255,255,255,0.45)"/>
-  </svg>
+// ── Preset thumbnails ──────────────────────────────────────────
+// Each is a miniature of the card it selects, drawn on a fixed dark plate
+// (the exported card is always dark, regardless of the app's theme).
+const TB = { w: 44, h: 36 }
+const Plate = ({ children }: { children: React.ReactNode }) => (
+  <svg viewBox="0 0 44 36" width={TB.w} height={TB.h} fill="none">{children}</svg>
+)
+
+const PresetGlassSVG = () => (
+  <Plate>
+    <rect x="6" y="1" width="32" height="34" rx="4.5" fill="rgba(255,255,255,0.22)"/>
+    <rect x="9" y="22" width="26" height="10" rx="4" fill="rgba(255,255,255,0.32)" stroke="rgba(255,255,255,0.6)" strokeWidth="0.6"/>
+    <rect x="12" y="25" width="12" height="1.7" rx="0.85" fill="rgba(255,255,255,0.9)"/>
+    <rect x="12" y="28.5" width="8" height="1.2" rx="0.6" fill="rgba(255,255,255,0.5)"/>
+  </Plate>
 )
 const PresetTicketSVG = () => (
-  <svg viewBox="0 0 60 45" width="60" height="45" fill="none">
-    {/* Art */}
-    <rect x="14" y="1" width="32" height="26" rx="5" fill="rgba(255,255,255,0.20)"/>
-    {/* Glass strip overlap */}
-    <rect x="11" y="20" width="38" height="8" rx="3.5" fill="rgba(255,255,255,0.34)" stroke="rgba(255,255,255,0.5)" strokeWidth="0.5"/>
-    {/* Ticket stub */}
-    <rect x="7" y="31" width="46" height="12" rx="4" fill="rgba(255,255,255,0.16)"/>
-    <circle cx="7" cy="37" r="3" fill="#0d0d0e"/>
-    <circle cx="53" cy="37" r="3" fill="#0d0d0e"/>
-    <rect x="12" y="34" width="8" height="6" rx="1.5" fill="rgba(255,255,255,0.3)"/>
-    <rect x="24" y="35" width="20" height="1.6" rx="0.8" fill="rgba(255,255,255,0.55)"/>
-    <rect x="24" y="38.2" width="14" height="1.3" rx="0.65" fill="rgba(255,255,255,0.3)"/>
-  </svg>
+  <Plate>
+    <rect x="6" y="1" width="32" height="27" rx="4.5" fill="rgba(255,255,255,0.10)"/>
+    <rect x="9" y="3.5" width="26" height="15" rx="3" fill="rgba(255,255,255,0.30)"/>
+    <rect x="11" y="21" width="13" height="1.7" rx="0.85" fill="rgba(255,255,255,0.75)"/>
+    <rect x="11" y="24.3" width="9" height="1.2" rx="0.6" fill="rgba(255,255,255,0.4)"/>
+    <rect x="11" y="27" width="22" height="8" rx="2.5" fill="rgba(255,255,255,0.5)"/>
+    <circle cx="11" cy="28" r="1.9" fill="#1c1c1e"/>
+    <circle cx="33" cy="28" r="1.9" fill="#1c1c1e"/>
+    <rect x="13.5" y="29.5" width="5" height="4" rx="1" fill="rgba(0,0,0,0.45)"/>
+    <rect x="20.5" y="30" width="10" height="1.3" rx="0.65" fill="rgba(0,0,0,0.42)"/>
+  </Plate>
 )
 const PresetTagSVG = () => (
-  <svg viewBox="0 0 60 45" width="60" height="45" fill="none">
-    <rect x="14" y="1" width="32" height="26" rx="5" fill="rgba(255,255,255,0.20)"/>
-    <rect x="11" y="20" width="38" height="8" rx="3.5" fill="rgba(255,255,255,0.30)" stroke="rgba(255,255,255,0.48)" strokeWidth="0.5"/>
-    <rect x="7" y="31" width="46" height="12" rx="4" fill="rgba(255,255,255,0.16)"/>
-    <circle cx="7" cy="37" r="3" fill="#0d0d0e"/>
-    <circle cx="53" cy="37" r="3" fill="#0d0d0e"/>
-    <rect x="26" y="34" width="8" height="8" rx="2.2" fill="rgba(255,255,255,0.65)"/>
-    <rect x="28.5" y="36.5" width="3" height="3" rx="0.8" fill="rgba(0,0,0,0.55)"/>
-  </svg>
+  <Plate>
+    <rect x="6" y="1" width="32" height="27" rx="4.5" fill="rgba(255,255,255,0.10)"/>
+    <rect x="9" y="3.5" width="26" height="15" rx="3" fill="rgba(255,255,255,0.30)"/>
+    <rect x="11" y="21" width="13" height="1.7" rx="0.85" fill="rgba(255,255,255,0.75)"/>
+    <rect x="11" y="24.3" width="9" height="1.2" rx="0.6" fill="rgba(255,255,255,0.4)"/>
+    <rect x="11" y="27" width="22" height="8" rx="2.5" fill="rgba(255,255,255,0.5)"/>
+    <circle cx="11" cy="28" r="1.9" fill="#1c1c1e"/>
+    <circle cx="33" cy="28" r="1.9" fill="#1c1c1e"/>
+    <rect x="19.5" y="29.5" width="5" height="5" rx="1.5" fill="rgba(0,0,0,0.5)"/>
+  </Plate>
 )
 const PresetProfileSVG = () => (
-  <svg viewBox="0 0 60 45" width="60" height="45" fill="none">
-    <rect x="1" y="1" width="58" height="43" rx="6" fill="rgba(255,255,255,0.05)"/>
-    <rect x="6" y="6" width="48" height="18" rx="4" fill="rgba(255,255,255,0.22)"/>
-    <circle cx="15" cy="24" r="7" fill="rgba(20,20,20,0.9)" stroke="rgba(255,255,255,0.25)" strokeWidth="1"/>
-    <rect x="25" y="27" width="20" height="2" rx="1" fill="rgba(255,255,255,0.7)"/>
-    <rect x="25" y="31.5" width="14" height="1.4" rx="0.7" fill="rgba(255,255,255,0.35)"/>
-    <rect x="8" y="37" width="18" height="4" rx="2" fill="rgba(255,255,255,0.14)"/>
-  </svg>
+  <Plate>
+    <rect x="4" y="1" width="36" height="34" rx="5" fill="rgba(255,255,255,0.07)"/>
+    <rect x="7" y="4" width="30" height="16" rx="3.5" fill="rgba(255,255,255,0.28)"/>
+    <rect x="8" y="15" width="9" height="9" rx="2.5" fill="rgba(255,255,255,0.55)" stroke="#1c1c1e" strokeWidth="1.2"/>
+    <rect x="19" y="17.5" width="11" height="1.7" rx="0.85" fill="rgba(255,255,255,0.7)"/>
+    <rect x="19" y="20.8" width="7" height="1.2" rx="0.6" fill="rgba(255,255,255,0.35)"/>
+    <rect x="8" y="27" width="20" height="1.4" rx="0.7" fill="rgba(255,255,255,0.28)"/>
+    <rect x="8" y="30.3" width="14" height="1.4" rx="0.7" fill="rgba(255,255,255,0.18)"/>
+  </Plate>
 )
 const PresetPlayerSVG = () => (
-  <svg viewBox="0 0 60 45" width="60" height="45" fill="none">
-    <rect x="1" y="1" width="58" height="43" rx="6" fill="rgba(255,255,255,0.06)"/>
-    <rect x="10" y="6" width="40" height="33" rx="8" fill="rgba(255,255,255,0.14)" stroke="rgba(255,255,255,0.22)" strokeWidth="0.6"/>
-    <circle cx="17" cy="12" r="3" fill="rgba(255,255,255,0.3)"/>
-    <rect x="22" y="10" width="16" height="1.6" rx="0.8" fill="rgba(255,255,255,0.6)"/>
-    <rect x="22" y="13" width="10" height="1.2" rx="0.6" fill="rgba(255,255,255,0.3)"/>
-    <rect x="14" y="18" width="32" height="14" rx="4" fill="rgba(255,255,255,0.24)"/>
-    <circle cx="24" cy="37" r="2.6" fill="rgba(255,255,255,0.35)"/>
-    <circle cx="30" cy="37" r="3.4" fill="rgba(255,255,255,0.6)"/>
-    <circle cx="36" cy="37" r="2.6" fill="rgba(255,255,255,0.35)"/>
-  </svg>
+  <Plate>
+    <rect x="1" y="1" width="42" height="34" rx="5" fill="rgba(255,255,255,0.07)"/>
+    <rect x="8" y="4" width="28" height="28" rx="6" fill="rgba(255,255,255,0.16)" stroke="rgba(255,255,255,0.26)" strokeWidth="0.7"/>
+    <circle cx="12.5" cy="8.5" r="2.2" fill="rgba(255,255,255,0.4)"/>
+    <rect x="16.5" y="7.3" width="9" height="1.3" rx="0.65" fill="rgba(255,255,255,0.6)"/>
+    <rect x="10.5" y="12" width="23" height="12" rx="3" fill="rgba(255,255,255,0.3)"/>
+    <rect x="10.5" y="26" width="23" height="1.2" rx="0.6" fill="rgba(255,255,255,0.3)"/>
+    <circle cx="17" cy="30" r="1.8" fill="rgba(255,255,255,0.35)"/>
+    <circle cx="22" cy="30" r="2.4" fill="rgba(255,255,255,0.75)"/>
+    <circle cx="27" cy="30" r="1.8" fill="rgba(255,255,255,0.35)"/>
+  </Plate>
+)
+const PresetBezelSVG = () => (
+  <Plate>
+    <rect x="6" y="1" width="32" height="34" rx="5" fill="rgba(255,255,255,0.13)" stroke="rgba(255,255,255,0.34)" strokeWidth="0.7"/>
+    <rect x="9.5" y="4" width="25" height="19" rx="3.5" fill="rgba(255,255,255,0.42)"/>
+    <rect x="9.5" y="26" width="15" height="2.2" rx="1.1" fill="rgba(255,255,255,0.85)"/>
+    <rect x="9.5" y="30" width="10" height="1.5" rx="0.75" fill="rgba(255,255,255,0.42)"/>
+  </Plate>
+)
+const PresetBloomSVG = () => (
+  <Plate>
+    <rect x="6" y="1" width="32" height="34" rx="5" fill="url(#bloomG)"/>
+    <defs>
+      <linearGradient id="bloomG" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stopColor="rgba(255,255,255,0.42)"/>
+        <stop offset="100%" stopColor="rgba(255,255,255,0.14)"/>
+      </linearGradient>
+    </defs>
+    <rect x="10" y="24" width="16" height="2.4" rx="1.2" fill="rgba(255,255,255,0.92)"/>
+    <rect x="10" y="28.4" width="11" height="1.6" rx="0.8" fill="rgba(255,255,255,0.5)"/>
+  </Plate>
 )
 
 const PRESET_SVG: Record<string, React.ReactNode> = {
-  glass:   <PresetGlassBezelSVG />,
+  glass:   <PresetGlassSVG />,
+  bezel:   <PresetBezelSVG />,
+  bloom:   <PresetBloomSVG />,
   ticket:  <PresetTicketSVG />,
   tag:     <PresetTagSVG />,
   profile: <PresetProfileSVG />,
@@ -252,41 +280,43 @@ const FONT_CSS_VAR: Record<CardConfig['font'], string> = {
   oswald:           'var(--font-oswald)',
 }
 
-// ── Section — floating glass card, collapsible ──────────────────
+// ── Section — solid widget card with a circular icon badge ──────
+// Deliberately opaque rather than glass: the accent is sampled from album art,
+// and tinting every large surface with it turned the whole panel muddy.
 function Section({ icon, label, children }: {
   icon: React.ReactNode; label: string; children: React.ReactNode
 }) {
   const [open, setOpen] = useState(true)
   return (
-    <div className="glass" style={{ borderRadius: 14, margin: '0 10px 10px' }}>
+    <div style={{
+      borderRadius: 16, margin: '0 8px 8px',
+      background: 'var(--panel)', border: '1px solid var(--panel-line)',
+    }}>
       <button
         onClick={() => setOpen(o => !o)}
         style={{
           width: '100%', border: 0, background: 'transparent', cursor: 'pointer',
-          display: 'flex', alignItems: 'center', gap: 8,
-          padding: '12px 14px 11px',
-          borderBottom: open ? '1px solid var(--glass-border)' : 'none',
+          display: 'flex', alignItems: 'center', gap: 9, padding: '10px 12px',
         }}
       >
-        <span style={{ display: 'flex', color: 'var(--fg-3)' }}>{icon}</span>
         <span style={{
-          flex: 1, textAlign: 'left',
-          fontFamily: 'var(--font-mono)', fontSize: 10, fontWeight: 600,
-          letterSpacing: '0.12em', textTransform: 'uppercase',
-          color: open ? 'var(--fg-1)' : 'var(--fg-3)',
+          width: 26, height: 26, borderRadius: '50%', flexShrink: 0,
+          background: 'var(--panel-badge)', color: 'var(--fg-2)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>{icon}</span>
+        <span style={{
+          flex: 1, textAlign: 'left', fontSize: 11.5, fontWeight: 600,
+          letterSpacing: '0.02em', color: 'var(--fg-1)',
         }}>
           {label}
         </span>
-        <svg viewBox="0 0 10 10" width="9" height="9" fill="none" stroke="var(--fg-3)" strokeWidth="1.5" strokeLinecap="round">
-          <path d={open ? 'm2 3.5 3 3 3-3' : 'm2 6.5 3-3 3 3'} />
+        <svg viewBox="0 0 10 10" width="9" height="9" fill="none" stroke="var(--fg-3)" strokeWidth="1.6" strokeLinecap="round"
+          style={{ transform: open ? 'none' : 'rotate(-90deg)', transition: 'transform 200ms' }}>
+          <path d="m2 3.5 3 3 3-3" />
         </svg>
       </button>
-      <div style={{
-        overflow: 'hidden',
-        maxHeight: open ? 9999 : 0,
-        transition: 'max-height 300ms ease',
-      }}>
-        <div style={{ padding: '13px 14px 15px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <div style={{ overflow: 'hidden', maxHeight: open ? 9999 : 0, transition: 'max-height 300ms ease' }}>
+        <div style={{ padding: '2px 12px 13px', display: 'flex', flexDirection: 'column', gap: 13 }}>
           {children}
         </div>
       </div>
@@ -301,19 +331,17 @@ function PillRow<T extends string>({ value, options, onChange, accent }: {
   onChange: (v: T) => void
   accent?: string
 }) {
-  const accentRgb = accent ?? 'var(--accent)'
   return (
-    <div style={{ display: 'flex', gap: 6 }}>
+    <div style={{ display: 'flex', gap: 4, background: 'var(--panel-well)', borderRadius: 999, padding: 3 }}>
       {options.map((o, i) => {
         const selected = value === o.value
         return (
           <button key={i} onClick={() => onChange(o.value)} style={{
-            flex: 1, height: 36, borderRadius: 999, border: 0, cursor: 'pointer',
-            fontSize: 12, fontWeight: 500,
-            background: selected ? (accent?.startsWith('#') ? `${accent}33` : 'var(--accent-quiet)') : 'var(--glass-faint)',
-            color: selected ? (accent ?? 'var(--accent)') : 'var(--fg-2)',
-            outline: selected ? `1px solid ${accentRgb}` : '1px solid var(--glass-border)',
-            transition: 'all 120ms',
+            flex: 1, height: 28, borderRadius: 999, border: 0, cursor: 'pointer',
+            fontSize: 11.5, fontWeight: 600,
+            background: selected ? (accent ?? 'var(--accent)') : 'transparent',
+            color: selected ? '#0d0d0f' : 'var(--fg-2)',
+            transition: 'background 130ms, color 130ms',
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
           }}>{o.label}</button>
         )
@@ -331,23 +359,23 @@ function StyledSlider({ value, min, max, step, onChange, trackStyle, label, suff
   suffix?: string
 }) {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <span style={{ fontSize: 12, color: 'var(--fg-2)' }}>{label}</span>
-        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--fg-1)' }}>{value}{suffix ?? (label.includes('Hue') ? '°' : 'px')}</span>
+        <span style={{ fontSize: 11.5, color: 'var(--fg-2)' }}>{label}</span>
+        <span className="tnum" style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--fg-1)' }}>{value}{suffix ?? (label.includes('Hue') ? '°' : 'px')}</span>
       </div>
-      <div style={{ position: 'relative', height: 24, display: 'flex', alignItems: 'center' }}>
+      <div style={{ position: 'relative', height: 18, display: 'flex', alignItems: 'center' }}>
         <div style={{
-          position: 'absolute', inset: 0, top: '50%', transform: 'translateY(-50%)',
-          height: 6, borderRadius: 3,
-          background: trackStyle?.background ?? `linear-gradient(to right, var(--glass-faint), var(--glass-border-2))`,
+          position: 'absolute', left: 0, right: 0, top: '50%', transform: 'translateY(-50%)',
+          height: 4, borderRadius: 2,
+          background: trackStyle?.background ?? 'var(--panel-well-2)',
           ...trackStyle,
         }} />
         <input
           type="range" min={min} max={max} step={step} value={value}
           onChange={e => onChange(Number(e.target.value))}
           style={{
-            position: 'relative', width: '100%', height: 24,
+            position: 'relative', width: '100%', height: 18,
             appearance: 'none', WebkitAppearance: 'none',
             background: 'transparent', cursor: 'pointer', zIndex: 1,
           }}
@@ -355,15 +383,15 @@ function StyledSlider({ value, min, max, step, onChange, trackStyle, label, suff
         <style>{`
           input[type=range]::-webkit-slider-thumb {
             -webkit-appearance: none;
-            width: 16px; height: 16px; border-radius: 50%;
+            width: 13px; height: 13px; border-radius: 50%;
             background: #fff;
-            box-shadow: 0 0 0 3px var(--bg), 0 1px 4px rgba(0,0,0,0.4);
+            box-shadow: 0 1px 4px rgba(0,0,0,0.45);
             cursor: pointer;
           }
           input[type=range]::-moz-range-thumb {
-            width: 16px; height: 16px; border-radius: 50%;
+            width: 13px; height: 13px; border-radius: 50%;
             background: #fff; border: none;
-            box-shadow: 0 0 0 3px var(--bg), 0 1px 4px rgba(0,0,0,0.4);
+            box-shadow: 0 1px 4px rgba(0,0,0,0.45);
             cursor: pointer;
           }
         `}</style>
@@ -381,27 +409,26 @@ function ToggleItem({ label, value, onChange, icon, accent }: {
     <div
       onClick={() => onChange(!value)}
       style={{
-        display: 'flex', alignItems: 'center', gap: 8,
-        height: 40, padding: '0 10px',
-        borderRadius: 8, cursor: 'pointer',
-        background: value ? (accent?.startsWith('#') ? `${accent}26` : 'var(--accent-quiet)') : 'transparent',
-        borderLeft: value ? `2px solid ${accent ?? 'var(--accent)'}` : '2px solid transparent',
-        transition: 'all 150ms',
+        display: 'flex', alignItems: 'center', gap: 7,
+        height: 32, padding: '0 8px',
+        borderRadius: 9, cursor: 'pointer',
+        background: 'var(--panel-well)',
+        transition: 'background 150ms',
       }}
     >
       <span style={{ color: value ? (accent ?? 'var(--accent)') : 'var(--fg-3)', display: 'flex', flexShrink: 0 }}>{icon}</span>
-      <span style={{ flex: 1, fontSize: 12, color: value ? 'var(--fg)' : 'var(--fg-3)' }}>{label}</span>
+      <span style={{ flex: 1, fontSize: 11.5, color: value ? 'var(--fg)' : 'var(--fg-3)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{label}</span>
       <div style={{
-        width: 36, height: 20, borderRadius: 999, flexShrink: 0,
-        background: value ? (accent?.startsWith('#') ? `${accent}99` : 'var(--accent)') : 'var(--glass-border-2)',
+        width: 28, height: 16, borderRadius: 999, flexShrink: 0,
+        background: value ? (accent ?? 'var(--accent)') : 'var(--panel-well-2)',
         position: 'relative', transition: 'background 150ms',
       }}>
         <span style={{
-          position: 'absolute', top: 3, left: value ? 18 : 3,
-          width: 14, height: 14, borderRadius: '50%',
+          position: 'absolute', top: 2.5, left: value ? 14 : 2.5,
+          width: 11, height: 11, borderRadius: '50%',
           background: '#fff',
           transition: 'left 150ms',
-          boxShadow: '0 1px 3px rgba(0,0,0,0.35)',
+          boxShadow: '0 1px 2px rgba(0,0,0,0.35)',
           display: 'block',
         }} />
       </div>
@@ -411,6 +438,8 @@ function ToggleItem({ label, value, onChange, icon, accent }: {
 
 const PRESETS = [
   { id: 'glass',   name: 'Glass'   },
+  { id: 'bezel',   name: 'Bezel'   },
+  { id: 'bloom',   name: 'Bloom'   },
   { id: 'ticket',  name: 'Ticket'  },
   { id: 'tag',     name: 'Tag'     },
   { id: 'profile', name: 'Profile' },
@@ -432,7 +461,6 @@ const FONTS: { value: CardConfig['font']; label: string; tag: string; weight: nu
 const HUE_GRADIENT = 'linear-gradient(to right, hsl(0,80%,50%), hsl(45,80%,50%), hsl(90,80%,50%), hsl(135,80%,50%), hsl(180,80%,50%), hsl(225,80%,50%), hsl(270,80%,50%), hsl(315,80%,50%), hsl(360,80%,50%))'
 
 export default function CustomizePanel({ config, onChange, accentColor }: Props) {
-  const ac = accentColor ?? undefined          // raw hex — safe for bg tints
   const act = textAccent(accentColor)          // luminance-checked — safe for text/border
 
   const [savedPresets, setSavedPresets] = useState<SavedPreset[]>(() => loadSavedPresets())
@@ -440,7 +468,7 @@ export default function CustomizePanel({ config, onChange, accentColor }: Props)
   const [showSaveInput, setShowSaveInput] = useState(false)
 
   return (
-    <div style={{ flex: 1, padding: '10px 0' }}>
+    <div style={{ flex: 1 }}>
 
       {/* ── SAVED PRESETS ── */}
       <Section icon={<IconBookmark />} label="Saved Presets">
@@ -449,7 +477,7 @@ export default function CustomizePanel({ config, onChange, accentColor }: Props)
           <button
             onClick={() => setShowSaveInput(true)}
             style={{
-              width: '100%', height: 36, borderRadius: 8, border: '1px dashed var(--glass-border-2)',
+              width: '100%', height: 32, borderRadius: 9, border: '1px dashed var(--panel-well-2)',
               background: 'transparent', cursor: 'pointer',
               fontSize: 12, color: 'var(--fg-2)',
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
@@ -476,8 +504,8 @@ export default function CustomizePanel({ config, onChange, accentColor }: Props)
               }}
               placeholder="Preset name…"
               style={{
-                flex: 1, height: 34, borderRadius: 6, border: '1px solid var(--glass-border-2)',
-                background: 'var(--glass-faint)', color: 'var(--fg)', fontSize: 12, padding: '0 10px',
+                flex: 1, height: 32, borderRadius: 8, border: 0,
+                background: 'var(--panel-well)', color: 'var(--fg)', fontSize: 12, padding: '0 10px',
                 outline: 'none',
               }}
             />
@@ -493,7 +521,7 @@ export default function CustomizePanel({ config, onChange, accentColor }: Props)
               }}
               style={{
                 height: 34, width: 56, borderRadius: 6, border: 0,
-                background: ac ? `${ac}33` : 'var(--glass-strong)',
+                background: accentColor ?? 'var(--accent)',
                 color: act, cursor: 'pointer', fontSize: 12, fontWeight: 600,
               }}
             >Save</button>
@@ -516,8 +544,8 @@ export default function CustomizePanel({ config, onChange, accentColor }: Props)
                 <button
                   onClick={() => onChange(p.config)}
                   style={{
-                    flex: 1, height: 34, borderRadius: 7, border: '1px solid var(--glass-border)',
-                    background: 'var(--glass-faint)', cursor: 'pointer', textAlign: 'left',
+                    flex: 1, height: 32, borderRadius: 8, border: 0,
+                    background: 'var(--panel-well)', cursor: 'pointer', textAlign: 'left',
                     padding: '0 10px', fontSize: 12, color: 'var(--fg-1)',
                     display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                   }}
@@ -553,37 +581,33 @@ export default function CustomizePanel({ config, onChange, accentColor }: Props)
 
       {/* ── PRESET ── */}
       <Section icon={<IconLayers />} label="Preset">
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6 }}>
           {PRESETS.map(p => {
             const sel = config.preset === p.id
             return (
               <button
                 key={p.id}
                 onClick={() => onChange({ preset: p.id })}
-                className="dock-tile"
                 style={{
-                  background: 'transparent',
-                  border: `1.5px solid ${sel ? act : 'var(--glass-border)'}`,
-                  borderRadius: 10, cursor: 'pointer', padding: '10px 8px 8px',
-                  display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
-                  minHeight: 90,
-                  boxShadow: sel ? `0 0 0 3px ${ac ? `${ac}22` : 'var(--accent-quiet)'} inset` : 'none',
+                  background: 'transparent', border: 0, padding: 0, cursor: 'pointer',
+                  display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5,
                 }}
               >
-                {/* Fixed-dark preview canvas — this mirrors the exported card's own
-                    (always-dark) look, so it must stay legible independent of the
-                    app's light/dark theme. */}
-                <div style={{
-                  width: '100%', borderRadius: 7, background: '#1c1c1e',
+                {/* Fixed-dark preview plate — mirrors the exported card's own
+                    (always-dark) look, so it stays legible in either app theme. */}
+                <span style={{
+                  width: '100%', height: 46, borderRadius: 9, background: '#1c1c1e',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  opacity: sel ? 1 : 0.72, transition: 'opacity 120ms',
+                  border: `1.5px solid ${sel ? act : 'transparent'}`,
+                  opacity: sel ? 1 : 0.6,
+                  transition: 'opacity 130ms, border-color 130ms',
                 }}>
                   {PRESET_SVG[p.id]}
-                </div>
+                </span>
                 <span style={{
-                  fontFamily: 'var(--font-poppins)', fontSize: 10, fontWeight: 600,
-                  letterSpacing: '0.08em', textTransform: 'uppercase',
-                  color: sel ? act : 'var(--fg-2)',
+                  fontSize: 9.5, fontWeight: 600, letterSpacing: '0.05em',
+                  textTransform: 'uppercase',
+                  color: sel ? act : 'var(--fg-3)',
                 }}>{p.name}</span>
               </button>
             )
@@ -611,7 +635,7 @@ export default function CustomizePanel({ config, onChange, accentColor }: Props)
               <div style={{
                 width: 32, height: 32, borderRadius: 8,
                 background: config.bgColor,
-                border: '1px solid var(--glass-border-2)',
+                border: '1px solid var(--panel-well-2)',
                 cursor: 'pointer',
                 overflow: 'hidden',
               }}>
@@ -644,15 +668,14 @@ export default function CustomizePanel({ config, onChange, accentColor }: Props)
               <button
                 key={f.value}
                 onClick={() => onChange({ font: f.value })}
-                className="dock-tile"
                 style={{
-                  height: 72, borderRadius: 10, border: 0,
-                  background: sel ? (ac ? `${ac}22` : 'rgba(100,120,255,0.12)') : 'var(--glass-faint)',
-                  outline: sel ? `1.5px solid ${act}` : '1.5px solid var(--glass-border)',
+                  height: 52, borderRadius: 9, border: 0,
+                  background: 'var(--panel-well)',
+                  outline: sel ? `1.5px solid ${act}` : '1.5px solid transparent',
                   cursor: 'pointer',
                   display: 'flex', flexDirection: 'column',
                   alignItems: 'flex-start', justifyContent: 'flex-end',
-                  padding: '0 10px 9px',
+                  padding: '0 8px 7px',
                   overflow: 'hidden',
                   position: 'relative',
                 }}
@@ -660,7 +683,7 @@ export default function CustomizePanel({ config, onChange, accentColor }: Props)
                 {/* Font name rendered in its own typeface */}
                 <span style={{
                   fontFamily: FONT_CSS_VAR[f.value],
-                  fontSize: f.size,
+                  fontSize: f.size * 0.78,
                   fontWeight: f.weight,
                   lineHeight: 1,
                   color: sel ? act : 'var(--fg-1)',
@@ -670,10 +693,9 @@ export default function CustomizePanel({ config, onChange, accentColor }: Props)
                 }}>{f.label}</span>
                 {/* Category tag */}
                 <span style={{
-                  fontFamily: 'var(--font-mono)', fontSize: 9,
-                  color: sel ? act : 'var(--fg-3)',
+                  fontSize: 8, color: sel ? act : 'var(--fg-3)',
                   letterSpacing: '0.08em', textTransform: 'uppercase',
-                  marginTop: 4,
+                  marginTop: 3,
                 }}>{f.tag}</span>
               </button>
             )
@@ -702,10 +724,9 @@ export default function CustomizePanel({ config, onChange, accentColor }: Props)
             const sel = config.textAlign === o.value
             return (
               <button key={o.value} onClick={() => onChange({ textAlign: o.value })} style={{
-                width: 40, height: 40, borderRadius: 8, border: 0, cursor: 'pointer',
-                background: sel ? (ac ? `${ac}33` : 'var(--accent-quiet)') : 'var(--glass-faint)',
-                color: sel ? act : 'var(--fg-3)',
-                outline: sel ? `1.5px solid ${act}` : '1.5px solid var(--glass-border)',
+                width: 34, height: 30, borderRadius: 8, border: 0, cursor: 'pointer',
+                background: sel ? (accentColor ?? 'var(--accent)') : 'var(--panel-well)',
+                color: sel ? '#0d0d0f' : 'var(--fg-3)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 transition: 'all 120ms',
               }}>{o.icon}</button>

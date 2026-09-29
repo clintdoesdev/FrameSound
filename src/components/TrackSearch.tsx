@@ -88,11 +88,8 @@ export default function TrackSearch({ onSelect, query, children }: Props) {
       <div style={{ position: 'relative', zIndex: 35 }}>{children}</div>
 
       {searching && (
-        <div style={{ position: 'absolute', right: 14, top: 18, zIndex: 36 }}>
-          <span className="spin" style={{
-            display: 'block', width: 15, height: 15,
-            border: '2px solid var(--accent)', borderTopColor: 'transparent', borderRadius: '50%',
-          }} />
+        <div style={{ position: 'absolute', right: 20, top: 18, zIndex: 36, color: 'var(--tint)' }}>
+          <span className="spinner" aria-hidden />
         </div>
       )}
 
@@ -107,7 +104,7 @@ export default function TrackSearch({ onSelect, query, children }: Props) {
           onClick={() => setOpen(false)}
           style={{
             position: 'fixed', inset: 0, zIndex: 30,
-            background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(1px)',
+            background: 'rgba(0,0,0,0.28)',
             animation: 'fadeIn 150ms ease both',
           }}
         />,
@@ -118,16 +115,15 @@ export default function TrackSearch({ onSelect, query, children }: Props) {
         <div
           role="listbox"
           style={{
-            position: 'absolute', top: 'calc(100% + 6px)', left: 0, right: 0, zIndex: 40,
-            background: 'var(--panel)', border: '1px solid var(--panel-line)',
-            borderRadius: 14, overflow: 'hidden',
-            boxShadow: '0 18px 40px rgba(0,0,0,0.45)',
-            maxHeight: 340, overflowY: 'auto',
+            position: 'absolute', top: 'calc(100% + 8px)', left: 0, right: 0, zIndex: 40,
+            borderRadius: 22, overflow: 'hidden', padding: 6,
+            maxHeight: 360, overflowY: 'auto',
+            animation: 'popIn 0.25s cubic-bezier(.2,.9,.25,1.05) both',
           }}
-          className="scroll"
+          className="scroll material"
         >
           {error && (
-            <div style={{ padding: '12px 14px', fontSize: 12.5, color: 'var(--danger)' }}>{error}</div>
+            <div style={{ padding: '12px 14px', fontSize: 13, color: 'var(--red)' }}>{error}</div>
           )}
           {results.map((t, i) => (
             <button
@@ -138,14 +134,15 @@ export default function TrackSearch({ onSelect, query, children }: Props) {
               onClick={() => choose(t)}
               onMouseEnter={() => setActive(i)}
               style={{
-                display: 'flex', alignItems: 'center', gap: 10, width: '100%',
-                padding: '9px 12px', border: 0, cursor: 'pointer', textAlign: 'left',
-                background: i === active ? 'var(--panel-well)' : 'transparent',
+                display: 'flex', alignItems: 'center', gap: 12, width: '100%',
+                padding: '8px 10px', border: 0, cursor: 'pointer', textAlign: 'left',
+                borderRadius: 16, minHeight: 52,
+                background: i === active ? 'var(--fill)' : 'transparent',
               }}
             >
               <span style={{
-                position: 'relative', width: 36, height: 36, borderRadius: 7,
-                overflow: 'hidden', flexShrink: 0, background: 'var(--panel-well-2)',
+                position: 'relative', width: 40, height: 40, borderRadius: 9,
+                overflow: 'hidden', flexShrink: 0, background: 'var(--fill-2)',
               }}>
                 {t.coverUrl && (
                   <Image src={t.coverUrl} alt="" fill style={{ objectFit: 'cover' }} unoptimized />
@@ -153,15 +150,15 @@ export default function TrackSearch({ onSelect, query, children }: Props) {
               </span>
               <span style={{ flex: 1, minWidth: 0 }}>
                 <span style={{
-                  display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--fg)',
+                  display: 'block', fontSize: 15, fontWeight: 600, color: 'var(--text)',
                   whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
                 }}>{t.title}</span>
                 <span style={{
-                  display: 'block', fontSize: 11.5, color: 'var(--fg-3)', marginTop: 1,
+                  display: 'block', fontSize: 13, color: 'var(--text-3)', marginTop: 1,
                   whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
                 }}>{t.artist} · {t.releaseYear}</span>
               </span>
-              <span className="tnum" style={{ fontSize: 11, color: 'var(--fg-3)', flexShrink: 0 }}>{t.duration}</span>
+              <span className="tnum" style={{ fontSize: 13, color: 'var(--text-3)', flexShrink: 0 }}>{t.duration}</span>
             </button>
           ))}
         </div>

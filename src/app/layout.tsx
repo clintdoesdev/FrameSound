@@ -1,4 +1,4 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import {
   Poppins,
   DM_Sans,
@@ -56,7 +56,7 @@ const oswald = Oswald({
 
 export const metadata: Metadata = {
   title: 'FrameSound — Spotify Card Generator',
-  description: 'Turn any Spotify track into a beautiful shareable card. Five presets, lyrics quotes, HD export.',
+  description: 'Turn any Spotify track into a beautiful shareable card. Seven liquid-glass presets, lyric quotes, HD export.',
   icons: {
     icon: '/favicon.svg',
     shortcut: '/favicon.svg',
@@ -66,6 +66,16 @@ export const metadata: Metadata = {
     description: 'Turn Spotify tracks into beautiful cards',
     type: 'website',
   },
+}
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  viewportFit: 'cover',
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#f2f2f7' },
+    { media: '(prefers-color-scheme: dark)', color: '#000000' },
+  ],
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -83,20 +93,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   ].join(' ')
 
   return (
-    <html lang="en" data-accent="emerald" className={fontVars}>
-      <body>
-        {/* Hidden liquid-glass distortion filter — referenced via
-            `backdrop-filter: ... url(#liquid-distortion)` as a progressive
-            enhancement (see .glass-liquid in globals.css). Adapted from the
-            liquid-glass-vue reference's feTurbulence/feDisplacementMap rig. */}
-        <svg width="0" height="0" style={{ position: 'absolute' }} aria-hidden="true">
-          <filter id="liquid-distortion" x="-20%" y="-20%" width="140%" height="140%">
-            <feTurbulence type="fractalNoise" baseFrequency="0.008 0.012" numOctaves="2" seed="7" result="turbulence" />
-            <feDisplacementMap in="SourceGraphic" in2="turbulence" scale="18" xChannelSelector="R" yChannelSelector="G" />
-          </filter>
-        </svg>
-        {children}
-      </body>
+    // Card typefaces only — the app chrome uses SF Pro / system-ui.
+    <html lang="en" className={fontVars}>
+      <body>{children}</body>
     </html>
   )
 }

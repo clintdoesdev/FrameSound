@@ -16,13 +16,19 @@ const ALIAS: Partial<Record<keyof CardConfig, string>> = {
   vignetteEnabled: 've', vignetteStrength: 'vs',
   scanlinesEnabled: 'ce', scanlinesOpacity: 'co',
   holoEnabled: 'he', holoOpacity: 'ho',
+  glassTint: 'gt', glassFrost: 'gf',
 }
+
+// Links are versioned so a default can change without restyling old cards:
+// v1 links (no `v`) predate the SF Pro default and meant Poppins.
+const VERSION = '2'
 const UNALIAS = Object.fromEntries(
   Object.entries(ALIAS).map(([k, v]) => [v, k])
 ) as Record<string, keyof CardConfig>
 
 export function encodeConfig(config: CardConfig, trackId?: string): string {
   const q = new URLSearchParams()
+  q.set('v', VERSION)
   if (trackId) q.set('t', trackId)
   for (const k of KEYS) {
     const v = config[k]
@@ -39,7 +45,7 @@ export function decodeConfig(search: string): { config: Partial<CardConfig>; tra
   const config: Partial<CardConfig> = {}
 
   for (const [rawKey, raw] of q.entries()) {
-    if (rawKey === 't') continue
+    if (rawKey === 't' || rawKey === 'v') continue
     const key = UNALIAS[rawKey] ?? (KEYS.includes(rawKey as keyof CardConfig) ? rawKey as keyof CardConfig : null)
     if (!key) continue
     const ref = defaultConfig[key]
@@ -55,6 +61,8 @@ export function decodeConfig(search: string): { config: Partial<CardConfig>; tra
       ;(config as Record<string, unknown>)[key] = raw
     }
   }
+  const isLink = !!trackId || Object.keys(config).length > 0
+  if (isLink && !q.has('v') && config.font === undefined) config.font = 'poppins'
   return { config, trackId }
 }
 

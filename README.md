@@ -12,13 +12,14 @@ FrameSound is a browser-based card generator built on Next.js 16.2. You give it 
 
 Key capabilities:
 
-- **5 card presets** — Glass, Poster, Minimal, Story, Square — each with a distinct visual identity
+- **Liquid Glass UI** — the editor chrome is built on a WebGL2 port of Apple's Liquid Glass (refraction, dispersion, glare), with the album art as the backdrop it bends
+- **7 liquid-glass card presets** — Glass, Bezel, Bloom, Ticket, Tag, Profile, Player — plus a shared glass material (tint + frost) for every card
 - **Lyrics integration** — lyrics are fetched automatically and you can click up to 2 lines to quote them on the card
 - **Full customization** — background style, font, text color, padding, border radius, aspect ratio, color tint, and per-element visibility toggles
 - **HD export** — download as PNG (3× scale), JPG (2× scale), transparent PNG, or copy directly to clipboard
 - **30-second audio preview** — plays the Spotify preview clip inline with an animated equalizer
 - **Recent tracks** — your last 5 tracks are saved to localStorage and shown as quick-access thumbnails
-- **Dark/light editor shell** — toggle the editor UI between dark and light without affecting the card
+- **Dark/light editor shell** — follows the system appearance without affecting the card
 
 ---
 
@@ -29,8 +30,9 @@ Key capabilities:
 | Framework | Next.js 16.2 (App Router, Turbopack) |
 | Language | TypeScript (strict mode) |
 | Styling | Tailwind CSS v4 |
-| Fonts | Syne, DM Sans (Google Fonts via `next/font`) |
-| Image export | dom-to-image-more |
+| UI | Liquid Glass kit (`src/lib/liquid-glass`, WebGL2) + `docs/GLASS_DESIGN.md` |
+| Fonts | SF Pro / system-ui for the UI; card fonts via `next/font` |
+| Image export | html-to-image |
 | Color extraction | colorthief |
 | Spotify data | Spotify Web API — Client Credentials flow |
 | Lyrics | lyrics.ovh public API |
@@ -105,13 +107,15 @@ Spotify credentials never reach the browser. `getAccessToken()` and `fetchTrack(
 
 | Preset | Description |
 |--------|-------------|
-| **Glass** | Album art blurred as background, frosted glass info panel centered over it |
-| **Poster** | Full-bleed album art, gradient fade to black at the bottom, text overlaid |
-| **Minimal** | Clean side-by-side layout — album art left, metadata right, no background texture |
-| **Story** | Tall 9:16 layout, blurred art background, large centered album art, lyrics in glass card |
-| **Square** | Compact 1:1 variant of Glass with slightly smaller art and tighter spacing |
+| **Glass** | Full-bleed art with a floating liquid-glass panel that refracts the art behind it |
+| **Bezel** | The whole card is a slab of frosted glass around inset artwork |
+| **Bloom** | Full-bleed art; the bottom melts into progressive frosted glass under the text |
+| **Ticket** | Glass body with art, plus a detached accent-tinted glass stub with a tear line |
+| **Tag** | Ticket layout with a brand-mark stub |
+| **Profile** | Social profile card; the identity bar is glass overlapping the photo |
+| **Player** | iOS-style now-playing glass widget over blurred art (1:1) |
 
-All presets respect the full set of config options: font, text color, padding, border radius, tint hue, and element visibility toggles.
+Glass surfaces on every preset share one material: **tint** (auto / light / dark / clear) and **frost**. They are drawn in DOM/CSS, not WebGL, so exports match the preview.
 
 ---
 
@@ -119,12 +123,14 @@ All presets respect the full set of config options: font, text color, padding, b
 
 | Option | Values | Effect |
 |--------|--------|--------|
-| `preset` | glass / poster / minimal / story / square | Card layout template |
+| `preset` | glass / bezel / bloom / ticket / tag / profile / player | Card layout template |
+| `glassTint` | auto / light / dark / clear | Tint of the card's glass surfaces |
+| `glassFrost` | 0–100 | Blur behind the card's glass surfaces |
 | `bgStyle` | blurred-art / solid / gradient / transparent | Background fill type |
 | `bgColor` | hex color | Used when bgStyle is `solid` |
 | `tintHue` | 0–360 | CSS `hue-rotate()` applied to background image |
 | `textColor` | white / black / auto | Text color override |
-| `font` | syne / dm-serif / playfair / bebas / instrument | Card typography |
+| `font` | sf-pro / poppins / space-grotesk / raleway / oswald / bebas / playfair / dm-serif / cormorant / instrument | Card typography |
 | `showAlbumArt` | boolean | Toggle album art visibility |
 | `showTitle` | boolean | Toggle track title |
 | `showArtist` | boolean | Toggle artist name |

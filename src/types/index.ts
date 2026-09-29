@@ -15,7 +15,7 @@ export type CardConfig = {
   bgColor: string
   tintHue: number
   textColor: 'white' | 'black' | 'auto'
-  font: 'poppins' | 'dm-serif' | 'playfair' | 'bebas' | 'instrument' | 'space-grotesk' | 'raleway' | 'cormorant' | 'oswald'
+  font: 'sf-pro' | 'poppins' | 'dm-serif' | 'playfair' | 'bebas' | 'instrument' | 'space-grotesk' | 'raleway' | 'cormorant' | 'oswald'
   showAlbumArt: boolean
   showTitle: boolean
   showArtist: boolean
@@ -25,6 +25,9 @@ export type CardConfig = {
   lyricQuote: string
   textAlign: 'left' | 'center' | 'right'
   artPadding: number       // 0–100 px, glass preset only
+  // Liquid-glass material used by every preset's glass surfaces
+  glassTint: 'auto' | 'light' | 'dark' | 'clear'
+  glassFrost: number       // 0–100, blur behind the glass
   // Artwork framing
   artZoom: number          // 100 = cover, up to 200
   artX: number             // focal point %, 50 = centre
@@ -54,7 +57,7 @@ export const defaultConfig: CardConfig = {
   bgColor: '#111111',
   tintHue: 0,
   textColor: 'auto',
-  font: 'poppins',
+  font: 'sf-pro',
   showAlbumArt: true,
   showTitle: true,
   showArtist: true,
@@ -64,6 +67,8 @@ export const defaultConfig: CardConfig = {
   lyricQuote: '',
   textAlign: 'left',
   artPadding: 12,
+  glassTint: 'auto',
+  glassFrost: 50,
   artZoom: 100,
   artX: 50,
   artY: 50,

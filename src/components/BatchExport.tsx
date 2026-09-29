@@ -99,75 +99,77 @@ export default function BatchExport({ config, accentColor, onClose }: Props) {
   return (
     <div style={{
       position: 'fixed', inset: 0, zIndex: 100,
-      background: 'rgba(0,0,0,0.6)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20,
-    }} onClick={e => { if (e.target === e.currentTarget && !running) onClose() }}>
+      background: 'rgba(0,0,0,0.32)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16,
+      animation: 'fadeIn 0.2s ease both',
+    }} role="dialog" aria-modal="true" aria-labelledby="batch-title" onClick={e => { if (e.target === e.currentTarget && !running) onClose() }}>
       <div style={{
         width: 'min(460px, 100%)', maxHeight: '86vh', overflowY: 'auto',
-        background: 'var(--panel)', border: '1px solid var(--panel-line)',
-        borderRadius: 18, padding: 18,
-      }} className="scroll">
+        borderRadius: 28, padding: '18px 20px 20px',
+        animation: 'popIn 0.35s cubic-bezier(.2,.9,.25,1.05) both',
+      }} className="scroll material">
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
-          <h2 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: 'var(--fg)' }}>Batch export</h2>
+          <h2 id="batch-title" className="display" style={{ margin: 0, fontSize: 22, fontWeight: 600 }}>Batch export</h2>
           <button
             type="button" onClick={onClose} disabled={running} aria-label="Close"
-            style={{ background: 'transparent', border: 0, cursor: running ? 'not-allowed' : 'pointer', color: 'var(--fg-3)', fontSize: 16 }}
-          >✕</button>
+            style={{ width: 32, height: 32, borderRadius: 16, background: 'var(--fill)', color: 'var(--text-2)', display: 'grid', placeItems: 'center' }}
+          >
+            <svg viewBox="0 0 14 14" width="12" height="12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M3 3l8 8M11 3l-8 8" /></svg>
+          </button>
         </div>
-        <p style={{ margin: '0 0 12px', fontSize: 12, color: 'var(--fg-3)', lineHeight: 1.5 }}>
+        <p className="footnote" style={{ margin: '4px 0 14px' }}>
           Paste a playlist or album link. Every track is rendered with your current
           design and downloaded as a zip. Up to 50 tracks.
         </p>
 
-        <div style={{ display: 'flex', gap: 6 }}>
+        <div style={{ display: 'flex', gap: 8 }}>
           <input
+            className="field"
             value={url}
             onChange={e => setUrl(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter') load() }}
             placeholder="Playlist or album link…"
             spellCheck={false}
             disabled={running}
-            style={{
-              flex: 1, height: 34, borderRadius: 9, border: 0, padding: '0 10px',
-              background: 'var(--panel-well)', color: 'var(--fg)', fontSize: 12.5, outline: 'none',
-            }}
+            aria-label="Playlist or album link"
           />
           <button
             type="button" onClick={load} disabled={loading || running || !url.trim()}
-            className="btn" data-variant="primary"
-            style={{ height: 34, borderRadius: 9, fontSize: 12.5 }}
+            className="btn" data-variant="gray"
           >{loading ? 'Loading…' : 'Load'}</button>
         </div>
 
-        {error && <div style={{ marginTop: 10, fontSize: 12, color: 'var(--danger)' }}>{error}</div>}
+        {error && <div style={{ marginTop: 10, fontSize: 13, color: 'var(--red)' }}>{error}</div>}
 
         {tracks.length > 0 && (
           <>
-            <div style={{ marginTop: 14, fontSize: 12, color: 'var(--fg-2)' }}>
+            <div className="group-title" style={{ marginTop: 18, padding: 0 }}>
               {tracks.length} track{tracks.length === 1 ? '' : 's'} ready
             </div>
-            <div className="scroll" style={{ maxHeight: 170, overflowY: 'auto', marginTop: 8 }}>
+            <div className="scroll group-body" style={{ maxHeight: 200, overflowY: 'auto', marginTop: 6, padding: '4px 12px' }}>
               {tracks.map((t, i) => (
                 <div key={`${t.id}-${i}`} style={{
                   display: 'flex', gap: 8, alignItems: 'center',
-                  padding: '5px 0', fontSize: 12,
-                  color: running && i < done ? 'var(--accent)' : 'var(--fg-2)',
+                  padding: '7px 0', fontSize: 13,
+                  color: running && i < done ? 'var(--text)' : 'var(--text-2)',
                 }}>
-                  <span className="tnum" style={{ width: 20, color: 'var(--fg-4)' }}>{i + 1}</span>
+                  <span className="tnum" style={{ width: 20, color: 'var(--text-3)' }}>{i + 1}</span>
                   <span style={{ flex: 1, minWidth: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     {t.title} — {t.artist}
                   </span>
-                  {running && i < done && <span>✓</span>}
+                  {running && i < done && (
+                    <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="var(--tint)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-label="Done"><path d="M3 8l4 4 6-7" /></svg>
+                  )}
                 </div>
               ))}
             </div>
 
             {running && (
               <div style={{ marginTop: 12 }}>
-                <div style={{ height: 4, borderRadius: 2, background: 'var(--panel-well-2)', overflow: 'hidden' }}>
-                  <div style={{ width: `${pct}%`, height: '100%', background: accentColor ?? 'var(--accent)', transition: 'width 200ms' }} />
+                <div style={{ height: 4, borderRadius: 2, background: 'var(--fill-2)', overflow: 'hidden' }}>
+                  <div style={{ width: `${pct}%`, height: '100%', background: 'var(--tint)', transition: 'width 200ms' }} />
                 </div>
-                <div style={{ marginTop: 6, fontSize: 11.5, color: 'var(--fg-3)' }}>
+                <div className="caption" style={{ marginTop: 6 }}>
                   Rendering {done} of {tracks.length}…
                 </div>
               </div>
@@ -176,7 +178,7 @@ export default function BatchExport({ config, accentColor, onClose }: Props) {
             <button
               type="button" onClick={run} disabled={running}
               className="btn" data-variant="primary"
-              style={{ width: '100%', marginTop: 14, height: 38, borderRadius: 10, justifyContent: 'center' }}
+              style={{ width: '100%', marginTop: 16 }}
             >{running ? 'Exporting…' : `Export ${tracks.length} cards as zip`}</button>
           </>
         )}

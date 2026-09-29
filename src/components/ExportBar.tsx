@@ -8,7 +8,6 @@ type Props = {
   track: TrackData
   config: CardConfig
   onConfigChange: (updates: Partial<CardConfig>) => void
-  accentColor?: string | null
   /** Lets the page trigger an export from a keyboard shortcut. */
   actionsRef?: React.MutableRefObject<{ exportPng: () => void } | null>
 }
@@ -34,13 +33,7 @@ const CopyIcon = () => (
     <rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/>
   </svg>
 )
-const Spinner = () => (
-  <span style={{
-    display: 'inline-block', width: 14, height: 14,
-    border: '2px solid currentColor', borderTopColor: 'transparent',
-    borderRadius: '50%', animation: 'exportSpin 0.7s linear infinite',
-  }} />
-)
+const Spinner = () => <span className="spinner" aria-hidden />
 
 function safe(s: string) {
   return s.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '')
@@ -134,7 +127,11 @@ async function compose(
 
 const supportsClipboard = typeof window !== 'undefined' && typeof ClipboardItem !== 'undefined'
 
-export default function ExportBar({ cardRef, track, config, onConfigChange, accentColor, actionsRef }: Props) {
+// Exports are sized against this reference width, not the on-screen size, so
+// "3×" means the same pixels whether the preview is 340px or 470px wide.
+const REF_W = 470
+
+export default function ExportBar({ cardRef, track, config, onConfigChange, actionsRef }: Props) {
   const [busy, setBusy] = useState<Busy>(null)
   const [toast, setToast] = useState<string | null>(null)
 
@@ -145,93 +142,63 @@ export default function ExportBar({ cardRef, track, config, onConfigChange, acce
     setTimeout(() => setToast(null), 1800)
   }
 
-  const exportPNG = useCallback(async () => {
-    if (!cardRef.current) { showToast('No card to export'); return }
-    if (busy) return
-    setBusy('png')
-    const el = cardRef.current
+  const render = useCallback(async (scale: number): Promise<string> => {
+    const el = cardRef.current!
     await waitReady(el)
     const restore = await inlineImages(el)
     try {
       const { toPng } = await import('html-to-image')
-      const cardUrl = await toPng(el, { pixelRatio: 3 })
-      const url = await compose(cardUrl, '#000000', config.exportSize, 'png', 1)
-      const a = document.createElement('a')
-      a.href = url; a.download = `${filename}.png`; a.click()
-      showToast('Saved ✓')
-    } catch (e) {
-      console.error('PNG export failed:', e)
-      const msg = e instanceof Error ? e.message.slice(0, 50) : 'Unknown error'
-      showToast(`Failed: ${msg}`)
-    } finally { restore(); setBusy(null) }
-  }, [cardRef, busy, filename, config.exportSize])
+      return await toPng(el, { pixelRatio: (scale * REF_W) / Math.max(1, el.offsetWidth) })
+    } finally { restore() }
+  }, [cardRef])
 
-  const exportJPG = useCallback(async () => {
+  const run = useCallback(async (kind: Exclude<Busy, null>, job: () => Promise<string>) => {
     if (!cardRef.current) { showToast('No card to export'); return }
     if (busy) return
-    setBusy('jpg')
-    const el = cardRef.current
-    await waitReady(el)
-    const restore = await inlineImages(el)
+    setBusy(kind)
     try {
-      const { toPng } = await import('html-to-image')
-      const cardUrl = await toPng(el, { pixelRatio: 2 })
-      const url = await compose(cardUrl, '#000000', config.exportSize, 'png', 1)
-      const a = document.createElement('a')
-      a.href = url; a.download = `${filename}.png`; a.click()
-      showToast('Saved ✓')
+      showToast(await job())
     } catch (e) {
-      console.error('JPG export failed:', e)
+      console.error(`${kind} export failed:`, e)
       const msg = e instanceof Error ? e.message.slice(0, 50) : 'Unknown error'
       showToast(`Failed: ${msg}`)
-    } finally { restore(); setBusy(null) }
-  }, [cardRef, busy, filename, config.exportSize])
+    } finally { setBusy(null) }
+  }, [cardRef, busy])
 
-  const exportTransparent = useCallback(async () => {
-    if (!cardRef.current) { showToast('No card to export'); return }
-    if (busy) return
-    setBusy('transparent')
+  const download = (url: string, name: string) => {
+    const a = document.createElement('a')
+    a.href = url; a.download = name; a.click()
+  }
+
+  const exportPNG = useCallback(() => run('png', async () => {
+    const url = await compose(await render(3), '#000000', config.exportSize, 'png', 1)
+    download(url, `${filename}.png`)
+    return 'Saved'
+  }), [run, render, config.exportSize, filename])
+
+  const exportJPG = useCallback(() => run('jpg', async () => {
+    const url = await compose(await render(2), '#000000', config.exportSize, 'jpeg', 0.92)
+    download(url, `${filename}.jpg`)
+    return 'Saved'
+  }), [run, render, config.exportSize, filename])
+
+  const exportTransparent = useCallback(() => run('transparent', async () => {
     const prevBgStyle = config.bgStyle
     onConfigChange({ bgStyle: 'transparent' })
-    await new Promise(r => setTimeout(r, 160))
-    const el = cardRef.current
-    await waitReady(el)
-    const restore = await inlineImages(el)
     try {
-      const { toPng } = await import('html-to-image')
-      const cardUrl = await toPng(el, { pixelRatio: 2 })
-      const url = await compose(cardUrl, null, config.exportSize, 'png', 1)
-      const a = document.createElement('a')
-      a.href = url; a.download = `${filename}-alpha.png`; a.click()
-      showToast('Saved ✓')
-    } catch (e) {
-      console.error('Transparent export failed:', e)
-      const msg = e instanceof Error ? e.message.slice(0, 50) : 'Unknown error'
-      showToast(`Failed: ${msg}`)
-    } finally { restore(); onConfigChange({ bgStyle: prevBgStyle }); setBusy(null) }
-  }, [cardRef, busy, filename, config.bgStyle, config.exportSize, onConfigChange])
+      await new Promise(r => setTimeout(r, 160))
+      const url = await compose(await render(2), null, config.exportSize, 'png', 1)
+      download(url, `${filename}-alpha.png`)
+      return 'Saved'
+    } finally { onConfigChange({ bgStyle: prevBgStyle }) }
+  }), [run, render, config.bgStyle, config.exportSize, filename, onConfigChange])
 
-  const copyClipboard = useCallback(async () => {
-    if (!cardRef.current) { showToast('No card to export'); return }
-    if (busy) return
-    setBusy('clipboard')
-    const el = cardRef.current
-    await waitReady(el)
-    const restore = await inlineImages(el)
-    try {
-      const { toPng } = await import('html-to-image')
-      const cardUrl = await toPng(el, { pixelRatio: 2 })
-      const url = await compose(cardUrl, '#000000', config.exportSize, 'png', 1)
-      const res = await fetch(url)
-      const blob = await res.blob()
-      await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })])
-      showToast('Copied ✓')
-    } catch (e) {
-      console.error('Clipboard copy failed:', e)
-      const msg = e instanceof Error ? e.message.slice(0, 50) : 'Unknown error'
-      showToast(`Failed: ${msg}`)
-    } finally { restore(); setBusy(null) }
-  }, [cardRef, busy, config.exportSize])
+  const copyClipboard = useCallback(() => run('clipboard', async () => {
+    const url = await compose(await render(2), '#000000', config.exportSize, 'png', 1)
+    const blob = await (await fetch(url)).blob()
+    await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })])
+    return 'Copied'
+  }), [run, render, config.exportSize])
 
   // No dep array on purpose: refresh the published closure every render so the
   // shortcut never fires a stale `busy` capture.
@@ -239,90 +206,40 @@ export default function ExportBar({ cardRef, track, config, onConfigChange, acce
     if (actionsRef) actionsRef.current = { exportPng: exportPNG }
   })
 
-  const btnBase = (isActive: boolean): React.CSSProperties => ({
-    flex: 1, height: 44, borderRadius: 10, border: 0,
-    cursor: isActive ? 'default' : 'pointer',
-    background: isActive ? (accentColor ?? 'var(--accent)') : 'var(--panel-well)',
-    color: 'var(--fg)',
-    display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4,
-    transform: isActive ? 'scale(0.97)' : 'scale(1)',
-    transition: 'transform 100ms, background 120ms',
-    opacity: busy && !isActive ? 0.45 : 1,
-  })
-
-  const labelSty: React.CSSProperties = {
-    fontFamily: 'var(--font-poppins)', fontSize: 10, fontWeight: 600,
-    letterSpacing: '0.08em', textTransform: 'uppercase',
-    color: 'var(--fg-1)',
-  }
-
-
   return (
-    <div style={{
-      background: 'var(--bg)',
-      borderTop: '1px solid var(--panel-line)',
-      padding: '8px 10px',
-      height: 60,
-      flexShrink: 0,
-      position: 'relative',
-      display: 'flex', alignItems: 'center',
-    }}>
-      <style>{`
-        @keyframes exportSpin { to { transform: rotate(360deg); } }
-        @keyframes slideUpToast {
-          from { opacity: 0; transform: translateX(-50%) translateY(10px); }
-          to   { opacity: 1; transform: translateX(-50%) translateY(0); }
-        }
-      `}</style>
-
+    <div style={{ position: 'relative', display: 'flex', gap: 8, alignItems: 'center' }}>
       {toast && (
-        <div style={{
-          background: 'var(--panel)', border: '1px solid var(--panel-line)',
-          boxShadow: '0 12px 32px rgba(0,0,0,0.5)',
-          position: 'absolute', bottom: 72, left: '50%',
-          transform: 'translateX(-50%)',
-          minWidth: 230,
-          borderRadius: 14,
-          borderLeft: `3px solid ${accentColor ?? 'var(--accent)'}`,
-          padding: '13px 20px',
-          display: 'flex', alignItems: 'center', gap: 10,
-          pointerEvents: 'none',
-          animation: 'slideUpToast 0.25s cubic-bezier(0.34,1.56,0.64,1) both',
-          zIndex: 50,
+        <div role="status" className="material" style={{
+          position: 'absolute', bottom: 'calc(100% + 12px)', left: '50%',
+          transform: 'translateX(-50%)', borderRadius: 999,
+          padding: '10px 18px', display: 'flex', alignItems: 'center', gap: 8,
+          fontSize: 15, fontWeight: 600, whiteSpace: 'nowrap', pointerEvents: 'none',
+          animation: 'popIn 0.3s cubic-bezier(.2,.9,.25,1.1) both', zIndex: 50,
         }}>
-          <svg viewBox="0 0 16 16" width="16" height="16" fill="none"
-            stroke={accentColor ?? 'var(--accent)'} strokeWidth="2.2"
-            strokeLinecap="round" strokeLinejoin="round">
-            <path d="M3 8l4 4 6-7"/>
-          </svg>
-          <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--fg)', whiteSpace: 'nowrap' }}>{toast}</span>
+          <svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="var(--tint)" strokeWidth="2.2"
+            strokeLinecap="round" strokeLinejoin="round"><path d="M3 8l4 4 6-7"/></svg>
+          {toast}
         </div>
       )}
 
-      <div style={{ display: 'flex', gap: 6, width: '100%' }}>
-        <button className="dock-tile" style={btnBase(busy === 'png')} onClick={exportPNG} disabled={!!busy}>
-          {busy === 'png' ? <Spinner /> : <DlIcon />}
-          <span style={labelSty}>PNG 3×</span>
+      <button type="button" className="btn" data-variant="primary" onClick={exportPNG} disabled={!!busy}
+        style={{ flex: 1, minHeight: 44 }} title="Download PNG (⌘E)">
+        {busy === 'png' ? <Spinner /> : <DlIcon />} Export PNG
+      </button>
+      <button type="button" className="btn" data-variant="gray" onClick={exportJPG} disabled={!!busy}
+        style={{ minHeight: 44, padding: '0 12px' }} title="Download JPG (2×)">
+        {busy === 'jpg' ? <Spinner /> : 'JPG'}
+      </button>
+      <button type="button" className="btn" data-variant="gray" onClick={exportTransparent} disabled={!!busy}
+        style={{ minHeight: 44, width: 44, padding: 0 }} title="Transparent PNG" aria-label="Transparent PNG">
+        {busy === 'transparent' ? <Spinner /> : <AlphaIcon />}
+      </button>
+      {supportsClipboard && (
+        <button type="button" className="btn" data-variant="gray" onClick={copyClipboard} disabled={!!busy}
+          style={{ minHeight: 44, width: 44, padding: 0 }} title="Copy to clipboard" aria-label="Copy to clipboard">
+          {busy === 'clipboard' ? <Spinner /> : <CopyIcon />}
         </button>
-        <button className="dock-tile" style={btnBase(busy === 'jpg')} onClick={exportJPG} disabled={!!busy}>
-          {busy === 'jpg' ? <Spinner /> : <DlIcon />}
-          <span style={labelSty}>PNG 2×</span>
-        </button>
-        <button className="dock-tile" style={btnBase(busy === 'transparent')} onClick={exportTransparent} disabled={!!busy}>
-          {busy === 'transparent' ? <Spinner /> : <AlphaIcon />}
-          <span style={labelSty}>Alpha</span>
-        </button>
-        {supportsClipboard && (
-          <button
-            className="dock-tile"
-            style={{ ...btnBase(busy === 'clipboard'), flex: 'none', width: 48 }}
-            onClick={copyClipboard} disabled={!!busy}
-            title="Copy to clipboard"
-          >
-            {busy === 'clipboard' ? <Spinner /> : <CopyIcon />}
-          </button>
-        )}
-      </div>
+      )}
     </div>
   )
 }

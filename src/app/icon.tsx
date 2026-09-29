@@ -8,11 +8,11 @@ export default function Icon() {
     <div
       style={{
         width: 32, height: 32, borderRadius: 9,
-        background: 'linear-gradient(135deg, #5e5ce6 0%, #bf5af2 55%, #ff375f 100%)',
+        background: 'linear-gradient(135deg, #4ade80 0%, #16a34a 100%)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
       }}
     >
-      <div style={{ width: 13, height: 13, borderRadius: 3, background: 'rgba(255,255,255,0.92)' }} />
+      <div style={{ width: 13, height: 13, borderRadius: 3, background: 'rgba(0,0,0,0.82)' }} />
     </div>
   )
 }

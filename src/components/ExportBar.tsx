@@ -216,7 +216,7 @@ export default function ExportBar({ cardRef, track, config, onConfigChange, acti
           fontSize: 15, fontWeight: 600, whiteSpace: 'nowrap', pointerEvents: 'none',
           animation: 'popIn 0.3s cubic-bezier(.2,.9,.25,1.1) both', zIndex: 50,
         }}>
-          <svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="var(--tint)" strokeWidth="2.2"
+          <svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="var(--accent-text)" strokeWidth="2.2"
             strokeLinecap="round" strokeLinejoin="round"><path d="M3 8l4 4 6-7"/></svg>
           {toast}
         </div>
@@ -226,16 +226,16 @@ export default function ExportBar({ cardRef, track, config, onConfigChange, acti
         style={{ flex: 1, minHeight: 44 }} title="Download PNG (⌘E)">
         {busy === 'png' ? <Spinner /> : <DlIcon />} Export PNG
       </button>
-      <button type="button" className="btn" data-variant="gray" onClick={exportJPG} disabled={!!busy}
+      <button type="button" className="btn" onClick={exportJPG} disabled={!!busy}
         style={{ minHeight: 44, padding: '0 12px' }} title="Download JPG (2×)">
         {busy === 'jpg' ? <Spinner /> : 'JPG'}
       </button>
-      <button type="button" className="btn" data-variant="gray" onClick={exportTransparent} disabled={!!busy}
+      <button type="button" className="btn" onClick={exportTransparent} disabled={!!busy}
         style={{ minHeight: 44, width: 44, padding: 0 }} title="Transparent PNG" aria-label="Transparent PNG">
         {busy === 'transparent' ? <Spinner /> : <AlphaIcon />}
       </button>
       {supportsClipboard && (
-        <button type="button" className="btn" data-variant="gray" onClick={copyClipboard} disabled={!!busy}
+        <button type="button" className="btn" onClick={copyClipboard} disabled={!!busy}
           style={{ minHeight: 44, width: 44, padding: 0 }} title="Copy to clipboard" aria-label="Copy to clipboard">
           {busy === 'clipboard' ? <Spinner /> : <CopyIcon />}
         </button>

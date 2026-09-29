@@ -36,9 +36,9 @@ export default function RecentTracks({ onSelect }: Props) {
   return (
     <Glass className="recent-bar" style={{
       display: 'flex', alignItems: 'center', gap: 10, minWidth: 0,
-      borderRadius: 999, padding: '6px 8px 6px 16px',
+      borderRadius: 16, padding: '7px 8px 7px 14px',
     }}>
-      <span className="caption" style={{ flex: 'none', color: 'var(--text-2)' }}>Recent</span>
+      <span className="eyebrow" style={{ flex: 'none' }}>Recent</span>
       <div className="scroll" style={{ display: 'flex', gap: 8, overflowX: 'auto', padding: 2 }}>
         {recent.map(track => (
           <button
@@ -52,7 +52,7 @@ export default function RecentTracks({ onSelect }: Props) {
             {track.coverUrl ? (
               <Image src={track.coverUrl} alt="" fill sizes="40px" style={{ objectFit: 'cover' }} unoptimized />
             ) : (
-              <span style={{ position: 'absolute', inset: 0, background: 'var(--fill-2)' }} />
+              <span style={{ position: 'absolute', inset: 0, background: 'var(--surface-3)' }} />
             )}
           </button>
         ))}

@@ -12,7 +12,7 @@ FrameSound is a browser-based card generator built on Next.js 16.2. You give it 
 
 Key capabilities:
 
-- **Liquid Glass UI** — the editor chrome is built on a WebGL2 port of Apple's Liquid Glass (refraction, dispersion, glare), with the album art as the backdrop it bends
+- **Glass studio UI** — FrameSound's own dark studio look that re-tints to each album; on desktop the editor chrome uses a WebGL2 liquid-glass engine that bends the album art behind it
 - **7 card presets** — Glass, Bezel, Bloom, Ticket, Tag, Profile, Player; the glassy ones (Glass, Player) get an adjustable glass material (tint + frost)
 - **Lyrics integration** — lyrics are fetched automatically and you can click up to 2 lines to quote them on the card
 - **Full customization** — background style, font, text color, padding, border radius, aspect ratio, color tint, and per-element visibility toggles
@@ -30,8 +30,8 @@ Key capabilities:
 | Framework | Next.js 16.2 (App Router, Turbopack) |
 | Language | TypeScript (strict mode) |
 | Styling | Tailwind CSS v4 |
-| UI | Liquid Glass kit (`src/lib/liquid-glass`, WebGL2) + `docs/GLASS_DESIGN.md` |
-| Fonts | SF Pro / system-ui for the UI; card fonts via `next/font` |
+| UI | FrameSound design system (`docs/DESIGN.md`) + Liquid Glass kit (`src/lib/liquid-glass`, WebGL2) on desktop |
+| Fonts | Poppins + mono labels for the UI; card fonts via `next/font` |
 | Image export | html-to-image |
 | Color extraction | colorthief |
 | Spotify data | Spotify Web API — Client Credentials flow |

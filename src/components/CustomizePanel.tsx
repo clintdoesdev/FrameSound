@@ -2,8 +2,7 @@
 
 import React, { useState } from 'react'
 import { CardConfig } from '@/types'
-import { GlassToggle, GlassRange, type TabItem } from '@/components/glass/Controls'
-import type { RGBA } from '@/lib/liquid-glass/liquid-glass'
+import { Range, Chips, type TabItem } from '@/components/glass/Controls'
 
 type SavedPreset = { id: string; name: string; config: CardConfig }
 
@@ -34,7 +33,6 @@ function loadSavedPresets(): SavedPreset[] {
     const list = raw ? (JSON.parse(raw) as SavedPreset[]) : []
     return list.map(p => ({
       ...p,
-      // Saved before SF Pro existed → they were made in Poppins.
       config: { ...p.config, font: p.config?.font ?? 'poppins', preset: migratePreset(p.config?.preset as string) },
     }))
   } catch { return [] }
@@ -45,7 +43,7 @@ function persistPresets(list: SavedPreset[]) {
 
 export type PanelTab = 'style' | 'text' | 'layout' | 'effects'
 
-// ── Icons (SF-Symbols-like strokes) ─────────────────────────────
+// ── Icons ─────────────────────────────
 const S = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.7, strokeLinecap: 'round', strokeLinejoin: 'round' } as const
 const Icon = ({ d, children }: { d?: string; children?: React.ReactNode }) => (
   <svg viewBox="0 0 24 24" {...S}>{d ? <path d={d} /> : children}</svg>
@@ -197,52 +195,37 @@ const PRESET_SVG: Record<CardConfig['preset'], React.ReactNode> = {
 }
 
 // ── Layout helpers ──────────────────────────────────────────────
-function Group({ title, footer, children }: { title?: string; footer?: string; children: React.ReactNode }) {
+/** A numbered panel section: mono eyebrow, optional action, then content. */
+function Section({ n, title, action, note, children }: {
+  n: string; title: string; action?: React.ReactNode; note?: string; children: React.ReactNode
+}) {
   return (
-    <section className="group">
-      {title && <h3 className="group-title">{title}</h3>}
-      <div className="group-body">{children}</div>
-      {footer && <p className="group-footer">{footer}</p>}
+    <section className="section">
+      <div className="section-head">
+        <h3 className="eyebrow" style={{ margin: 0 }}><b>{n}</b>{title}</h3>
+        {action}
+      </div>
+      {children}
+      {note && <p className="note">{note}</p>}
     </section>
   )
 }
 
-function Seg<T extends string>({ value, options, onChange, label }: {
-  value: T
-  options: { value: T; label: React.ReactNode; aria?: string }[]
-  onChange: (v: T) => void
-  label: string
-}) {
-  return (
-    <div className="seg" role="group" aria-label={label}>
-      {options.map(o => (
-        <button key={o.value} type="button" aria-pressed={value === o.value}
-          aria-label={o.aria} onClick={() => onChange(o.value)}>{o.label}</button>
-      ))}
-    </div>
-  )
-}
-
-function ToggleRow({ icon, label, value, onChange }: {
+/** An icon + label card that toggles, laid out two per row. */
+function Opt({ icon, label, value, onChange }: {
   icon: React.ReactNode; label: string; value: boolean; onChange: (v: boolean) => void
 }) {
   return (
-    <div className="row">
-      <span className="row-label">{icon}{label}</span>
-      <GlassToggle checked={value} onChange={onChange} label={label} />
-    </div>
+    <button type="button" role="switch" aria-checked={value} className="opt" onClick={() => onChange(!value)}>
+      {icon}<span>{label}</span>
+      <span className="toggle" data-on={value || undefined} aria-hidden><span /></span>
+    </button>
   )
 }
 
 const pct = (v: number) => `${v}%`
-
-function hueRGBA(h: number): RGBA {
-  const f = (n: number) => {
-    const k = (n + h / 30) % 12
-    return 0.5 - 0.4 * Math.max(-1, Math.min(k - 3, 9 - k, 1))
-  }
-  return [f(0), f(8), f(4), 1]
-}
+const HUE_TRACK = 'linear-gradient(to right, hsl(0,80%,55%), hsl(60,80%,55%), hsl(120,80%,55%), hsl(180,80%,55%), hsl(240,80%,55%), hsl(300,80%,55%), hsl(360,80%,55%))'
+const grid = (cols: number, gap = 6): React.CSSProperties => ({ display: 'grid', gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`, gap })
 
 // Curated one-tap looks so the panel is useful before anyone has saved anything.
 const STARTERS: { name: string; patch: Partial<CardConfig> }[] = [
@@ -265,7 +248,7 @@ const PRESETS: { id: CardConfig['preset']; name: string }[] = [
 ]
 
 const FONT_CSS_VAR: Record<CardConfig['font'], string> = {
-  'sf-pro':         'var(--font-display)',
+  'sf-pro':         '-apple-system, BlinkMacSystemFont, system-ui, sans-serif',
   poppins:          'var(--font-poppins)',
   'dm-serif':       'var(--font-dm-serif)',
   playfair:         'var(--font-playfair)',
@@ -278,9 +261,9 @@ const FONT_CSS_VAR: Record<CardConfig['font'], string> = {
 }
 
 const FONTS: { value: CardConfig['font']; label: string; tag: string; weight: number; size: number }[] = [
-  { value: 'sf-pro',        label: 'SF Pro',       tag: 'System',    weight: 600, size: 17 },
   { value: 'poppins',       label: 'Poppins',      tag: 'Modern',    weight: 600, size: 17 },
   { value: 'space-grotesk', label: 'Grotesk',      tag: 'Modern',    weight: 600, size: 16 },
+  { value: 'sf-pro',        label: 'System',       tag: 'Neutral',   weight: 600, size: 17 },
   { value: 'raleway',       label: 'Raleway',      tag: 'Elegant',   weight: 300, size: 18 },
   { value: 'oswald',        label: 'Oswald',       tag: 'Condensed', weight: 500, size: 18 },
   { value: 'bebas',         label: 'Bebas',        tag: 'Display',   weight: 400, size: 22 },
@@ -313,107 +296,82 @@ export default function CustomizePanel({ tab, config, onChange, lyrics }: Props)
   }
 
   // ── STYLE ─────────────────────────────────────────────────────
-  if (tab === 'style') return (
-    <div className="panel-stack">
-      <ThumbDefs />
-      <Group title="Preset" footer="Keys 1–7 switch presets.">
-        <div className="cell">
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
-            {PRESETS.map((p, i) => (
-              <button
-                key={p.id} type="button" className="tile"
-                aria-pressed={config.preset === p.id}
-                aria-label={`${p.name} preset`} title={`${p.name} (${i + 1})`}
-                onClick={() => onChange({ preset: p.id })}
-                style={{ padding: '8px 4px 6px', gap: 5 }}
-              >
-                {/* Fixed-dark plate — the thumbnails mirror the (dark) cards, so
-                    they stay legible in either app theme. */}
-                <span style={{ width: '100%', height: 40, display: 'block', borderRadius: 8, background: '#1c1c1e', padding: 2 }}>{PRESET_SVG[p.id]}</span>
-                <span style={{ fontSize: 11, fontWeight: 600, color: config.preset === p.id ? 'var(--tint)' : 'var(--text-2)' }}>{p.name}</span>
-              </button>
-            ))}
+  if (tab === 'style') {
+    const glassy = config.preset === 'glass' || config.preset === 'player'
+    return (
+      <div className="panel-stack">
+        <ThumbDefs />
+        <Section n="01" title="Preset" action={<span className="eyebrow">keys 1–7</span>}>
+          <div style={grid(4, 8)}>
+            {PRESETS.map((p, i) => {
+              const sel = config.preset === p.id
+              return (
+                <button
+                  key={p.id} type="button" className="tile"
+                  aria-pressed={sel}
+                  aria-label={`${p.name} preset`} title={`${p.name} (${i + 1})`}
+                  onClick={() => onChange({ preset: p.id })}
+                  style={{ padding: '7px 5px 6px', gap: 5 }}
+                >
+                  {/* Fixed-dark plate — the thumbnails mirror the (dark) cards, so
+                      they stay legible in either app theme. */}
+                  <span style={{ width: '100%', height: 42, display: 'block', borderRadius: 8, background: '#161618', padding: 2 }}>{PRESET_SVG[p.id]}</span>
+                  <span style={{ fontSize: 11, fontWeight: 600, color: sel ? 'var(--text)' : 'var(--text-3)' }}>{p.name}</span>
+                </button>
+              )
+            })}
           </div>
-        </div>
-      </Group>
+        </Section>
 
-      {(config.preset === 'glass' || config.preset === 'player') && (
-      <Group title="Glass" footer="The material of this preset's glass panel.">
-        <div className="cell">
-          <Seg label="Glass tint" value={config.glassTint} onChange={v => onChange({ glassTint: v })}
-            options={[
-              { value: 'auto', label: 'Auto' },
-              { value: 'light', label: 'Light' },
-              { value: 'dark', label: 'Dark' },
-              { value: 'clear', label: 'Clear' },
-            ]} />
-          <GlassRange label="Frost" value={config.glassFrost} min={0} max={100} step={5}
-            onChange={v => onChange({ glassFrost: v })} format={pct} />
-        </div>
-      </Group>
-      )}
+        {glassy && (
+          <Section n="02" title="Glass" note="Tint and frost of this preset's glass panel.">
+            <Chips label="Glass tint" value={config.glassTint} onChange={v => onChange({ glassTint: v })}
+              options={[
+                { value: 'auto', label: 'Auto' },
+                { value: 'light', label: 'Light' },
+                { value: 'dark', label: 'Dark' },
+                { value: 'clear', label: 'Clear' },
+              ]} />
+            <Range label="Frost" value={config.glassFrost} min={0} max={100} step={5}
+              onChange={v => onChange({ glassFrost: v })} format={pct} />
+          </Section>
+        )}
 
-      <Group title="Background">
-        <div className="cell">
-          <Seg label="Background" value={config.bgStyle} onChange={v => onChange({ bgStyle: v })}
+        <Section n={glassy ? '03' : '02'} title="Background">
+          <Chips label="Background" value={config.bgStyle} onChange={v => onChange({ bgStyle: v })}
             options={[
-              { value: 'blurred-art', label: 'Art' },
+              { value: 'blurred-art', label: 'Artwork' },
               { value: 'gradient', label: 'Gradient' },
               { value: 'solid', label: 'Solid' },
               { value: 'transparent', label: 'None' },
             ]} />
           {config.bgStyle === 'solid' && (
-            <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, cursor: 'pointer' }}>
-              <span style={{ fontSize: 15 }}>Colour</span>
-              <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <span className="mono" style={{ fontSize: 13, color: 'var(--text-2)' }}>{config.bgColor.toUpperCase()}</span>
-                <span style={{ position: 'relative', width: 30, height: 30, borderRadius: 999, background: config.bgColor, boxShadow: 'inset 0 0 0 0.5px var(--separator)' }}>
-                  <input type="color" value={config.bgColor} aria-label="Background colour"
-                    onChange={e => onChange({ bgColor: e.target.value })}
-                    style={{ position: 'absolute', inset: 0, opacity: 0, width: '100%', height: '100%', cursor: 'pointer' }} />
-                </span>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}>
+              <span style={{ position: 'relative', width: 30, height: 30, borderRadius: 9, background: config.bgColor, boxShadow: 'inset 0 0 0 1px var(--line-2)' }}>
+                <input type="color" value={config.bgColor} aria-label="Background colour"
+                  onChange={e => onChange({ bgColor: e.target.value })}
+                  style={{ position: 'absolute', inset: 0, opacity: 0, width: '100%', height: '100%', cursor: 'pointer' }} />
               </span>
+              <span className="mono" style={{ fontSize: 12, color: 'var(--text-2)' }}>{config.bgColor.toUpperCase()}</span>
             </label>
           )}
-          <GlassRange label="Art hue" value={config.tintHue} min={0} max={360} step={1}
+          <Range label="Art hue" value={config.tintHue} min={0} max={360} step={1}
             onChange={v => onChange({ tintHue: v })}
-            format={v => (v === 0 ? 'Off' : `${v}°`)}
-            fill={() => hueRGBA(config.tintHue)} />
-        </div>
-      </Group>
+            format={v => (v === 0 ? 'off' : `${v}°`)} track={HUE_TRACK} />
+        </Section>
 
-      <Group title="Looks">
-        <div className="cell">
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6 }}>
+        <Section n={glassy ? '04' : '03'} title="Looks"
+          action={!showSaveInput && (
+            <button type="button" className="btn" data-variant="plain" style={{ fontSize: 12 }}
+              onClick={() => setShowSaveInput(true)}>+ Save current</button>
+          )}>
+          <div style={grid(3)}>
             {STARTERS.map(st => (
-              <button key={st.name} type="button" className="btn" data-variant="gray" data-size="sm"
+              <button key={st.name} type="button" className="btn" data-size="sm"
                 onClick={() => onChange(st.patch)}>{st.name}</button>
             ))}
           </div>
-        </div>
-        {savedPresets.map(p => (
-          <div key={p.id} className="row">
-            <button type="button" onClick={() => onChange(p.config)}
-              style={{ flex: 1, minWidth: 0, textAlign: 'left', display: 'flex', alignItems: 'baseline', gap: 8, minHeight: 44 }}>
-              <span style={{ fontSize: 15, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.name}</span>
-              <span className="caption" style={{ textTransform: 'capitalize' }}>{p.config.preset}</span>
-            </button>
-            <button type="button" className="icon-btn" aria-label={`Delete ${p.name}`}
-              onClick={() => {
-                const updated = savedPresets.filter(x => x.id !== p.id)
-                setSavedPresets(updated)
-                persistPresets(updated)
-              }}
-              style={{ color: 'var(--red)' }}>
-              <Icon d="M5 7h14M10 7V5h4v2M7 7l1 12h8l1-12" />
-            </button>
-          </div>
-        ))}
-        <div className="cell">
-          {!showSaveInput ? (
-            <button type="button" className="btn" data-variant="plain" style={{ alignSelf: 'flex-start', padding: 0 }}
-              onClick={() => setShowSaveInput(true)}>Save current look…</button>
-          ) : (
+          {showSaveInput && (
             <div style={{ display: 'flex', gap: 8 }}>
               <input
                 autoFocus className="field" value={saveName}
@@ -422,76 +380,90 @@ export default function CustomizePanel({ tab, config, onChange, lyrics }: Props)
                   if (e.key === 'Enter') savePreset()
                   if (e.key === 'Escape') { setSaveName(''); setShowSaveInput(false) }
                 }}
-                placeholder="Name" aria-label="Look name"
+                placeholder="Name this look" aria-label="Look name"
               />
               <button type="button" className="btn" data-variant="primary" onClick={savePreset} disabled={!saveName.trim()}>Save</button>
             </div>
           )}
-        </div>
-      </Group>
-    </div>
-  )
+          {savedPresets.length > 0 && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              {savedPresets.map(p => (
+                <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <button type="button" className="opt" style={{ flex: 1 }} onClick={() => onChange(p.config)}>
+                    <span style={{ color: 'var(--text)' }}>{p.name}</span>
+                    <span className="eyebrow" style={{ flex: 'none' }}>{p.config.preset}</span>
+                  </button>
+                  <button type="button" className="icon-btn" aria-label={`Delete ${p.name}`}
+                    onClick={() => {
+                      const updated = savedPresets.filter(x => x.id !== p.id)
+                      setSavedPresets(updated)
+                      persistPresets(updated)
+                    }}>
+                    <Icon d="M5 7h14M10 7V5h4v2M7 7l1 12h8l1-12" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </Section>
+      </div>
+    )
+  }
 
   // ── TEXT ──────────────────────────────────────────────────────
   if (tab === 'text') return (
     <div className="panel-stack">
       {lyrics}
 
-      <Group title="Font">
-        <div className="cell">
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6 }}>
-            {FONTS.map(f => {
-              const sel = config.font === f.value
-              return (
-                <button key={f.value} type="button" className="tile" aria-pressed={sel}
-                  onClick={() => onChange({ font: f.value })}
-                  style={{ height: 56, alignItems: 'flex-start', justifyContent: 'flex-end', padding: '0 10px 8px', overflow: 'hidden' }}>
-                  <span style={{
-                    fontFamily: FONT_CSS_VAR[f.value], fontSize: f.size * 0.82, fontWeight: f.weight, lineHeight: 1,
-                    color: sel ? 'var(--tint)' : 'var(--text)',
-                    letterSpacing: f.value === 'bebas' || f.value === 'oswald' ? '0.04em' : 0,
-                    width: '100%', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', textAlign: 'left',
-                  }}>{f.label}</span>
-                  <span style={{ fontSize: 10, color: 'var(--text-3)', marginTop: 4 }}>{f.tag}</span>
-                </button>
-              )
-            })}
-          </div>
+      <Section n="02" title="Typeface">
+        <div style={grid(3)}>
+          {FONTS.map(f => {
+            const sel = config.font === f.value
+            return (
+              <button key={f.value} type="button" className="tile" aria-pressed={sel}
+                onClick={() => onChange({ font: f.value })}
+                style={{ height: 58, alignItems: 'flex-start', justifyContent: 'flex-end', padding: '0 10px 8px', overflow: 'hidden' }}>
+                <span style={{
+                  fontFamily: FONT_CSS_VAR[f.value], fontSize: f.size * 0.82, fontWeight: f.weight, lineHeight: 1,
+                  color: 'var(--text)',
+                  letterSpacing: f.value === 'bebas' || f.value === 'oswald' ? '0.04em' : 0,
+                  width: '100%', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', textAlign: 'left',
+                }}>{f.label}</span>
+                <span className="mono" style={{ fontSize: 9.5, letterSpacing: '0.08em', textTransform: 'uppercase', color: sel ? 'var(--accent-text)' : 'var(--text-3)', marginTop: 5 }}>{f.tag}</span>
+              </button>
+            )
+          })}
         </div>
-      </Group>
+      </Section>
 
-      <Group title="Text">
-        <div className="cell">
-          <Seg label="Text colour" value={config.textColor} onChange={v => onChange({ textColor: v })}
-            options={[
-              { value: 'auto', label: 'Auto' },
-              { value: 'white', label: 'Light' },
-              { value: 'black', label: 'Dark' },
-            ]} />
-          <Seg label="Alignment" value={config.textAlign} onChange={v => onChange({ textAlign: v })}
-            options={[
-              { value: 'left', label: <span style={{ width: 18, height: 18, display: 'block' }}><AlignLeftIcon /></span>, aria: 'Align left' },
-              { value: 'center', label: <span style={{ width: 18, height: 18, display: 'block' }}><AlignCenterIcon /></span>, aria: 'Align centre' },
-              { value: 'right', label: <span style={{ width: 18, height: 18, display: 'block' }}><AlignRightIcon /></span>, aria: 'Align right' },
-            ]} />
-        </div>
-      </Group>
+      <Section n="03" title="Colour & alignment">
+        <Chips label="Text colour" value={config.textColor} onChange={v => onChange({ textColor: v })}
+          options={[
+            { value: 'auto', label: 'Auto' },
+            { value: 'white', label: 'Light' },
+            { value: 'black', label: 'Dark' },
+          ]} />
+        <Chips label="Alignment" value={config.textAlign} onChange={v => onChange({ textAlign: v })}
+          options={[
+            { value: 'left', label: <><AlignLeftIcon /> Left</>, aria: 'Align left' },
+            { value: 'center', label: <><AlignCenterIcon /> Centre</>, aria: 'Align centre' },
+            { value: 'right', label: <><AlignRightIcon /> Right</>, aria: 'Align right' },
+          ]} />
+      </Section>
 
       {config.showLyrics && (
-        <Group title="Lyric style">
-          <div className="cell">
-            <Seg label="Lyric style" value={config.lyricStyle} onChange={v => onChange({ lyricStyle: v })}
-              options={[
-                { value: 'italic', label: <i>Italic</i> },
-                { value: 'plain', label: 'Plain' },
-                { value: 'quoted', label: '“Quote”' },
-              ]} />
-            <GlassRange label="Lines" value={config.lyricLines} min={1} max={4} step={1}
-              onChange={v => onChange({ lyricLines: v })} />
-            <GlassRange label="Size" value={config.lyricScale} min={70} max={150} step={5}
-              onChange={v => onChange({ lyricScale: v })} format={pct} />
-          </div>
-        </Group>
+        <Section n="04" title="Lyric style">
+          <Chips label="Lyric style" value={config.lyricStyle} onChange={v => onChange({ lyricStyle: v })}
+            options={[
+              { value: 'italic', label: <i>Italic</i> },
+              { value: 'plain', label: 'Plain' },
+              { value: 'quoted', label: '“Quoted”' },
+            ]} />
+          <Range label="Lines" value={config.lyricLines} min={1} max={4} step={1}
+            onChange={v => onChange({ lyricLines: v })} />
+          <Range label="Size" value={config.lyricScale} min={70} max={150} step={5}
+            onChange={v => onChange({ lyricScale: v })} format={pct} />
+        </Section>
       )}
     </div>
   )
@@ -499,63 +471,62 @@ export default function CustomizePanel({ tab, config, onChange, lyrics }: Props)
   // ── LAYOUT ────────────────────────────────────────────────────
   if (tab === 'layout') return (
     <div className="panel-stack">
-      <Group title="Show">
-        <ToggleRow icon={<IconImage />} label="Album art" value={config.showAlbumArt} onChange={v => onChange({ showAlbumArt: v })} />
-        <ToggleRow icon={<IconText />} label="Title" value={config.showTitle} onChange={v => onChange({ showTitle: v })} />
-        <ToggleRow icon={<IconUser />} label="Artist" value={config.showArtist} onChange={v => onChange({ showArtist: v })} />
-        <ToggleRow icon={<IconCalendar />} label="Year" value={config.showYear} onChange={v => onChange({ showYear: v })} />
-        <ToggleRow icon={<IconClock />} label="Duration" value={config.showDuration} onChange={v => onChange({ showDuration: v })} />
-        <ToggleRow icon={<IconQuote />} label="Lyrics" value={config.showLyrics} onChange={v => onChange({ showLyrics: v })} />
-      </Group>
+      <Section n="01" title="Show on card">
+        <div style={grid(2)}>
+          <Opt icon={<IconImage />} label="Album art" value={config.showAlbumArt} onChange={v => onChange({ showAlbumArt: v })} />
+          <Opt icon={<IconText />} label="Title" value={config.showTitle} onChange={v => onChange({ showTitle: v })} />
+          <Opt icon={<IconUser />} label="Artist" value={config.showArtist} onChange={v => onChange({ showArtist: v })} />
+          <Opt icon={<IconCalendar />} label="Year" value={config.showYear} onChange={v => onChange({ showYear: v })} />
+          <Opt icon={<IconClock />} label="Duration" value={config.showDuration} onChange={v => onChange({ showDuration: v })} />
+          <Opt icon={<IconQuote />} label="Lyrics" value={config.showLyrics} onChange={v => onChange({ showLyrics: v })} />
+        </div>
+      </Section>
 
       {(config.showAlbumArt || config.preset === 'glass') && (
-        <Group title="Artwork" footer={config.showAlbumArt ? 'Reframe the cover when the centre crop cuts off the subject.' : undefined}>
-          <div className="cell">
-            {config.showAlbumArt && (
-              <>
-                <GlassRange label="Zoom" value={config.artZoom} min={100} max={200} step={5}
-                  onChange={v => onChange({ artZoom: v })} format={pct} />
-                <GlassRange label="Horizontal" value={config.artX} min={0} max={100} step={1}
-                  onChange={v => onChange({ artX: v })} format={pct} />
-                <GlassRange label="Vertical" value={config.artY} min={0} max={100} step={1}
-                  onChange={v => onChange({ artY: v })} format={pct} />
-              </>
-            )}
-            {config.preset === 'glass' && (
-              <GlassRange label="Panel inset" value={config.artPadding} min={0} max={60} step={2}
-                onChange={v => onChange({ artPadding: v })} format={v => `${v}px`} />
-            )}
-            {config.showAlbumArt && (
-              <button type="button" className="btn" data-variant="plain" style={{ alignSelf: 'flex-start', padding: 0 }}
-                onClick={() => onChange({ artZoom: 100, artX: 50, artY: 50 })}>Recentre</button>
-            )}
-          </div>
-        </Group>
+        <Section n="02" title="Artwork"
+          action={config.showAlbumArt && (
+            <button type="button" className="btn" data-variant="plain" style={{ fontSize: 12 }}
+              onClick={() => onChange({ artZoom: 100, artX: 50, artY: 50 })}>Recentre</button>
+          )}
+          note={config.showAlbumArt ? 'Reframe the cover when the centre crop cuts off the subject.' : undefined}>
+          {config.showAlbumArt && (
+            <>
+              <Range label="Zoom" value={config.artZoom} min={100} max={200} step={5}
+                onChange={v => onChange({ artZoom: v })} format={pct} />
+              <Range label="Horizontal" value={config.artX} min={0} max={100} step={1}
+                onChange={v => onChange({ artX: v })} format={pct} />
+              <Range label="Vertical" value={config.artY} min={0} max={100} step={1}
+                onChange={v => onChange({ artY: v })} format={pct} />
+            </>
+          )}
+          {config.preset === 'glass' && (
+            <Range label="Panel inset" value={config.artPadding} min={0} max={60} step={2}
+              onChange={v => onChange({ artPadding: v })} format={v => `${v}px`} />
+          )}
+        </Section>
       )}
 
-      <Group title="Export size" footer="The card is centred and framed to fit — never cropped.">
-        <div className="cell">
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6 }}>
-            {([
-              { v: 'auto',   label: 'Auto',   hint: 'Padded' },
-              { v: 'tight',  label: 'Tight',  hint: 'No pad' },
-              { v: 'square', label: 'Square', hint: '1:1' },
-              { v: 'story',  label: 'Story',  hint: '9:16' },
-              { v: 'wide',   label: 'Wide',   hint: '16:9' },
-            ] as const).map(o => {
-              const sel = config.exportSize === o.v
-              return (
-                <button key={o.v} type="button" className="tile" aria-pressed={sel}
-                  onClick={() => onChange({ exportSize: o.v })}
-                  style={{ padding: '8px 6px', gap: 1 }}>
-                  <span style={{ fontSize: 13, fontWeight: 600, color: sel ? 'var(--tint)' : 'var(--text)' }}>{o.label}</span>
-                  <span style={{ fontSize: 11, color: 'var(--text-3)' }}>{o.hint}</span>
-                </button>
-              )
-            })}
-          </div>
+      <Section n="03" title="Export frame" note="The card is centred and framed to fit — never cropped.">
+        <div style={grid(5)}>
+          {([
+            { v: 'auto',   label: 'Auto',   hint: 'pad' },
+            { v: 'tight',  label: 'Tight',  hint: 'none' },
+            { v: 'square', label: 'Square', hint: '1:1' },
+            { v: 'story',  label: 'Story',  hint: '9:16' },
+            { v: 'wide',   label: 'Wide',   hint: '16:9' },
+          ] as const).map(o => {
+            const sel = config.exportSize === o.v
+            return (
+              <button key={o.v} type="button" className="tile" aria-pressed={sel}
+                onClick={() => onChange({ exportSize: o.v })}
+                style={{ padding: '9px 2px', gap: 2 }}>
+                <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text)' }}>{o.label}</span>
+                <span className="mono" style={{ fontSize: 10, color: sel ? 'var(--accent-text)' : 'var(--text-3)' }}>{o.hint}</span>
+              </button>
+            )
+          })}
         </div>
-      </Group>
+      </Section>
     </div>
   )
 
@@ -572,20 +543,25 @@ export default function CustomizePanel({ tab, config, onChange, lyrics }: Props)
   ]
   return (
     <div className="panel-stack">
-      <Group title="Effects" footer="Effects render in the preview and in exported images.">
-        {effects.map(fx => (
-          <React.Fragment key={fx.label}>
-            <ToggleRow icon={fx.icon} label={fx.label} value={config[fx.on] as boolean}
-              onChange={v => onChange({ [fx.on]: v } as Partial<CardConfig>)} />
-            {(config[fx.on] as boolean) && (
-              <div className="cell attached" style={{ paddingTop: 0 }}>
-                <GlassRange label={fx.amtLabel} value={config[fx.amt] as number} min={fx.min} max={fx.max} step={5}
-                  onChange={v => onChange({ [fx.amt]: v } as Partial<CardConfig>)} format={pct} />
+      <Section n="01" title="Effects" note="Effects render in the preview and in exported images.">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {effects.map(fx => {
+            const on = config[fx.on] as boolean
+            return (
+              <div key={fx.label} style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <Opt icon={fx.icon} label={fx.label} value={on}
+                  onChange={v => onChange({ [fx.on]: v } as Partial<CardConfig>)} />
+                {on && (
+                  <div style={{ padding: '0 4px 6px' }}>
+                    <Range label={fx.amtLabel} value={config[fx.amt] as number} min={fx.min} max={fx.max} step={5}
+                      onChange={v => onChange({ [fx.amt]: v } as Partial<CardConfig>)} format={pct} />
+                  </div>
+                )}
               </div>
-            )}
-          </React.Fragment>
-        ))}
-      </Group>
+            )
+          })}
+        </div>
+      </Section>
     </div>
   )
 }

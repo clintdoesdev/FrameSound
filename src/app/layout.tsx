@@ -73,8 +73,8 @@ export const viewport: Viewport = {
   initialScale: 1,
   viewportFit: 'cover',
   themeColor: [
-    { media: '(prefers-color-scheme: light)', color: '#f2f2f7' },
-    { media: '(prefers-color-scheme: dark)', color: '#000000' },
+    { media: '(prefers-color-scheme: light)', color: '#efece6' },
+    { media: '(prefers-color-scheme: dark)', color: '#08080a' },
   ],
 }
 
@@ -93,7 +93,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   ].join(' ')
 
   return (
-    // Card typefaces only — the app chrome uses SF Pro / system-ui.
+    // Poppins drives the UI; the rest are card typefaces.
     <html lang="en" className={fontVars}>
       <body>{children}</body>
     </html>

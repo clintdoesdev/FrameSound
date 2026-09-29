@@ -16,6 +16,7 @@ export const presets: { regular(): Material; clear(): Material; lens(): Material
 export class LiquidGlass {
   constructor(opts?: { canvas?: HTMLCanvasElement; maxDpr?: number; theme?: 'light' | 'dark' });
   readonly supported: boolean;
+  readonly canvas: HTMLCanvasElement;
   readonly maxTextureSize: number;
   theme: 'light' | 'dark';
   reducedMotion: boolean;

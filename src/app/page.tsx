@@ -15,11 +15,12 @@ import { useConfigHistory } from '@/lib/useConfigHistory'
 import { decodeConfig, buildShareUrl } from '@/lib/permalink'
 import TrackSearch from '@/components/TrackSearch'
 import BatchExport from '@/components/BatchExport'
+import Landing, { Logo } from '@/components/Landing'
 import { GlassTabs } from '@/components/glass/Controls'
 import {
-  LiquidGlassProvider, Glass, useColorScheme, useGlassSupport, type Theme,
+  LiquidGlassProvider, Glass, useColorScheme, useGlassSupport, useMediaQuery, type Theme,
 } from '@/lib/liquid-glass/LiquidGlass'
-import { paintLanding, paintEditor, loadImage } from '@/lib/wallpaper'
+import { paintEditor, loadImage } from '@/lib/wallpaper'
 
 const stroke = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.9, strokeLinecap: 'round', strokeLinejoin: 'round' } as const
 
@@ -50,32 +51,29 @@ const PasteIcon = () => (
   </svg>
 )
 
+const LinkIcon = () => (
+  <svg viewBox="0 0 24 24" {...stroke} strokeWidth={1.8}>
+    <path d="M10 14a4 4 0 0 1 0-5.6l3-3a4 4 0 1 1 5.6 5.6l-1.5 1.5" />
+    <path d="M14 10a4 4 0 0 1 0 5.6l-3 3a4 4 0 1 1-5.6-5.6L6.9 11.5" />
+  </svg>
+)
+
+/** Dark or light text, whichever reads better on the given colour. */
+function inkFor(hex: string): string {
+  const n = parseInt(hex.slice(1), 16)
+  const lin = (c: number) => { c /= 255; return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4 }
+  const lum = 0.2126 * lin(n >> 16) + 0.7152 * lin((n >> 8) & 255) + 0.0722 * lin(n & 255)
+  return lum > 0.2 ? '#0a0a0c' : '#ffffff'
+}
+
 // Order matches the settings panel, so the 1–7 shortcuts line up with the grid.
 const PRESET_ORDER: CardConfig['preset'][] =
   ['glass', 'bezel', 'bloom', 'ticket', 'tag', 'profile', 'player']
 
-function Logo({ size = 28, label = true }: { size?: number; label?: boolean }) {
-  return (
-    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}>
-      <span aria-hidden style={{
-        width: size, height: size, borderRadius: size * 0.28, flex: 'none',
-        background: 'linear-gradient(135deg, #5e5ce6 0%, #bf5af2 55%, #ff375f 100%)',
-        display: 'grid', placeItems: 'center',
-        boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.55), inset 0 -1px 0 rgba(0,0,0,0.12)',
-      }}>
-        <span style={{ width: size * 0.42, height: size * 0.42, borderRadius: size * 0.1, background: 'rgba(255,255,255,0.92)' }} />
-      </span>
-      {label && (
-        <span className="display" style={{ fontWeight: 700, fontSize: size * 0.62, color: 'var(--text)' }}>FrameSound</span>
-      )}
-    </span>
-  )
-}
-
 // ── Backdrop for the glass ─────────────────────────────────────
-// Repaints when the mode, theme, artwork or viewport changes. A fresh canvas
-// each time lets the provider notice the change by identity.
-function useWallpaper(mode: 'landing' | 'editor', coverUrl: string | null | undefined, accent: string | null, theme: Theme) {
+// The editor's album-art backdrop. Repaints when the theme, artwork or viewport
+// changes; a fresh canvas each time lets the provider notice by identity.
+function useWallpaper(active: boolean, coverUrl: string | null | undefined, accent: string | null, theme: Theme) {
   const [size, setSize] = useState<[number, number] | null>(null)
   const [art, setArt] = useState<HTMLImageElement | null>(null)
   const [canvas, setCanvas] = useState<HTMLCanvasElement | null>(null)
@@ -103,13 +101,14 @@ function useWallpaper(mode: 'landing' | 'editor', coverUrl: string | null | unde
   }, [coverUrl])
 
   useEffect(() => {
-    if (!size) return
+    if (!size || !active) return
     const [w, h] = size
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setCanvas(mode === 'landing' ? paintLanding(theme, w, h, accent) : paintEditor(theme, w, h, art, accent))
-  }, [mode, size, theme, art, accent])
+    setCanvas(paintEditor(theme, w, h, art, accent))
+  }, [active, size, theme, art, accent])
 
-  return canvas
+  return active ? canvas : null
+
 }
 
 /** Without WebGL2 the wallpaper is shown as a plain CSS background instead. */
@@ -136,7 +135,12 @@ export default function Home() {
   const [batchOpen, setBatchOpen] = useState(false)
   const [tab, setTab] = useState<PanelTab>('style')
   const theme = useColorScheme()
-  const wallpaper = useWallpaper(!track && !loading ? 'landing' : 'editor', track?.coverUrl, accentColor, theme)
+  const onLanding = !track && !loading
+  // WebGL glass only where nothing scrolls beneath it: the fixed desktop editor.
+  // Anywhere else a canvas redrawn per frame trails the scroll and wobbles, so
+  // those layouts use CSS glass.
+  const desktop = useMediaQuery('(min-width: 900px) and (pointer: fine)')
+  const wallpaper = useWallpaper(!onLanding, track?.coverUrl, accentColor, theme)
 
   // cardRef → hidden off-screen export card (what dom-to-image captures)
   const cardRef = useRef<HTMLDivElement>(null!)
@@ -317,13 +321,35 @@ export default function Home() {
       if (text) handleUrlInput(text)
     } catch {
       // Clipboard read denied — focus the field so the user can paste manually
-      document.querySelector<HTMLInputElement>('.search input')?.focus()
+      document.querySelector<HTMLInputElement>('.hero-input input, .search input')?.focus()
     }
   }
 
-  const searchBar = (hero: boolean) => (
+  const heroSearch = (
     <TrackSearch onSelect={selectSearchResult} query={url}>
-      <Glass className="search" style={hero ? { height: 60, paddingLeft: 22 } : undefined}>
+      <div className="hero-input glass">
+        <LinkIcon />
+        <input
+          value={url}
+          onChange={e => handleUrlInput(e.target.value)}
+          onPaste={handlePaste}
+          placeholder="Search a song, or paste a Spotify link…"
+          aria-label="Search a song, or paste a Spotify link"
+          spellCheck={false}
+          autoComplete="off"
+          autoFocus
+        />
+        <button type="button" className="btn btn-glow" data-variant="primary" onClick={pasteFromClipboard}
+          style={{ height: 44, borderRadius: 12, flexShrink: 0 }}>
+          <PasteIcon /> Paste
+        </button>
+      </div>
+    </TrackSearch>
+  )
+
+  const editorSearch = (
+    <TrackSearch onSelect={selectSearchResult} query={url}>
+      <Glass className="search">
         <SearchIcon />
         <input
           value={url}
@@ -333,81 +359,38 @@ export default function Home() {
           aria-label="Search a song, or paste a Spotify link"
           spellCheck={false}
           autoComplete="off"
-          autoFocus={hero}
         />
-        {loading ? (
-          <span className="spinner" style={{ color: 'var(--tint)', marginRight: 12 }} aria-label="Loading" />
-        ) : hero ? (
-          <button type="button" className="btn" data-variant="primary" onClick={pasteFromClipboard}
-            style={{ borderRadius: 999, minHeight: 44, padding: '0 18px' }}>
-            <PasteIcon /> Paste
-          </button>
-        ) : null}
+        {loading && <span className="spinner" style={{ color: 'var(--accent-text)', marginRight: 10 }} aria-label="Loading" />}
       </Glass>
     </TrackSearch>
   )
 
   const errorNote = error && (
-    <p role="alert" style={{ margin: '10px 0 0', fontSize: 13, color: 'var(--red)', textAlign: 'center' }}>{error}</p>
+    <p role="alert" style={{ margin: '10px 0 0', fontSize: 13, color: 'var(--danger)', textAlign: 'center' }}>{error}</p>
   )
 
   const batchSheet = batchOpen && (
     <BatchExport config={config} accentColor={accentColor} onClose={() => setBatchOpen(false)} />
   )
 
+  // The album colour re-tints the whole UI; ink is picked for contrast on it.
+  const accentStyle = accentColor && /^#[0-9a-f]{6}$/i.test(accentColor) && (
+    <style>{`:root { --accent: ${accentColor}; --accent-ink: ${inkFor(accentColor)}; }`}</style>
+  )
+
   let screen: React.ReactNode
 
   // ── EMPTY STATE ──────────────────────────────────────────────
-  if (!track && !loading) {
+  if (onLanding) {
     screen = (
-      <div className="app landing">
-        <header className="top">
-          <Glass as="nav" className="nav-bar" aria-label="Main">
-            <span style={{ paddingLeft: 10 }}><Logo /></span>
-            <span style={{ flex: 1 }} />
-            <button type="button" className="bar-btn" onClick={() => setBatchOpen(true)}
-              title="Export a playlist or album as a zip">
-              <StackIcon /> <span className="hide-sm">Batch export</span>
-            </button>
-          </Glass>
-        </header>
-
-        <main className="hero">
-          <h1 className="display fade-up" style={{
-            fontWeight: 700, fontSize: 'clamp(40px, 7vw, 72px)', letterSpacing: '-0.035em',
-            lineHeight: 1.04, textAlign: 'center', margin: '0 0 14px', animationDelay: '0.05s',
-          }}>
-            Turn Spotify<br />into art.
-          </h1>
-          <p className="fade-up" style={{
-            fontSize: 17, color: 'var(--text-2)', textAlign: 'center',
-            maxWidth: 400, margin: '0 0 36px', lineHeight: 1.45, animationDelay: '0.12s',
-          }}>
-            Paste a track link and get a liquid-glass card, ready to share in seconds.
-          </p>
-
-          <div className="fade-up" style={{ width: '100%', maxWidth: 580, animationDelay: '0.2s' }}>
-            {searchBar(true)}
-            {errorNote}
-            <p className="footnote" style={{ margin: '12px 0 0', textAlign: 'center' }}>
-              Search by name, or paste a track link
-            </p>
-          </div>
-
-          <div className="fade-in" style={{ marginTop: 28, maxWidth: '100%', animationDelay: '0.32s' }}>
-            <RecentTracks onSelect={loadFromRecent} />
-          </div>
-        </main>
-
-        <footer className="landing-foot">
-          <span>created by <b style={{ color: 'var(--text)', letterSpacing: '0.04em' }}>CLINTDOESDEV.</b></span>
-          <span>
-            want to work with him?{' '}
-            <a href="https://clintdoesdev.site" target="_blank" rel="noopener noreferrer">check out his portfolio ↗</a>
-          </span>
-        </footer>
+      <Landing
+        search={heroSearch}
+        error={errorNote}
+        recent={<RecentTracks onSelect={loadFromRecent} />}
+        onBatch={() => setBatchOpen(true)}
+      >
         {batchSheet}
-      </div>
+      </Landing>
     )
   }
 
@@ -417,30 +400,31 @@ export default function Home() {
       <div className="app editor" aria-busy="true">
         <header className="top">
           <Glass as="nav" className="nav-bar" aria-label="Main">
-            <span style={{ paddingLeft: 10 }}><Logo /></span>
+            <span style={{ paddingLeft: 6 }}><Logo size={26} /></span>
           </Glass>
         </header>
         <div className="editor-main">
           <section className="stage">
-            {searchBar(false)}
+            {editorSearch}
             <div className="stage-card">
-              <div className="card-fit pulse" style={{ ['--ar' as string]: '0.8', aspectRatio: '4 / 5', borderRadius: 28, background: 'var(--fill)' }} />
+              <div className="card-fit pulse" style={{ ['--ar' as string]: '0.8', aspectRatio: '4 / 5', borderRadius: 28, background: 'var(--surface-2)' }} />
             </div>
           </section>
           <Glass as="aside" material="sheet" className="sheet">
             <div className="sheet-head">
               <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-                <div className="pulse" style={{ width: 44, height: 44, borderRadius: 10, background: 'var(--fill)' }} />
+                <div className="pulse" style={{ width: 44, height: 44, borderRadius: 11, background: 'var(--surface-2)' }} />
                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 7 }}>
-                  <div className="pulse" style={{ height: 12, width: '64%', borderRadius: 6, background: 'var(--fill)' }} />
-                  <div className="pulse" style={{ height: 10, width: '40%', borderRadius: 6, background: 'var(--fill)' }} />
+                  <div className="pulse" style={{ height: 12, width: '64%', borderRadius: 6, background: 'var(--surface-2)' }} />
+                  <div className="pulse" style={{ height: 10, width: '40%', borderRadius: 6, background: 'var(--surface-2)' }} />
                 </div>
               </div>
+              <div className="pulse" style={{ height: 46, borderRadius: 14, background: 'var(--surface)' }} />
             </div>
             <div className="sheet-scroll">
-              <div className="panel-stack">
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                 {[120, 150, 110].map((h, i) => (
-                  <div key={i} className="pulse" style={{ height: h, borderRadius: 14, background: 'var(--row)', animationDelay: `${i * 0.12}s` }} />
+                  <div key={i} className="pulse" style={{ height: h, borderRadius: 14, background: 'var(--surface)', animationDelay: `${i * 0.12}s` }} />
                 ))}
               </div>
             </div>
@@ -460,16 +444,18 @@ export default function Home() {
             <button
               type="button" className="bar-btn"
               onClick={() => { setTrack(null); setUrl(''); setError(null); setLyrics(null) }}
-            ><BackIcon /> Back</button>
-            <span className="hide-sm" style={{ marginLeft: 6 }}><Logo size={24} /></span>
+            ><BackIcon /> <span className="hide-sm">Back</span></button>
+            <span className="nav-sep" />
+            <span style={{ marginLeft: 4 }}><Logo size={24} /></span>
             <span style={{ flex: 1 }} />
             <button type="button" className="icon-btn" onClick={undo} disabled={!canUndo}
               title="Undo (⌘Z)" aria-label="Undo"><UndoIcon /></button>
             <button type="button" className="icon-btn" onClick={redo} disabled={!canRedo}
               title="Redo (⇧⌘Z)" aria-label="Redo"><UndoIcon flip /></button>
+            <span className="nav-sep" />
             <button type="button" className="bar-btn" onClick={copyShareLink}
               title="Copy a link to this card" aria-label="Copy share link">
-              <ShareIcon /> <span className="hide-sm">{shareCopied ? 'Copied' : 'Share'}</span>
+              <ShareIcon /> <span className="hide-sm">{shareCopied ? 'Link copied' : 'Share'}</span>
             </button>
             <button type="button" className="bar-btn" onClick={() => setBatchOpen(true)}
               title="Export a playlist or album as a zip">
@@ -482,7 +468,7 @@ export default function Home() {
           {/* ── Stage: search, card, preview ─────────────────── */}
           <section className="stage" aria-label="Preview">
             <div>
-              {searchBar(false)}
+              {editorSearch}
               {errorNote}
             </div>
 
@@ -505,16 +491,17 @@ export default function Home() {
             <div className="sheet-head">
               {track && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <div style={{ width: 44, height: 44, borderRadius: 10, overflow: 'hidden', flexShrink: 0, position: 'relative', background: 'var(--fill)' }}>
+                  <div style={{ width: 44, height: 44, borderRadius: 11, overflow: 'hidden', flexShrink: 0, position: 'relative', background: 'var(--surface-2)' }}>
                     {track.coverUrl && (
                       <Image src={track.coverUrl} alt="" fill sizes="44px" style={{ objectFit: 'cover' }} unoptimized />
                     )}
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 15, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    <div className="eyebrow" style={{ marginBottom: 4 }}>Now editing</div>
+                    <div style={{ fontSize: 14, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                       {track.title}
                     </div>
-                    <div style={{ fontSize: 13, color: 'var(--text-3)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    <div style={{ fontSize: 12, color: 'var(--text-3)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                       {track.artist} · {track.releaseYear} · {track.duration}
                     </div>
                   </div>
@@ -523,7 +510,7 @@ export default function Home() {
               <GlassTabs label="Settings" items={PANEL_TABS} value={tab} onChange={setTab} />
             </div>
 
-            <div className="sheet-scroll scroll" data-glass-clip role="tabpanel" aria-label={tab}>
+            <div className="sheet-scroll scroll" role="tabpanel" aria-label={tab}>
               <CustomizePanel
                 tab={tab}
                 config={config}
@@ -552,8 +539,9 @@ export default function Home() {
   }
 
   return (
-    <LiquidGlassProvider source={wallpaper} theme={theme}>
-      <WallpaperFallback canvas={wallpaper} />
+    <LiquidGlassProvider source={wallpaper} theme={theme} enabled={desktop && !onLanding}>
+      {accentStyle}
+      {!onLanding && <WallpaperFallback canvas={wallpaper} />}
       {screen}
     </LiquidGlassProvider>
   )

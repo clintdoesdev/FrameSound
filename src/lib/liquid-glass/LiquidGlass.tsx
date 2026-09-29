@@ -7,7 +7,7 @@ import {
   createContext, useContext, useEffect, useRef, useState,
   type ElementType, type ComponentPropsWithoutRef, type ReactNode, type RefObject,
 } from 'react'
-import { LiquidGlass, presets, type Material, type RGBA } from './liquid-glass'
+import { LiquidGlass, presets, type Material } from './liquid-glass'
 
 export type Theme = 'light' | 'dark'
 export type MaterialName = 'bar' | 'sheet' | 'lens' | 'thumb'
@@ -23,23 +23,37 @@ const GlassCtx = createContext<Ctx>({ engine: null, supported: null, materials: 
 export const useLiquidGlass = () => useContext(GlassCtx).engine
 export const useGlassSupport = () => useContext(GlassCtx).supported
 
-/** The one system tint (DESIGN.md) — used for switch and slider fills. */
-export const SYSTEM_BLUE: RGBA = [0, 0.478, 1, 1]
-
 // Shared material objects, one set per engine, so every surface of a kind
 // stays consistent (the kit recommends sharing rather than copying).
 function makeMaterials(): Record<MaterialName, Material> {
   return {
-    bar: presets.regular(),
+    // Neutral, slightly warm tints rather than the kit's iOS blue-grey.
+    bar: {
+      ...presets.regular(),
+      tint: { light: [0.99, 0.98, 0.97, 0.55], dark: [0.06, 0.06, 0.07, 0.55] },
+    },
     // Large panels carry dense text, so they frost harder and tint a little more.
     sheet: {
       ...presets.regular(),
-      frost: 14, thickness: 14,
-      tint: { light: [0.96, 0.97, 1.0, 0.72], dark: [0.04, 0.05, 0.07, 0.72] },
+      frost: 16, thickness: 14,
+      tint: { light: [0.98, 0.97, 0.96, 0.74], dark: [0.05, 0.05, 0.06, 0.76] },
     },
     lens: { ...presets.clear(), zoom: 0.92 },
     thumb: presets.thumb(),
   }
+}
+
+/** Live result of a media query (false during SSR and the first render). */
+export function useMediaQuery(query: string): boolean {
+  const [match, setMatch] = useState(false)
+  useEffect(() => {
+    const mq = matchMedia(query)
+    const sync = () => setMatch(mq.matches)
+    sync()
+    mq.addEventListener('change', sync)
+    return () => mq.removeEventListener('change', sync)
+  }, [query])
+  return match
 }
 
 /** Tracks prefers-color-scheme live. */
@@ -64,45 +78,48 @@ type SourceProps = {
 }
 
 export function LiquidGlassProvider({
-  source, fit = 'cover', width, height, live, theme, children,
-}: SourceProps & { theme?: Theme; children: ReactNode }) {
+  source, fit = 'cover', width, height, live, theme, enabled = true, children,
+}: SourceProps & {
+  theme?: Theme
+  /** Off → no engine; every <Glass> renders its CSS material instead. */
+  enabled?: boolean
+  children: ReactNode
+}) {
   const [ctx, setCtx] = useState<Ctx>({ engine: null, supported: null, materials: null })
 
   useEffect(() => {
+    if (!enabled) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setCtx({ engine: null, supported: false, materials: null })
+      return
+    }
     let e: LiquidGlass | null = null
     try { e = new LiquidGlass({ maxDpr: 2 }) } catch { e = null }
     const ok = !!e?.supported
-    document.documentElement.classList.toggle('lg-on', ok)
     // An engine that can't draw still owns a canvas; drop it straight away.
     if (!ok) e?.destroy()
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+    else if (e) {
+      // Hidden until the first backdrop lands, so there's no black flash.
+      Object.assign(e.canvas.style, { opacity: '0', transition: 'opacity 0.35s ease' })
+    }
+    document.documentElement.classList.toggle('lg-on', ok)
     setCtx({ engine: ok ? e : null, supported: ok, materials: ok ? makeMaterials() : null })
     return () => {
       document.documentElement.classList.remove('lg-on')
       if (ok) e?.destroy()
     }
-  }, [])
+  }, [enabled])
 
   const { engine } = ctx
   useEffect(() => { if (engine && theme) engine.setTheme(theme) }, [engine, theme])
   useEffect(() => {
-    if (engine && source) engine.setSource(source, { fit, width, height, live })
+    if (!engine || !source) return
+    engine.setSource(source, { fit, width, height, live })
+    const raf = requestAnimationFrame(() => requestAnimationFrame(() => { engine.canvas.style.opacity = '1' }))
+    return () => cancelAnimationFrame(raf)
   }, [engine, source, fit, width, height, live])
 
   return <GlassCtx.Provider value={ctx}>{children}</GlassCtx.Provider>
-}
-
-// ── Scroll clipping ─────────────────────────────────────────────
-// The engine draws on one full-screen canvas, so it has no idea a control was
-// scrolled out of an `overflow: auto` panel. Controls inside an element marked
-// `data-glass-clip` fade their glass out as they reach its edge instead of
-// painting outside it.
-export function clipOpacity(engine: LiquidGlass, el: Element): number {
-  const clip = el.closest('[data-glass-clip]')
-  if (!clip) return 1
-  const c = engine.rectOf(clip), r = engine.rectOf(el)
-  const margin = Math.min(r.top - c.top, c.bottom - r.bottom, r.left - c.left, c.right - r.right)
-  return Math.min(1, Math.max(0, (margin + 4) / 14))
 }
 
 // ── Instance lifetime ───────────────────────────────────────────

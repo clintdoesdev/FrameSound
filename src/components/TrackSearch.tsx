@@ -88,7 +88,7 @@ export default function TrackSearch({ onSelect, query, children }: Props) {
       <div style={{ position: 'relative', zIndex: 35 }}>{children}</div>
 
       {searching && (
-        <div style={{ position: 'absolute', right: 20, top: 18, zIndex: 36, color: 'var(--tint)' }}>
+        <div style={{ position: 'absolute', right: 20, top: 18, zIndex: 36, color: 'var(--accent-text)' }}>
           <span className="spinner" aria-hidden />
         </div>
       )}
@@ -116,14 +116,14 @@ export default function TrackSearch({ onSelect, query, children }: Props) {
           role="listbox"
           style={{
             position: 'absolute', top: 'calc(100% + 8px)', left: 0, right: 0, zIndex: 40,
-            borderRadius: 22, overflow: 'hidden', padding: 6,
+            borderRadius: 16, overflow: 'hidden', padding: 6,
             maxHeight: 360, overflowY: 'auto',
             animation: 'popIn 0.25s cubic-bezier(.2,.9,.25,1.05) both',
           }}
           className="scroll material"
         >
           {error && (
-            <div style={{ padding: '12px 14px', fontSize: 13, color: 'var(--red)' }}>{error}</div>
+            <div style={{ padding: '12px 14px', fontSize: 13, color: 'var(--danger)' }}>{error}</div>
           )}
           {results.map((t, i) => (
             <button
@@ -136,13 +136,13 @@ export default function TrackSearch({ onSelect, query, children }: Props) {
               style={{
                 display: 'flex', alignItems: 'center', gap: 12, width: '100%',
                 padding: '8px 10px', border: 0, cursor: 'pointer', textAlign: 'left',
-                borderRadius: 16, minHeight: 52,
-                background: i === active ? 'var(--fill)' : 'transparent',
+                borderRadius: 11, minHeight: 52,
+                background: i === active ? 'var(--surface-2)' : 'transparent',
               }}
             >
               <span style={{
                 position: 'relative', width: 40, height: 40, borderRadius: 9,
-                overflow: 'hidden', flexShrink: 0, background: 'var(--fill-2)',
+                overflow: 'hidden', flexShrink: 0, background: 'var(--surface-3)',
               }}>
                 {t.coverUrl && (
                   <Image src={t.coverUrl} alt="" fill style={{ objectFit: 'cover' }} unoptimized />

@@ -69,19 +69,19 @@ export default function AudioPreview({ previewUrl, trackId }: Props) {
   const elapsed = Math.round(progress * dur)
 
   return (
-    <Glass className="audio" style={{ borderRadius: 999, padding: '6px 18px 6px 6px', display: 'flex', alignItems: 'center', gap: 12 }}>
+    <Glass className="audio" style={{ borderRadius: 16, padding: '7px 16px 7px 7px', display: 'flex', alignItems: 'center', gap: 12 }}>
       <button onClick={toggle} type="button" aria-label={playing ? 'Pause preview' : 'Play preview'}
         style={{
-          width: 40, height: 40, borderRadius: 999, flex: 'none',
-          background: 'var(--tint)', color: '#fff', display: 'grid', placeItems: 'center',
+          width: 38, height: 38, borderRadius: 11, flex: 'none',
+          background: 'var(--accent)', color: 'var(--accent-ink)', display: 'grid', placeItems: 'center',
         }}>
         {playing ? <PauseIcon /> : <PlayIcon />}
       </button>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ height: 4, background: 'var(--fill-2)', borderRadius: 99, overflow: 'hidden' }}>
-          <div style={{ height: '100%', width: `${progress * 100}%`, background: 'var(--text)', transition: 'width 1s linear' }} />
+        <div style={{ height: 4, background: 'var(--surface-3)', borderRadius: 99, overflow: 'hidden' }}>
+          <div style={{ height: '100%', width: `${progress * 100}%`, background: 'var(--accent)', transition: 'width 1s linear' }} />
         </div>
-        <div className="tnum" style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4, fontSize: 11, color: 'var(--text-3)' }}>
+        <div className="mono tnum" style={{ display: 'flex', justifyContent: 'space-between', marginTop: 5, fontSize: 10.5, color: 'var(--text-3)' }}>
           <span>0:{String(elapsed).padStart(2, '0')}</span>
           <span>{playing ? 'Preview' : '30s preview'}</span>
           <span>0:{String(dur).padStart(2, '0')}</span>

@@ -57,7 +57,7 @@ export const defaultConfig: CardConfig = {
   bgColor: '#111111',
   tintHue: 0,
   textColor: 'auto',
-  font: 'sf-pro',
+  font: 'poppins',
   showAlbumArt: true,
   showTitle: true,
   showArtist: true,

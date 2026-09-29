@@ -105,19 +105,19 @@ export default function BatchExport({ config, accentColor, onClose }: Props) {
     }} role="dialog" aria-modal="true" aria-labelledby="batch-title" onClick={e => { if (e.target === e.currentTarget && !running) onClose() }}>
       <div style={{
         width: 'min(460px, 100%)', maxHeight: '86vh', overflowY: 'auto',
-        borderRadius: 28, padding: '18px 20px 20px',
+        borderRadius: 22, padding: '18px 20px 20px',
         animation: 'popIn 0.35s cubic-bezier(.2,.9,.25,1.05) both',
       }} className="scroll material">
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
-          <h2 id="batch-title" className="display" style={{ margin: 0, fontSize: 22, fontWeight: 600 }}>Batch export</h2>
+          <h2 id="batch-title" className="display" style={{ margin: 0, fontSize: 20, fontWeight: 700 }}>Batch export</h2>
           <button
             type="button" onClick={onClose} disabled={running} aria-label="Close"
-            style={{ width: 32, height: 32, borderRadius: 16, background: 'var(--fill)', color: 'var(--text-2)', display: 'grid', placeItems: 'center' }}
+            style={{ width: 32, height: 32, borderRadius: 10, background: 'var(--surface-2)', color: 'var(--text-2)', display: 'grid', placeItems: 'center' }}
           >
             <svg viewBox="0 0 14 14" width="12" height="12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M3 3l8 8M11 3l-8 8" /></svg>
           </button>
         </div>
-        <p className="footnote" style={{ margin: '4px 0 14px' }}>
+        <p className="note" style={{ margin: '6px 0 14px', fontSize: 13 }}>
           Paste a playlist or album link. Every track is rendered with your current
           design and downloaded as a zip. Up to 50 tracks.
         </p>
@@ -135,18 +135,18 @@ export default function BatchExport({ config, accentColor, onClose }: Props) {
           />
           <button
             type="button" onClick={load} disabled={loading || running || !url.trim()}
-            className="btn" data-variant="gray"
+            className="btn"
           >{loading ? 'Loading…' : 'Load'}</button>
         </div>
 
-        {error && <div style={{ marginTop: 10, fontSize: 13, color: 'var(--red)' }}>{error}</div>}
+        {error && <div style={{ marginTop: 10, fontSize: 13, color: 'var(--danger)' }}>{error}</div>}
 
         {tracks.length > 0 && (
           <>
-            <div className="group-title" style={{ marginTop: 18, padding: 0 }}>
+            <div className="eyebrow" style={{ marginTop: 18 }}>
               {tracks.length} track{tracks.length === 1 ? '' : 's'} ready
             </div>
-            <div className="scroll group-body" style={{ maxHeight: 200, overflowY: 'auto', marginTop: 6, padding: '4px 12px' }}>
+            <div className="scroll" style={{ maxHeight: 200, overflowY: 'auto', marginTop: 8, padding: '4px 12px', borderRadius: 12, background: 'var(--surface)', boxShadow: 'inset 0 0 0 1px var(--line)' }}>
               {tracks.map((t, i) => (
                 <div key={`${t.id}-${i}`} style={{
                   display: 'flex', gap: 8, alignItems: 'center',
@@ -158,7 +158,7 @@ export default function BatchExport({ config, accentColor, onClose }: Props) {
                     {t.title} — {t.artist}
                   </span>
                   {running && i < done && (
-                    <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="var(--tint)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-label="Done"><path d="M3 8l4 4 6-7" /></svg>
+                    <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="var(--accent-text)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-label="Done"><path d="M3 8l4 4 6-7" /></svg>
                   )}
                 </div>
               ))}
@@ -166,10 +166,10 @@ export default function BatchExport({ config, accentColor, onClose }: Props) {
 
             {running && (
               <div style={{ marginTop: 12 }}>
-                <div style={{ height: 4, borderRadius: 2, background: 'var(--fill-2)', overflow: 'hidden' }}>
-                  <div style={{ width: `${pct}%`, height: '100%', background: 'var(--tint)', transition: 'width 200ms' }} />
+                <div style={{ height: 4, borderRadius: 2, background: 'var(--surface-3)', overflow: 'hidden' }}>
+                  <div style={{ width: `${pct}%`, height: '100%', background: 'var(--accent)', transition: 'width 200ms' }} />
                 </div>
-                <div className="caption" style={{ marginTop: 6 }}>
+                <div className="note" style={{ marginTop: 6 }}>
                   Rendering {done} of {tracks.length}…
                 </div>
               </div>

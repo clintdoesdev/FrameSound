@@ -19,9 +19,9 @@ const ALIAS: Partial<Record<keyof CardConfig, string>> = {
   glassTint: 'gt', glassFrost: 'gf',
 }
 
-// Links are versioned so a default can change without restyling old cards:
-// v1 links (no `v`) predate the SF Pro default and meant Poppins.
-const VERSION = '2'
+// Links are versioned so a default can change without restyling old cards.
+// Only v2 had the system (SF Pro) font as its default; v1 and v3 use Poppins.
+const VERSION = '3'
 const UNALIAS = Object.fromEntries(
   Object.entries(ALIAS).map(([k, v]) => [v, k])
 ) as Record<string, keyof CardConfig>
@@ -62,7 +62,7 @@ export function decodeConfig(search: string): { config: Partial<CardConfig>; tra
     }
   }
   const isLink = !!trackId || Object.keys(config).length > 0
-  if (isLink && !q.has('v') && config.font === undefined) config.font = 'poppins'
+  if (isLink && q.get('v') === '2' && config.font === undefined) config.font = 'sf-pro'
   return { config, trackId }
 }
 

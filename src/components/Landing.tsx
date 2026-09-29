@@ -72,7 +72,7 @@ export function Logo({ size = 28, label = true }: { size?: number; label?: boole
         <span style={{ width: size * 0.42, height: size * 0.42, borderRadius: size * 0.08, background: 'rgba(0,0,0,0.85)' }} />
       </span>
       {label && (
-        <span className="display" style={{ fontWeight: 700, fontSize: size * 0.6, color: 'var(--text)', letterSpacing: '-0.02em' }}>FrameSound</span>
+        <span className="display logo-word" style={{ fontWeight: 700, fontSize: size * 0.6, color: 'var(--text)', letterSpacing: '-0.02em' }}>FrameSound</span>
       )}
     </span>
   )

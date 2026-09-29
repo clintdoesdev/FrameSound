@@ -519,3 +519,26 @@ textarea.field { resize: none; }
     transition-duration: 0.01ms !important;
   }
 }
+
+/* ─── Narrow screens: keep the editor bar inside the viewport ─── */
+.nav-bar { min-width: 0; overflow: hidden; }
+.nav-bar > * { flex-shrink: 0; }
+@media (max-width: 560px) {
+  .nav-bar { padding: 0 6px; gap: 0; height: 52px; }
+  .nav-bar .nav-sep { display: none; }
+  .nav-bar .bar-btn { padding: 0 10px; }
+}
+@media (max-width: 420px) {
+  .nav-bar .logo-word { display: none; }
+  .nav-bar .icon-btn, .nav-bar .bar-btn { width: 40px; min-height: 40px; height: 40px; padding: 0; justify-content: center; }
+  .top { padding-left: 12px; padding-right: 12px; }
+  .editor-main { padding-left: 12px; padding-right: 12px; }
+}
+@media (max-width: 340px) {
+  .nav-bar .icon-btn, .nav-bar .bar-btn { width: 36px; min-height: 36px; height: 36px; }
+}
+@media (max-width: 420px) {
+  .hero-input { height: 56px; padding: 0 6px 0 14px; gap: 8px; }
+  .hero-input input { font-size: 15px; }
+  .hero { padding: 36px 16px 48px; }
+}

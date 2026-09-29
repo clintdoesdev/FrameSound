@@ -333,7 +333,7 @@ export default function Home() {
           value={url}
           onChange={e => handleUrlInput(e.target.value)}
           onPaste={handlePaste}
-          placeholder="Search a song, or paste a Spotify link…"
+          placeholder="Search or paste a Spotify link…"
           aria-label="Search a song, or paste a Spotify link"
           spellCheck={false}
           autoComplete="off"
@@ -446,7 +446,7 @@ export default function Home() {
               onClick={() => { setTrack(null); setUrl(''); setError(null); setLyrics(null) }}
             ><BackIcon /> <span className="hide-sm">Back</span></button>
             <span className="nav-sep" />
-            <span style={{ marginLeft: 4 }}><Logo size={24} /></span>
+            <span className="nav-logo" style={{ marginLeft: 4, minWidth: 0 }}><Logo size={24} /></span>
             <span style={{ flex: 1 }} />
             <button type="button" className="icon-btn" onClick={undo} disabled={!canUndo}
               title="Undo (⌘Z)" aria-label="Undo"><UndoIcon /></button>

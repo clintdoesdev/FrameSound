@@ -41,7 +41,7 @@ function withGlow(shadow: string, hex: string | null | undefined, strength: numb
 }
 
 const DEPTH_SHADOW =
-  '0 40px 80px rgba(0,0,0,0.55), 0 12px 32px rgba(0,0,0,0.35)'
+  '0 40px 80px rgba(0,0,0,0.88), 0 12px 32px rgba(0,0,0,0.6)'
 
 function srgbLum(hex: string): number {
   if (!/^#[0-9a-f]{6}$/i.test(hex)) return 0
@@ -108,12 +108,14 @@ const CardCanvas = forwardRef<HTMLDivElement, Props>(function CardCanvas(
   const tint = config.tintHue > 0 ? `hue-rotate(${config.tintHue}deg)` : ''
   const withTint = (f?: string) => [f, tint].filter(Boolean).join(' ') || undefined
 
+  // Only these presets are built from glass; the rest are solid designs.
+  const isGlassPreset = config.preset === 'glass' || config.preset === 'player'
   // `auto` ink reads what the type actually sits on: a light solid shell or a
   // light glass tint both want dark type.
   const darkInk = config.textColor === 'black'
     || (config.textColor === 'auto' && (
       (config.bgStyle === 'solid' && srgbLum(config.bgColor) > 0.5)
-      || config.glassTint === 'light'))
+      || (isGlassPreset && config.glassTint === 'light')))
   const inkRGB = darkInk ? '16,16,18' : '255,255,255'
   const ink  = darkInk ? '#101012' : '#ffffff'
   const ink2 = `rgba(${inkRGB},0.66)`
@@ -245,17 +247,6 @@ const CardCanvas = forwardRef<HTMLDivElement, Props>(function CardCanvas(
       />
     ) : null
 
-  // The card body itself as a slab of frosted glass over its own artwork.
-  const GlassShell = ({ radius }: { radius: number }) =>
-    config.bgStyle === 'blurred-art' ? (
-      <>
-        <FrostedArt blur={28 + frost} brightness={tone === 'light' ? 1.05 : 0.8} />
-        <span style={{ position: 'absolute', inset: 0, background: glassTint }} />
-      </>
-    ) : cutout ? null : (
-      <span style={{ position: 'absolute', inset: 0, borderRadius: u(radius), background: glare, opacity: 0.6 }} />
-    )
-
   // Rim light + dispersion, drawn above the pane's contents but under its text.
   const Rim = ({ z = 2 }: { z?: number }) => (
     <span aria-hidden style={{
@@ -309,7 +300,7 @@ const CardCanvas = forwardRef<HTMLDivElement, Props>(function CardCanvas(
     )
   }
 
-  const Title = ({ size, color = ink, weight = 700, clamp }: {
+  const Title = ({ size, color = ink, weight = 800, clamp }: {
     size: number; color?: string; weight?: number; clamp?: number
   }) => config.showTitle ? (
     <p style={{
@@ -322,7 +313,7 @@ const CardCanvas = forwardRef<HTMLDivElement, Props>(function CardCanvas(
     } as React.CSSProperties}>{track.title}</p>
   ) : null
 
-  const Artist = ({ size, color = ink2, weight = 500 }: {
+  const Artist = ({ size, color = ink2, weight = 400 }: {
     size: number; color?: string; weight?: number
   }) => config.showArtist ? (
     <p style={{
@@ -338,23 +329,6 @@ const CardCanvas = forwardRef<HTMLDivElement, Props>(function CardCanvas(
         {config.showYear && <span style={{ fontSize: u(size), color }}>{track.releaseYear}</span>}
         {config.showYear && config.showDuration && <span style={{ fontSize: u(size), color }}>·</span>}
         {config.showDuration && <span style={{ fontSize: u(size), color }}>{track.duration}</span>}
-      </div>
-    )
-  }
-
-  // Year and duration as small glass capsules.
-  const MetaChips = ({ size }: { size: number }) => {
-    if (!config.showYear && !config.showDuration) return null
-    const chip = (text: string) => (
-      <Pane radius={999} fill={chipFill} lift={false}
-        inner={{ padding: `${u(3.5)} ${u(9)}`, fontSize: u(size), fontWeight: 600, color: ink, lineHeight: 1.2 }}>
-        {text}
-      </Pane>
-    )
-    return (
-      <div style={{ display: 'flex', gap: u(5), justifyContent: justify, marginTop: u(4) }}>
-        {config.showYear && track.releaseYear && chip(track.releaseYear)}
-        {config.showDuration && chip(track.duration)}
       </div>
     )
   }
@@ -393,6 +367,15 @@ const CardCanvas = forwardRef<HTMLDivElement, Props>(function CardCanvas(
     <svg viewBox="0 0 24 24" width={u(size)} height={u(size)} fill={color}>
       <path d="M10 18.5a3 3 0 1 1-2-2.83V5.2l11-2.2v9.3a3 3 0 1 1-2-2.83V5.44l-7 1.4V18.5z" />
     </svg>
+  )
+
+  // Ticket-stub die-cut notches — circles in the surrounding colour, straddling
+  // the stub's top edge so the seam reads as perforated card stock.
+  const Notches = ({ bg, size, top }: { bg: string; size: number; top: number }) => (
+    <>
+      <span style={{ position: 'absolute', left: u(-size / 2), top: u(top), width: u(size), height: u(size), borderRadius: '50%', background: bg, zIndex: 3 }} />
+      <span style={{ position: 'absolute', right: u(-size / 2), top: u(top), width: u(size), height: u(size), borderRadius: '50%', background: bg, zIndex: 3 }} />
+    </>
   )
 
   const root = (extra: React.CSSProperties): React.CSSProperties => ({
@@ -448,32 +431,45 @@ const CardCanvas = forwardRef<HTMLDivElement, Props>(function CardCanvas(
     )
   }
 
-  // ── TICKET / TAG — glass body + detached glass stub ───────────
+  // ── TICKET / TAG — card body + die-cut stub beneath ───────────
+  // Both share one structure (art panel, body that warms into the accent,
+  // perforated stub tucked under the card); they differ in the stub payload.
   if (config.preset === 'ticket' || config.preset === 'tag') {
     const isTag = config.preset === 'tag'
-    const stubInk = srgbLum(accent) > 0.45 ? '#101012' : '#ffffff'
-    const stubInk2 = stubInk === '#ffffff' ? 'rgba(255,255,255,0.8)' : 'rgba(16,16,18,0.7)'
+    // Notches work by painting the shell colour over the stub's seam, so they
+    // only read as die-cuts when there is a solid shell to punch through.
+    const stubSurround =
+      config.bgStyle === 'solid' ? config.bgColor
+        : config.bgStyle === 'gradient' ? '#141416'
+          : '#26221f'
+    const showNotches = config.bgStyle !== 'transparent'
     return (
       <div ref={ref} style={root({
-        aspectRatio: '4 / 5', borderRadius: u(34),
-        background: shell(`linear-gradient(170deg, #2a2a2e 0%, ${accent}66 100%)`),
+        aspectRatio: '4 / 5', borderRadius: u(34), background: shell('#26221f'),
         display: 'flex', flexDirection: 'column',
         padding: `${u(13)} ${u(13)} ${u(15)}`,
       })}>
-        <GlassShell radius={34} />
         {fx}
-        {/* Body — concentric with the card: 34 − 13 */}
-        <Pane radius={21} style={{ flex: 1, minHeight: 0 }}
-          inner={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+        {/* Body — art sits on a surface that warms into the accent downward */}
+        <div style={{
+          position: 'relative', borderRadius: u(24), overflow: 'hidden',
+          flex: 1, display: 'flex', flexDirection: 'column',
+          background: `linear-gradient(180deg, #3a3330 0%, ${accent}cc 78%, ${accent} 100%)`,
+          boxShadow: `0 ${u(14)} ${u(26)} ${u(-12)} rgba(0,0,0,0.6)`,
+        }}>
           <div style={{
             position: 'relative', margin: u(9), marginBottom: 0,
-            aspectRatio: '1 / 1', borderRadius: u(12), overflow: 'hidden',
-            background: hasArt ? '#111' : `radial-gradient(circle at 50% 46%, ${accent} 0%, ${accent}77 45%, #1c1c1e 80%)`,
+            aspectRatio: '1 / 1', borderRadius: u(18), overflow: 'hidden',
+            background: config.showAlbumArt && track.coverUrl
+              ? '#111'
+              : `radial-gradient(circle at 50% 46%, ${accent} 0%, ${accent}77 38%, #f3ead9 72%)`,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             flexShrink: 0,
           }}>
             <Art radius={0} />
-            {!hasArt && <NoteGlyph size={44} color="rgba(255,255,255,0.25)" />}
+            {!(config.showAlbumArt && track.coverUrl) && (
+              <NoteGlyph size={44} color="rgba(0,0,0,0.22)" />
+            )}
           </div>
 
           <div style={{
@@ -485,88 +481,83 @@ const CardCanvas = forwardRef<HTMLDivElement, Props>(function CardCanvas(
               <Artist size={11.5} />
               {isTag && <Meta size={10.5} color={ink3} />}
             </div>
-            {!isTag && <span style={{ color: ink2 }}><ShuffleIcon size={14} /></span>}
+            {!isTag && <span style={{ color: 'rgba(255,255,255,0.85)' }}><ShuffleIcon size={14} /></span>}
           </div>
-        </Pane>
+        </div>
 
-        {/* Stub — a separate accent-tinted pane with a tear line along its top */}
-        <Pane radius={16} fill={`${accent}b3`}
-          style={{ width: '80%', margin: `${u(7)} auto 0` }}
-          inner={{
-            minHeight: u(isTag ? 40 : 50),
-            display: 'flex', alignItems: 'center',
-            justifyContent: isTag ? 'center' : 'flex-start',
-            gap: u(10), padding: `${u(9)} ${u(13)} ${u(8)}`,
-          }}>
-          <span aria-hidden style={{
-            position: 'absolute', top: u(4), left: u(14), right: u(14),
-            borderTop: `${u(1.2)} dashed ${stubInk === '#ffffff' ? 'rgba(255,255,255,0.45)' : 'rgba(0,0,0,0.3)'}`,
-          }} />
+        {/* Perforated stub — narrower, tucked under the card body */}
+        <div style={{
+          position: 'relative', width: '78%', margin: `${u(-2)} auto 0`,
+          background: accent, borderRadius: `0 0 ${u(14)} ${u(14)}`,
+          minHeight: u(isTag ? 40 : 50), flexShrink: 0,
+          display: 'flex', alignItems: 'center',
+          justifyContent: isTag ? 'center' : 'flex-start',
+          gap: u(10), padding: `${u(8)} ${u(13)}`,
+        }}>
+          {showNotches && <Notches bg={stubSurround} size={11} top={-5} />}
           {isTag ? (
             <BrandMark size={22} tone="light" />
           ) : (
             <>
               <span style={{
-                flexShrink: 0, width: u(38), height: u(38), borderRadius: u(10),
-                background: 'rgba(255,255,255,0.92)', display: 'flex',
+                flexShrink: 0, width: u(38), height: u(38), borderRadius: u(9),
+                background: 'rgba(255,255,255,0.9)', display: 'flex',
                 flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-                boxShadow: `inset 0 ${u(0.8)} 0 rgba(255,255,255,1)`,
               }}>
-                <span style={{ fontSize: u(7), fontWeight: 700, letterSpacing: '0.08em', color: 'rgba(0,0,0,0.5)', textTransform: 'uppercase', lineHeight: 1 }}>Year</span>
+                <span style={{ fontSize: u(7), fontWeight: 700, letterSpacing: '0.08em', color: 'rgba(0,0,0,0.55)', textTransform: 'uppercase', lineHeight: 1 }}>Year</span>
                 <span style={{ fontSize: u(15), fontWeight: 800, color: '#141414', lineHeight: 1.1 }}>{track.releaseYear || '—'}</span>
               </span>
               <span style={{ flex: 1, minWidth: 0 }}>
-                <span style={{ display: 'block', fontSize: u(12.5), fontWeight: 700, color: stubInk, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                <span style={{ display: 'block', fontSize: u(12.5), fontWeight: 700, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {track.album || track.artist}
                 </span>
-                <span style={{ display: 'block', fontSize: u(10.5), color: stubInk2, marginTop: u(1) }}>
-                  {[config.showYear && track.releaseYear, config.showDuration && track.duration].filter(Boolean).join('  •  ')}
+                <span style={{ display: 'block', fontSize: u(10.5), color: 'rgba(255,255,255,0.82)', marginTop: u(1) }}>
+                  {[track.releaseYear, track.duration].filter(Boolean).join('  •  ')}
                 </span>
               </span>
               <BrandMark size={16} tone="light" />
             </>
           )}
-        </Pane>
+        </div>
       </div>
     )
   }
 
-  // ── PROFILE — social profile card on a glass slab ─────────────
+  // ── PROFILE — social profile card ─────────────────────────────
   if (config.preset === 'profile') {
     const handle = '@' + (track.artist.toLowerCase().replace(/[^a-z0-9]+/g, '') || 'artist')
-    // Photo box: 380 × 342 at (10, 10). The identity pane overlaps its lower
-    // 34 units and refracts that strip of the photo.
     return (
       <div ref={ref} style={root({
-        aspectRatio: '4 / 5', borderRadius: u(30),
-        background: shell(`linear-gradient(170deg, #2c2c2e 0%, ${accent}55 100%)`),
+        aspectRatio: '4 / 5', borderRadius: u(30), background: shell('#1b1b1d'),
         display: 'flex', flexDirection: 'column', padding: u(10),
       })}>
-        <GlassShell radius={30} />
         {fx}
+        {/* Photo */}
         <div style={{
-          position: 'relative', borderRadius: u(20), overflow: 'hidden',
-          aspectRatio: '10 / 9', flexShrink: 0,
-          background: `linear-gradient(140deg, ${accent} 0%, ${accent}44 100%)`,
+          position: 'relative', borderRadius: u(22), overflow: 'hidden',
+          aspectRatio: '1 / 1', flexShrink: 0,
+          background: `linear-gradient(140deg, ${accent}44 0%, #f6ece4 65%)`,
         }}>
           <Art radius={0} />
         </div>
 
-        <Pane radius={18}
-          style={{ margin: `${u(-34)} ${u(8)} 0`, zIndex: 4 }}
-          backdrop={{ at: { left: u(-8), top: u(-308) }, w: 380, h: 342 }}
-          inner={{ display: 'flex', alignItems: 'center', gap: u(10), padding: u(8) }}>
+        {/* Identity row — overlaps the photo's lower edge */}
+        <div style={{
+          position: 'relative', zIndex: 4, marginTop: u(-30),
+          padding: `0 ${u(10)}`, display: 'flex', alignItems: 'flex-end', gap: u(10),
+        }}>
           <span style={{
-            position: 'relative', width: u(50), height: u(50), borderRadius: u(12),
+            position: 'relative', width: u(58), height: u(58), borderRadius: u(16),
             overflow: 'hidden', flexShrink: 0, background: '#2a2a2c',
+            border: `${u(3)} solid #1b1b1d`,
+            boxShadow: `0 ${u(6)} ${u(14)} rgba(0,0,0,0.45)`,
           }}>
             <Art radius={0} />
-            <Rim z={1} />
           </span>
-          <span style={{ flex: 1, minWidth: 0 }}>
+          <span style={{ flex: 1, minWidth: 0, paddingBottom: u(3) }}>
             <span style={{ display: 'flex', alignItems: 'center', gap: u(4) }}>
               {config.showTitle && (
-                <span style={{ fontSize: u(16), fontWeight: 700, color: ink, letterSpacing: '-0.02em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                <span style={{ fontSize: u(16), fontWeight: 800, color: '#fff', letterSpacing: '-0.02em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {track.title}
                 </span>
               )}
@@ -576,41 +567,44 @@ const CardCanvas = forwardRef<HTMLDivElement, Props>(function CardCanvas(
               </svg>
             </span>
             {config.showArtist && (
-              <span style={{ display: 'block', fontSize: u(11.5), color: ink3, marginTop: u(1) }}>{handle}</span>
+              <span style={{ display: 'block', fontSize: u(11.5), color: 'rgba(255,255,255,0.45)', marginTop: u(1) }}>{handle}</span>
             )}
           </span>
           <span style={{
-            flexShrink: 0, padding: `${u(7)} ${u(14)}`, borderRadius: u(999),
-            background: darkInk ? '#101012' : '#fff', color: darkInk ? '#fff' : '#0d0d0f',
-            fontSize: u(11.5), fontWeight: 700,
-            display: 'inline-flex', alignItems: 'center', gap: u(4),
+            flexShrink: 0, padding: `${u(7)} ${u(15)}`, borderRadius: u(999),
+            background: '#fff', color: '#0d0d0f', fontSize: u(11.5), fontWeight: 700,
+            display: 'inline-flex', alignItems: 'center', gap: u(4), marginBottom: u(3),
           }}>
-            <PlayGlyph size={9} /> Play
+            <PlayGlyph size={9} color="#0d0d0f" /> Play
           </span>
-        </Pane>
+        </div>
 
-        <div style={{ position: 'relative', zIndex: 3, padding: `${u(10)} ${u(12)} 0`, display: 'flex', flexDirection: 'column', gap: u(8), flex: 1, minHeight: 0 }}>
+        {/* Bio + stats */}
+        <div style={{ padding: `${u(12)} ${u(12)} 0`, display: 'flex', flexDirection: 'column', gap: u(9), flex: 1, minHeight: 0 }}>
           {config.showLyrics && config.lyricQuote ? (
-            <Lyric size={12} color={ink2} clamp={1} />
+            <Lyric size={12.5} color="rgba(255,255,255,0.78)" clamp={2} />
           ) : (
-            <p style={{ margin: 0, fontSize: u(12), color: ink2, lineHeight: 1.45, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            <p style={{ margin: 0, fontSize: u(12.5), color: 'rgba(255,255,255,0.78)', lineHeight: 1.5 }}>
               {track.album}
             </p>
           )}
-          <div style={{ display: 'flex', alignItems: 'center', gap: u(12), marginTop: 'auto', paddingBottom: u(4) }}>
+          <div style={{ display: 'flex', gap: u(16) }}>
             {config.showYear && (
-              <span style={{ fontSize: u(11.5) }}>
-                <b style={{ color: ink, fontWeight: 700 }}>{track.releaseYear}</b>
-                <span style={{ color: ink3 }}> Released</span>
+              <span style={{ fontSize: u(12) }}>
+                <b style={{ color: '#fff', fontWeight: 700 }}>{track.releaseYear}</b>
+                <span style={{ color: 'rgba(255,255,255,0.42)' }}> Released</span>
               </span>
             )}
             {config.showDuration && (
-              <span style={{ fontSize: u(11.5) }}>
-                <b style={{ color: ink, fontWeight: 700 }}>{track.duration}</b>
-                <span style={{ color: ink3 }}> Length</span>
+              <span style={{ fontSize: u(12) }}>
+                <b style={{ color: '#fff', fontWeight: 700 }}>{track.duration}</b>
+                <span style={{ color: 'rgba(255,255,255,0.42)' }}> Length</span>
               </span>
             )}
-            <span style={{ marginLeft: 'auto' }}><BrandMark size={15} tone={darkInk ? 'dark' : 'light'} /></span>
+          </div>
+          <div style={{ marginTop: 'auto', paddingBottom: u(4), display: 'flex', alignItems: 'center', gap: u(6) }}>
+            <BrandMark size={15} tone="dark" />
+            <span style={{ fontSize: u(11), color: 'rgba(255,255,255,0.4)' }}>framesound.app</span>
           </div>
         </div>
       </div>
@@ -722,11 +716,8 @@ const CardCanvas = forwardRef<HTMLDivElement, Props>(function CardCanvas(
     )
   }
 
-  // ── BLOOM — full-bleed art, text over a progressive glass fade ─
+  // ── BLOOM — full-bleed art, text laid straight onto it ────────
   if (config.preset === 'bloom') {
-    // Frosted art that fades in from the middle down: the glass "melts" into
-    // the artwork instead of ending at a hard edge.
-    const fade = 'linear-gradient(to top, #000 42%, rgba(0,0,0,0.6) 64%, transparent 100%)'
     return (
       <div ref={ref} style={root({
         aspectRatio: '4 / 5', borderRadius: u(30),
@@ -734,84 +725,76 @@ const CardCanvas = forwardRef<HTMLDivElement, Props>(function CardCanvas(
         display: 'flex', flexDirection: 'column', justifyContent: 'flex-end',
       })}>
         <Art radius={0} />
-        {!hasArt && (
+        {!(config.showAlbumArt && track.coverUrl) && (
           <span style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <NoteGlyph size={46} color="rgba(255,255,255,0.16)" />
           </span>
         )}
+        {/* Top sheen + bottom scrim so text always holds against the art */}
         <div style={{
-          position: 'absolute', left: 0, right: 0, bottom: 0, height: '58%', zIndex: 2,
-          overflow: 'hidden', pointerEvents: 'none',
-          WebkitMaskImage: fade, maskImage: fade,
-        }}>
-          <AlignedArt at={{ left: 0, bottom: 0 }} w={400} h={500} blur={frost} />
-          <span style={{ position: 'absolute', inset: 0, background: glassTint }} />
-        </div>
-        {!darkInk && (
-          <div style={{
-            position: 'absolute', inset: 0, zIndex: 2, pointerEvents: 'none',
-            background: 'linear-gradient(180deg, rgba(255,255,255,0.08) 0%, transparent 26%, transparent 55%, rgba(0,0,0,0.3) 100%)',
-          }} />
-        )}
-        <Pane radius={999} lift={false}
-          style={{ position: 'absolute', top: u(16), right: u(16), zIndex: 6, width: u(32), height: u(32) }}
-          backdrop={{ at: { top: u(-16), right: u(-16) }, w: 400, h: 500 }}
-          inner={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <BrandMark size={16} tone="light" />
-        </Pane>
+          position: 'absolute', inset: 0, zIndex: 2, pointerEvents: 'none',
+          background: 'linear-gradient(180deg, rgba(255,255,255,0.10) 0%, transparent 26%, transparent 52%, rgba(0,0,0,0.62) 100%)',
+        }} />
+        <span style={{ position: 'absolute', top: u(16), right: u(16), zIndex: 6, opacity: 0.72 }}>
+          <BrandMark size={17} tone="light" />
+        </span>
         {fx}
 
         <div style={{
           position: 'relative', zIndex: 5,
-          padding: `${u(24)} ${u(26)} ${u(26)}`,
+          padding: `${u(24)} ${u(26)} ${u(28)}`,
           display: 'flex', flexDirection: 'column', gap: u(4),
           textAlign: config.textAlign,
         }}>
           <Lyric size={13} color={ink2} clamp={2} />
           <Title size={30} />
           <Artist size={17} />
-          <MetaChips size={10.5} />
+          <Meta size={12} color={ink3} />
         </div>
       </div>
     )
   }
 
-  // ── BEZEL — the whole card is a slab of glass around inset art ─
+  // ── BEZEL — art inset in a moulded shell, text on the shell ───
   return (
     <div ref={ref} style={root({
       aspectRatio: '4 / 5', borderRadius: u(30),
-      background: shell(`linear-gradient(158deg, ${accent}aa 0%, #232326 50%, #171719 100%)`),
+      background: shell('linear-gradient(158deg, #333336 0%, #232326 46%, #171719 100%)'),
       display: 'flex', flexDirection: 'column',
       padding: `${u(14)} ${u(14)} 0`,
     })}>
-      <GlassShell radius={30} />
-      {/* The slab's own rim. Additive white, so it's skipped on a cut-out. */}
-      {!cutout && (
+      {/* Specular rim + gloss describe a moulded shell. They are additive white,
+          so with no shell behind them they would ghost onto a cut-out export. */}
+      {config.bgStyle !== 'transparent' && (
         <>
-          <span style={{ position: 'absolute', inset: 0, borderRadius: u(30), background: glare, pointerEvents: 'none' }} />
-          <span aria-hidden style={{
-            position: 'absolute', inset: 0, borderRadius: u(30), zIndex: 6, pointerEvents: 'none', boxShadow: rim,
+          <div style={{
+            position: 'absolute', inset: 0, borderRadius: u(30), zIndex: 6, pointerEvents: 'none',
+            boxShadow: `inset ${u(1.5)} ${u(1.5)} 0 rgba(255,255,255,0.34), inset 0 0 ${u(5)} ${u(1)} rgba(255,255,255,0.14), inset ${u(-1)} ${u(-1)} 0 rgba(0,0,0,0.5)`,
+          }} />
+          <div style={{
+            position: 'absolute', inset: 0, zIndex: 5, pointerEvents: 'none',
+            background: 'linear-gradient(152deg, rgba(255,255,255,0.13) 0%, transparent 30%)',
           }} />
         </>
       )}
+      <span style={{ position: 'absolute', top: u(16), right: u(16), zIndex: 7, opacity: 0.55 }}>
+        <BrandMark size={15} tone="dark" />
+      </span>
       {fx}
 
-      {/* Art — concentric with the slab: 30 − 14 */}
       <div style={{
-        position: 'relative', aspectRatio: '1 / 1', borderRadius: u(16),
-        overflow: 'hidden', flexShrink: 0, zIndex: 1,
-        background: hasArt ? '#111' : `linear-gradient(165deg, ${accent} 0%, ${accent}aa 100%)`,
+        position: 'relative', aspectRatio: '1 / 1', borderRadius: u(20),
+        overflow: 'hidden', flexShrink: 0,
+        background: config.showAlbumArt && track.coverUrl
+          ? '#111'
+          : `linear-gradient(165deg, ${accent} 0%, ${accent}aa 100%)`,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        boxShadow: cutout ? undefined : `0 ${u(10)} ${u(24)} ${u(-10)} rgba(0,0,0,0.5)`,
+        boxShadow: `inset 0 ${u(2)} ${u(8)} rgba(0,0,0,0.55), 0 ${u(8)} ${u(18)} ${u(-8)} rgba(0,0,0,0.6)`,
       }}>
         <Art radius={0} />
-        {!hasArt && <NoteGlyph size={44} color="rgba(0,0,0,0.24)" />}
-        <Pane radius={999} lift={false}
-          style={{ position: 'absolute', top: u(10), right: u(10), width: u(30), height: u(30) }}
-          backdrop={{ at: { top: u(-10), right: u(-10) }, w: 372, h: 372 }}
-          inner={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <BrandMark size={15} tone="light" />
-        </Pane>
+        {!(config.showAlbumArt && track.coverUrl) && (
+          <NoteGlyph size={44} color="rgba(0,0,0,0.24)" />
+        )}
       </div>
 
       <div style={{
@@ -822,8 +805,8 @@ const CardCanvas = forwardRef<HTMLDivElement, Props>(function CardCanvas(
       }}>
         <Title size={27} />
         <Artist size={17} />
-        <Meta size={12} color={ink3} />
-        <Lyric size={12} color={ink2} clamp={1} />
+        <Meta size={12} color={ink4} />
+        <Lyric size={12} color={ink3} clamp={1} />
       </div>
     </div>
   )

@@ -13,7 +13,7 @@ FrameSound is a browser-based card generator built on Next.js 16.2. You give it 
 Key capabilities:
 
 - **Liquid Glass UI** — the editor chrome is built on a WebGL2 port of Apple's Liquid Glass (refraction, dispersion, glare), with the album art as the backdrop it bends
-- **7 liquid-glass card presets** — Glass, Bezel, Bloom, Ticket, Tag, Profile, Player — plus a shared glass material (tint + frost) for every card
+- **7 card presets** — Glass, Bezel, Bloom, Ticket, Tag, Profile, Player; the glassy ones (Glass, Player) get an adjustable glass material (tint + frost)
 - **Lyrics integration** — lyrics are fetched automatically and you can click up to 2 lines to quote them on the card
 - **Full customization** — background style, font, text color, padding, border radius, aspect ratio, color tint, and per-element visibility toggles
 - **HD export** — download as PNG (3× scale), JPG (2× scale), transparent PNG, or copy directly to clipboard
@@ -108,14 +108,14 @@ Spotify credentials never reach the browser. `getAccessToken()` and `fetchTrack(
 | Preset | Description |
 |--------|-------------|
 | **Glass** | Full-bleed art with a floating liquid-glass panel that refracts the art behind it |
-| **Bezel** | The whole card is a slab of frosted glass around inset artwork |
-| **Bloom** | Full-bleed art; the bottom melts into progressive frosted glass under the text |
-| **Ticket** | Glass body with art, plus a detached accent-tinted glass stub with a tear line |
+| **Bezel** | Art inset in a moulded dark shell, text on the shell |
+| **Bloom** | Full-bleed art with text laid straight onto it over a scrim |
+| **Ticket** | Card body that warms into the accent, with a die-cut stub beneath |
 | **Tag** | Ticket layout with a brand-mark stub |
-| **Profile** | Social profile card; the identity bar is glass overlapping the photo |
+| **Profile** | Social profile card with an avatar overlapping the photo |
 | **Player** | iOS-style now-playing glass widget over blurred art (1:1) |
 
-Glass surfaces on every preset share one material: **tint** (auto / light / dark / clear) and **frost**. They are drawn in DOM/CSS, not WebGL, so exports match the preview.
+Glass and Player use one glass material: **tint** (auto / light / dark / clear) and **frost**. They are drawn in DOM/CSS, not WebGL, so exports match the preview.
 
 ---
 

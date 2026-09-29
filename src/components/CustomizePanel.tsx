@@ -126,56 +126,59 @@ const PRESET_SVG: Record<CardConfig['preset'], React.ReactNode> = {
   ),
   bezel: (
     <Plate>
-      <rect x="8" y="2" width="28" height="33" rx="4.5" fill="url(#fs-slab)" stroke={GLASS_EDGE} strokeWidth="0.6" />
-      <rect x="10.5" y="4.5" width="23" height="19" rx="2.5" fill={ART} />
-      <rect x="11" y="26.5" width="14" height="2" rx="1" fill={LINE} />
-      <rect x="11" y="30" width="9" height="1.4" rx="0.7" fill={LINE_2} />
+      <rect x="6" y="1" width="32" height="34" rx="5" fill="rgba(255,255,255,0.13)" stroke="rgba(255,255,255,0.34)" strokeWidth="0.7"/>
+      <rect x="9.5" y="4" width="25" height="19" rx="3.5" fill="rgba(255,255,255,0.42)"/>
+      <rect x="9.5" y="26" width="15" height="2.2" rx="1.1" fill="rgba(255,255,255,0.85)"/>
+      <rect x="9.5" y="30" width="10" height="1.5" rx="0.75" fill="rgba(255,255,255,0.42)"/>
     </Plate>
   ),
   bloom: (
     <Plate>
-      <rect x="8" y="2" width="28" height="33" rx="4.5" fill={ART} />
-      <rect x="8" y="16" width="28" height="19" rx="4.5" fill="url(#fs-fade)" />
-      <circle cx="31.5" cy="6.5" r="2.3" fill={GLASS} stroke={GLASS_EDGE} strokeWidth="0.5" />
-      <rect x="11" y="24" width="15" height="2.4" rx="1.2" fill={LINE} />
-      <rect x="11" y="28" width="10" height="1.5" rx="0.75" fill={LINE_2} />
+      <rect x="6" y="1" width="32" height="34" rx="5" fill="url(#bloomG)"/>
+      <defs>
+        <linearGradient id="bloomG" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="rgba(255,255,255,0.42)"/>
+          <stop offset="100%" stopColor="rgba(255,255,255,0.14)"/>
+        </linearGradient>
+      </defs>
+      <rect x="10" y="24" width="16" height="2.4" rx="1.2" fill="rgba(255,255,255,0.92)"/>
+      <rect x="10" y="28.4" width="11" height="1.6" rx="0.8" fill="rgba(255,255,255,0.5)"/>
     </Plate>
   ),
   ticket: (
     <Plate>
-      <rect x="8" y="1" width="28" height="34" rx="4.5" fill="url(#fs-slab)" />
-      <Pane x="10" y="3" width="24" height="22" rx="3.5" />
-      <rect x="12" y="5" width="20" height="12" rx="2" fill={ART} />
-      <rect x="12.5" y="19.5" width="11" height="1.6" rx="0.8" fill={LINE} />
-      <rect x="12.5" y="22" width="7" height="1.1" rx="0.55" fill={LINE_2} />
-      <rect x="12" y="27" width="20" height="6.5" rx="2.5" fill="rgba(255,159,10,0.75)" stroke={GLASS_EDGE} strokeWidth="0.5" />
-      <path d="M14 28.3h16" stroke="rgba(255,255,255,0.7)" strokeWidth="0.5" strokeDasharray="1 1" />
-      <rect x="13.5" y="29.3" width="3.5" height="3.2" rx="0.8" fill="rgba(255,255,255,0.9)" />
-      <rect x="18.5" y="30.2" width="9" height="1.2" rx="0.6" fill={LINE} />
+      <rect x="6" y="1" width="32" height="27" rx="4.5" fill="rgba(255,255,255,0.10)"/>
+      <rect x="9" y="3.5" width="26" height="15" rx="3" fill="rgba(255,255,255,0.30)"/>
+      <rect x="11" y="21" width="13" height="1.7" rx="0.85" fill="rgba(255,255,255,0.75)"/>
+      <rect x="11" y="24.3" width="9" height="1.2" rx="0.6" fill="rgba(255,255,255,0.4)"/>
+      <rect x="11" y="27" width="22" height="8" rx="2.5" fill="rgba(255,255,255,0.5)"/>
+      <circle cx="11" cy="28" r="1.9" fill="#1c1c1e"/>
+      <circle cx="33" cy="28" r="1.9" fill="#1c1c1e"/>
+      <rect x="13.5" y="29.5" width="5" height="4" rx="1" fill="rgba(0,0,0,0.45)"/>
+      <rect x="20.5" y="30" width="10" height="1.3" rx="0.65" fill="rgba(0,0,0,0.42)"/>
     </Plate>
   ),
   tag: (
     <Plate>
-      <rect x="8" y="1" width="28" height="34" rx="4.5" fill="url(#fs-slab)" />
-      <Pane x="10" y="3" width="24" height="22" rx="3.5" />
-      <rect x="12" y="5" width="20" height="12" rx="2" fill={ART} />
-      <rect x="12.5" y="19.5" width="11" height="1.6" rx="0.8" fill={LINE} />
-      <rect x="12.5" y="22" width="7" height="1.1" rx="0.55" fill={LINE_2} />
-      <rect x="12" y="27" width="20" height="6.5" rx="2.5" fill="rgba(255,159,10,0.75)" stroke={GLASS_EDGE} strokeWidth="0.5" />
-      <path d="M14 28.3h16" stroke="rgba(255,255,255,0.7)" strokeWidth="0.5" strokeDasharray="1 1" />
-      <rect x="20" y="29.2" width="4" height="3.6" rx="1" fill="rgba(255,255,255,0.92)" />
+      <rect x="6" y="1" width="32" height="27" rx="4.5" fill="rgba(255,255,255,0.10)"/>
+      <rect x="9" y="3.5" width="26" height="15" rx="3" fill="rgba(255,255,255,0.30)"/>
+      <rect x="11" y="21" width="13" height="1.7" rx="0.85" fill="rgba(255,255,255,0.75)"/>
+      <rect x="11" y="24.3" width="9" height="1.2" rx="0.6" fill="rgba(255,255,255,0.4)"/>
+      <rect x="11" y="27" width="22" height="8" rx="2.5" fill="rgba(255,255,255,0.5)"/>
+      <circle cx="11" cy="28" r="1.9" fill="#1c1c1e"/>
+      <circle cx="33" cy="28" r="1.9" fill="#1c1c1e"/>
+      <rect x="19.5" y="29.5" width="5" height="5" rx="1.5" fill="rgba(0,0,0,0.5)"/>
     </Plate>
   ),
   profile: (
     <Plate>
-      <rect x="8" y="1" width="28" height="34" rx="4.5" fill="url(#fs-slab)" />
-      <rect x="10" y="3" width="24" height="17" rx="3" fill={ART} />
-      <Pane x="11" y="17" width="22" height="7" rx="2.5" />
-      <rect x="12.3" y="18.2" width="4.6" height="4.6" rx="1.3" fill={ART} />
-      <rect x="18.5" y="19" width="8" height="1.4" rx="0.7" fill={LINE} />
-      <rect x="18.5" y="21.4" width="5" height="1" rx="0.5" fill={LINE_2} />
-      <rect x="12" y="27" width="16" height="1.3" rx="0.65" fill={LINE_2} />
-      <rect x="12" y="30.3" width="11" height="1.3" rx="0.65" fill={LINE_2} />
+      <rect x="4" y="1" width="36" height="34" rx="5" fill="rgba(255,255,255,0.07)"/>
+      <rect x="7" y="4" width="30" height="16" rx="3.5" fill="rgba(255,255,255,0.28)"/>
+      <rect x="8" y="15" width="9" height="9" rx="2.5" fill="rgba(255,255,255,0.55)" stroke="#1c1c1e" strokeWidth="1.2"/>
+      <rect x="19" y="17.5" width="11" height="1.7" rx="0.85" fill="rgba(255,255,255,0.7)"/>
+      <rect x="19" y="20.8" width="7" height="1.2" rx="0.6" fill="rgba(255,255,255,0.35)"/>
+      <rect x="8" y="27" width="20" height="1.4" rx="0.7" fill="rgba(255,255,255,0.28)"/>
+      <rect x="8" y="30.3" width="14" height="1.4" rx="0.7" fill="rgba(255,255,255,0.18)"/>
     </Plate>
   ),
   player: (
@@ -244,10 +247,10 @@ function hueRGBA(h: number): RGBA {
 // Curated one-tap looks so the panel is useful before anyone has saved anything.
 const STARTERS: { name: string; patch: Partial<CardConfig> }[] = [
   { name: 'Liquid',  patch: { preset: 'glass', bgStyle: 'blurred-art', glassTint: 'auto', glassFrost: 50, textColor: 'auto', glowEnabled: false, grainEnabled: false, vignetteEnabled: false, scanlinesEnabled: false, holoEnabled: false } },
-  { name: 'Frosted', patch: { preset: 'bezel', bgStyle: 'blurred-art', glassTint: 'light', glassFrost: 80, textColor: 'auto', grainEnabled: false, vignetteEnabled: false } },
+  { name: 'Frosted', patch: { preset: 'glass', bgStyle: 'blurred-art', glassTint: 'light', glassFrost: 80, textColor: 'auto', grainEnabled: false, vignetteEnabled: false } },
   { name: 'Lens',    patch: { preset: 'glass', bgStyle: 'blurred-art', glassTint: 'clear', glassFrost: 20, textColor: 'white', artPadding: 20 } },
-  { name: 'Poster',  patch: { preset: 'bloom', bgStyle: 'blurred-art', glassTint: 'dark', textAlign: 'left', vignetteEnabled: true, vignetteStrength: 40, grainEnabled: true, grainOpacity: 18 } },
-  { name: 'Stub',    patch: { preset: 'ticket', bgStyle: 'blurred-art', glassTint: 'auto', grainEnabled: true, grainOpacity: 14 } },
+  { name: 'Poster',  patch: { preset: 'bloom', bgStyle: 'blurred-art', textAlign: 'left', vignetteEnabled: true, vignetteStrength: 40, grainEnabled: true, grainOpacity: 18 } },
+  { name: 'Stub',    patch: { preset: 'ticket', bgStyle: 'blurred-art', grainEnabled: true, grainOpacity: 14 } },
   { name: 'Neon',    patch: { preset: 'player', bgStyle: 'gradient', glassTint: 'dark', glowEnabled: true, glowStrength: 70, holoEnabled: true, holoOpacity: 22 } },
 ]
 
@@ -324,7 +327,9 @@ export default function CustomizePanel({ tab, config, onChange, lyrics }: Props)
                 onClick={() => onChange({ preset: p.id })}
                 style={{ padding: '8px 4px 6px', gap: 5 }}
               >
-                <span style={{ width: '100%', height: 40, display: 'block' }}>{PRESET_SVG[p.id]}</span>
+                {/* Fixed-dark plate — the thumbnails mirror the (dark) cards, so
+                    they stay legible in either app theme. */}
+                <span style={{ width: '100%', height: 40, display: 'block', borderRadius: 8, background: '#1c1c1e', padding: 2 }}>{PRESET_SVG[p.id]}</span>
                 <span style={{ fontSize: 11, fontWeight: 600, color: config.preset === p.id ? 'var(--tint)' : 'var(--text-2)' }}>{p.name}</span>
               </button>
             ))}
@@ -332,7 +337,8 @@ export default function CustomizePanel({ tab, config, onChange, lyrics }: Props)
         </div>
       </Group>
 
-      <Group title="Glass" footer="The material every glass surface on the card is made of.">
+      {(config.preset === 'glass' || config.preset === 'player') && (
+      <Group title="Glass" footer="The material of this preset's glass panel.">
         <div className="cell">
           <Seg label="Glass tint" value={config.glassTint} onChange={v => onChange({ glassTint: v })}
             options={[
@@ -345,6 +351,7 @@ export default function CustomizePanel({ tab, config, onChange, lyrics }: Props)
             onChange={v => onChange({ glassFrost: v })} format={pct} />
         </div>
       </Group>
+      )}
 
       <Group title="Background">
         <div className="cell">

@@ -17,7 +17,7 @@ Next.js 16.2 Spotify card generator. Paste track URL → get styled visual card 
 - src/actions/spotify.ts — Server Action: getTrackFromUrl
 - src/actions/lyrics.ts — Server Action: getLyrics
 - src/app/page.tsx — main page, all state lives here
-- src/components/CardCanvas.tsx — visual card renderer (7 liquid-glass presets)
+- src/components/CardCanvas.tsx — visual card renderer (7 presets; Glass and Player use glass)
 - src/components/LyricsPanel.tsx — lyrics selector
 - src/components/CustomizePanel.tsx — card config controls
 - src/components/ExportBar.tsx — PNG/JPG/transparent download
@@ -39,6 +39,8 @@ Next.js 16.2 Spotify card generator. Paste track URL → get styled visual card 
   24 fills per layer — keep per-tab control counts within that.
 - Controls inside a scrolling panel need an ancestor with `data-glass-clip`.
 - Overlays (menus, modals, toasts) use the CSS `.material` class.
+- Glass belongs only where a preset is meant to be glassy (Glass, Player);
+  Bezel, Bloom, Ticket, Tag and Profile are solid designs.
 - Card presets can't use the WebGL engine (html-to-image export can't read it);
   CardCanvas renders the same material in DOM/CSS via its `Pane` helper.
 - SF Pro / system-ui for UI, one system tint (#007aff), radius 12/14, no card shadows.

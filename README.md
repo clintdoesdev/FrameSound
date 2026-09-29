@@ -115,7 +115,7 @@ Spotify credentials never reach the browser. `getAccessToken()` and `fetchTrack(
 | **Profile** | Social profile card with an avatar overlapping the photo |
 | **Player** | iOS-style now-playing glass widget over blurred art (1:1) |
 
-Glass and Player use one glass material: **tint** (auto / light / dark / clear) and **frost**. They are drawn in DOM/CSS, not WebGL, so exports match the preview.
+Glass and Player use real liquid glass — the kit's WebGL shader (refraction, dispersion, frost, glare) runs inside the card and is captured in exports. Tint (auto / light / dark / clear) and frost are adjustable; without WebGL2 a CSS version is used. They are drawn in DOM/CSS, not WebGL, so exports match the preview.
 
 ---
 

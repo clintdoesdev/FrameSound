@@ -2,6 +2,7 @@
 
 import React, { useState, useCallback, useEffect } from 'react'
 import { TrackData, CardConfig } from '@/types'
+import { waitForLiquid } from './LiquidCardGlass'
 
 type Props = {
   cardRef: React.RefObject<HTMLDivElement | null>
@@ -67,6 +68,7 @@ function waitForPaint(): Promise<void> {
 }
 async function waitReady(el: HTMLElement): Promise<void> {
   await waitForPaint()
+  await waitForLiquid(el)
   await document.fonts.ready
   const imgs = Array.from(el.querySelectorAll<HTMLImageElement>('img'))
   await Promise.all(imgs.map(img => img.decode().catch(() => {})))

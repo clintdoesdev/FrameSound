@@ -36,3 +36,8 @@ of any platform UI. Tokens live in `src/app/globals.css`.
 - Used only where nothing scrolls beneath it: the fixed desktop editor (nav, search,
   sheet, tab lens). A per-frame canvas trails compositor scrolling and looks wobbly,
   so the landing page, mobile layouts and anything inside scroll containers use CSS glass.
+
+## Card presets
+- Glass and Player are the glass presets and use the real shader inside the card
+  (`LiquidCardGlass`): panes on layer 0, small controls as glass-on-glass on layer 1.
+- Bezel, Bloom, Ticket, Tag and Profile are solid designs — no glass.

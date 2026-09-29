@@ -1,6 +1,7 @@
 'use client'
 
-import React, { forwardRef } from 'react'
+import React, { forwardRef, useCallback, useRef, useState } from 'react'
+import LiquidCardGlass, { drawFramedArt, drawBlurredArt, fillCssGradient } from './LiquidCardGlass'
 import { TrackData, CardConfig } from '@/types'
 
 type Props = {
@@ -67,6 +68,15 @@ const CardCanvas = forwardRef<HTMLDivElement, Props>(function CardCanvas(
   { track, config, exportMode = false, accentColor },
   ref
 ) {
+  // The card element is shared with the in-card glass renderer.
+  const localRef = useRef<HTMLDivElement | null>(null)
+  const setRef = useCallback((el: HTMLDivElement | null) => {
+    localRef.current = el
+    if (typeof ref === 'function') ref(el)
+    else if (ref) ref.current = el
+  }, [ref])
+  const [liquidReady, setLiquidReady] = useState(false)
+
   const fontFamilyMap: Record<CardConfig['font'], string> = {
     'sf-pro':        '-apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, "Segoe UI", Roboto, sans-serif',
     poppins:         'var(--font-poppins)',
@@ -127,6 +137,45 @@ const CardCanvas = forwardRef<HTMLDivElement, Props>(function CardCanvas(
   const glassTint = GLASS_TINT[tone]
   // Clear glass is a lens: nearly sharp. Regular glass frosts with the slider.
   const frost = tone === 'clear' ? 0.5 + config.glassFrost * 0.05 : 4 + config.glassFrost * 0.32
+  // ── Real liquid glass (WebGL) for the glass presets ───────────
+  // The Glass preset bends its artwork; the Player bends its ambient backdrop.
+  // Until the renderer is ready — or without WebGL2 — the CSS panes stand in.
+  const wantLiquid = (config.preset === 'glass' && hasArt) || (config.preset === 'player' && !cutout)
+  const liquid = wantLiquid && liquidReady
+  const paintBackdrop = (ctx: CanvasRenderingContext2D, W: number, H: number, img: HTMLImageElement | null) => {
+    const framing = { x: config.artX, y: config.artY, zoom: config.artZoom / 100, hue: config.tintHue }
+    if (config.preset === 'glass') {
+      fillCssGradient(ctx, W, H, 160, [[0, accent], [1, '#1c1c1e']])
+      if (img) drawFramedArt(ctx, img, W, H, framing)
+      return
+    }
+    if (config.bgStyle === 'solid') {
+      ctx.fillStyle = config.bgColor
+      ctx.fillRect(0, 0, W, H)
+    } else if (config.bgStyle === 'gradient') {
+      fillCssGradient(ctx, W, H, 160, [[0, accent], [0.55, `${accent}55`], [1, '#141416']])
+    } else {
+      fillCssGradient(ctx, W, H, 150, [[0, accent], [0.55, '#2a2a2e'], [1, '#131315']])
+      if (img) {
+        drawBlurredArt(ctx, img, W, H, { blur: (46 / 400) * W, brightness: tone === 'light' ? 0.95 : 0.62, hue: config.tintHue })
+        ctx.fillStyle = tone === 'light' ? 'rgba(255,255,255,0.18)' : 'rgba(0,0,0,0.14)'
+        ctx.fillRect(0, 0, W, H)
+      }
+    }
+  }
+  const liquidLayer = wantLiquid ? (
+    <LiquidCardGlass
+      root={localRef}
+      designH={config.preset === 'player' ? 400 : 500}
+      artSrc={hasArt && track.coverUrl ? proxySrc(track.coverUrl) : null}
+      paint={paintBackdrop}
+      paintKey={[config.preset, config.bgStyle, config.bgColor, accent, config.artX, config.artY, config.artZoom, config.tintHue, tone].join('|')}
+      tone={tone}
+      frost={config.glassFrost}
+      onReady={setLiquidReady}
+    />
+  ) : null
+
   // Glass-on-glass fill for chips and buttons sitting inside a pane.
   const chipFill = darkInk ? 'rgba(255,255,255,0.46)' : 'rgba(255,255,255,0.13)'
   const paneShadow = cutout ? undefined : `0 ${u(14)} ${u(34)} ${u(-14)} rgba(0,0,0,0.45)`
@@ -255,8 +304,12 @@ const CardCanvas = forwardRef<HTMLDivElement, Props>(function CardCanvas(
     }} />
   )
 
-  /** A liquid-glass pane. Pass `backdrop` when it floats over sharp artwork. */
-  const Pane = ({ radius, style, inner, children, backdrop, fill = glassTint, lift = true }: {
+  /**
+   * A liquid-glass pane. With the WebGL renderer running, the element is only a
+   * transparent marker (`data-lg`) the shader draws real glass under; otherwise
+   * it paints the CSS stand-in. Pass `backdrop` when it floats over sharp art.
+   */
+  const Pane = ({ radius, style, inner, children, backdrop, fill = glassTint, lift = true, lg }: {
     radius: number
     style?: React.CSSProperties
     inner?: React.CSSProperties
@@ -264,7 +317,19 @@ const CardCanvas = forwardRef<HTMLDivElement, Props>(function CardCanvas(
     backdrop?: { at: React.CSSProperties; w: number; h: number }
     fill?: string
     lift?: boolean
-  }) => (
+    /** Render as real glass when the card's liquid renderer is active. */
+    lg?: { layer?: number; mat?: 'pane' | 'chip' }
+  }) => liquid && lg ? (
+    <div
+      data-lg={lg.layer ?? 0} data-lg-mat={lg.mat ?? 'pane'} data-lg-r={radius >= 999 ? 'pill' : radius}
+      style={{
+        position: 'relative', borderRadius: u(radius), flexShrink: 0,
+        boxShadow: lift ? paneShadow : undefined,
+        ...style,
+      }}>
+      <div style={{ position: 'relative', zIndex: 3, ...inner }}>{children}</div>
+    </div>
+  ) : (
     <div style={{
       position: 'relative', borderRadius: u(radius), overflow: 'hidden', isolation: 'isolate',
       boxShadow: lift ? paneShadow : undefined, flexShrink: 0,
@@ -378,6 +443,8 @@ const CardCanvas = forwardRef<HTMLDivElement, Props>(function CardCanvas(
     </>
   )
 
+  const liquidState = wantLiquid ? (liquidReady ? 'ready' : 'pending') : undefined
+
   const root = (extra: React.CSSProperties): React.CSSProperties => ({
     position: 'relative', overflow: 'hidden', width: '100%',
     fontFamily, containerType: 'inline-size', boxShadow: shadow,
@@ -391,11 +458,12 @@ const CardCanvas = forwardRef<HTMLDivElement, Props>(function CardCanvas(
     // Concentric corners: the panel's radius is the card's minus the gap.
     const radius = Math.max(30 - inset, 16)
     return (
-      <div ref={ref} style={root({
+      <div ref={setRef} data-liquid={liquidState} style={root({
         aspectRatio: '4 / 5', borderRadius: u(30),
         background: shell(`linear-gradient(160deg, ${accent} 0%, #1c1c1e 100%)`),
       })}>
-        <Art radius={0} />
+        {liquidLayer}
+        {!liquid && <Art radius={0} />}
         {!hasArt && (
           <span style={{ position: 'absolute', inset: 0, bottom: '30%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <NoteGlyph size={52} color="rgba(255,255,255,0.22)" />
@@ -405,7 +473,7 @@ const CardCanvas = forwardRef<HTMLDivElement, Props>(function CardCanvas(
           position: 'absolute', inset: 0, zIndex: 1, pointerEvents: 'none',
           background: 'linear-gradient(180deg, rgba(0,0,0,0.12) 0%, transparent 26%, transparent 60%, rgba(0,0,0,0.22) 100%)',
         }} />
-        <Pane radius={999} lift={false}
+        <Pane radius={999} lift={false} lg={{ mat: 'chip' }}
           style={{ position: 'absolute', top: u(14), right: u(14), zIndex: 6 }}
           backdrop={{ at: { top: u(-14), right: u(-14) }, w: 400, h: 500 }}
           inner={{ display: 'flex', alignItems: 'center', gap: u(5), padding: `${u(4)} ${u(10)} ${u(4)} ${u(4)}` }}>
@@ -414,7 +482,7 @@ const CardCanvas = forwardRef<HTMLDivElement, Props>(function CardCanvas(
         </Pane>
         {fx}
 
-        <Pane radius={radius}
+        <Pane radius={radius} lg={{ mat: 'pane' }}
           style={{ position: 'absolute', left: u(inset), right: u(inset), bottom: u(inset), zIndex: 10 }}
           backdrop={{ at: { left: u(-inset), bottom: u(-inset) }, w: 400, h: 500 }}
           inner={{
@@ -444,7 +512,7 @@ const CardCanvas = forwardRef<HTMLDivElement, Props>(function CardCanvas(
           : '#26221f'
     const showNotches = config.bgStyle !== 'transparent'
     return (
-      <div ref={ref} style={root({
+      <div ref={setRef} data-liquid={liquidState} style={root({
         aspectRatio: '4 / 5', borderRadius: u(34), background: shell('#26221f'),
         display: 'flex', flexDirection: 'column',
         padding: `${u(13)} ${u(13)} ${u(15)}`,
@@ -527,7 +595,7 @@ const CardCanvas = forwardRef<HTMLDivElement, Props>(function CardCanvas(
   if (config.preset === 'profile') {
     const handle = '@' + (track.artist.toLowerCase().replace(/[^a-z0-9]+/g, '') || 'artist')
     return (
-      <div ref={ref} style={root({
+      <div ref={setRef} data-liquid={liquidState} style={root({
         aspectRatio: '4 / 5', borderRadius: u(30), background: shell('#1b1b1d'),
         display: 'flex', flexDirection: 'column', padding: u(10),
       })}>
@@ -614,21 +682,26 @@ const CardCanvas = forwardRef<HTMLDivElement, Props>(function CardCanvas(
   // ── PLAYER — floating now-playing glass widget ────────────────
   if (config.preset === 'player') {
     const handle = '@' + (track.artist.toLowerCase().replace(/[^a-z0-9]+/g, '') || 'artist')
+    // Secondary controls are glass on glass (layer 1 bends the widget below).
+    const glassChip = (radius: number | 'pill') => liquid
+      ? { 'data-lg': 1, 'data-lg-mat': 'chip', 'data-lg-r': radius }
+      : {}
     const circle = (size: number, child: React.ReactNode, primary = false) => (
-      <span style={{
+      <span {...(primary ? {} : glassChip('pill'))} style={{
         width: u(size), height: u(size), borderRadius: '50%', flexShrink: 0,
-        background: primary ? ink : chipFill, color: primary ? (darkInk ? '#fff' : '#111') : ink,
+        background: primary ? ink : liquid ? 'transparent' : chipFill, color: primary ? (darkInk ? '#fff' : '#111') : ink,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        boxShadow: primary ? undefined : `inset ${u(0.8)} ${u(0.8)} 0 rgba(255,255,255,${darkInk ? 0.7 : 0.25})`,
+        boxShadow: primary || liquid ? undefined : `inset ${u(0.8)} ${u(0.8)} 0 rgba(255,255,255,${darkInk ? 0.7 : 0.25})`,
       }}>{child}</span>
     )
     return (
-      <div ref={ref} style={root({
+      <div ref={setRef} data-liquid={liquidState} style={root({
         aspectRatio: '1 / 1', borderRadius: u(28),
         background: shell(`linear-gradient(150deg, ${accent} 0%, #2a2a2e 55%, #131315 100%)`),
         display: 'flex', alignItems: 'center', justifyContent: 'center',
       })}>
-        {config.bgStyle === 'blurred-art' && (
+        {liquidLayer}
+        {config.bgStyle === 'blurred-art' && !liquid && (
           <>
             <FrostedArt blur={46} brightness={tone === 'light' ? 0.95 : 0.62} />
             <span style={{ position: 'absolute', inset: 0, background: tone === 'light' ? 'rgba(255,255,255,0.18)' : 'rgba(0,0,0,0.14)' }} />
@@ -636,11 +709,11 @@ const CardCanvas = forwardRef<HTMLDivElement, Props>(function CardCanvas(
         )}
         {fx}
 
-        <Pane radius={24} style={{ width: '66%', zIndex: 10 }} inner={{ padding: u(9) }}>
+        <Pane radius={24} lg={{ mat: 'pane' }} style={{ width: '66%', zIndex: 10 }} inner={{ padding: u(9) }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: u(6), marginBottom: u(8) }}>
-            <span style={{
+            <span {...glassChip('pill')} style={{
               flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: u(6),
-              background: chipFill, borderRadius: u(999),
+              background: liquid ? 'transparent' : chipFill, borderRadius: u(999),
               padding: `${u(4)} ${u(10)} ${u(4)} ${u(4)}`,
             }}>
               <span style={{ position: 'relative', width: u(22), height: u(22), borderRadius: '50%', overflow: 'hidden', flexShrink: 0, background: '#3a3a3c' }}>
@@ -719,7 +792,7 @@ const CardCanvas = forwardRef<HTMLDivElement, Props>(function CardCanvas(
   // ── BLOOM — full-bleed art, text laid straight onto it ────────
   if (config.preset === 'bloom') {
     return (
-      <div ref={ref} style={root({
+      <div ref={setRef} data-liquid={liquidState} style={root({
         aspectRatio: '4 / 5', borderRadius: u(30),
         background: shell(`linear-gradient(168deg, #2b2028 0%, ${accent} 58%, ${accent}dd 100%)`),
         display: 'flex', flexDirection: 'column', justifyContent: 'flex-end',
@@ -757,7 +830,7 @@ const CardCanvas = forwardRef<HTMLDivElement, Props>(function CardCanvas(
 
   // ── BEZEL — art inset in a moulded shell, text on the shell ───
   return (
-    <div ref={ref} style={root({
+    <div ref={setRef} data-liquid={liquidState} style={root({
       aspectRatio: '4 / 5', borderRadius: u(30),
       background: shell('linear-gradient(158deg, #333336 0%, #232326 46%, #171719 100%)'),
       display: 'flex', flexDirection: 'column',

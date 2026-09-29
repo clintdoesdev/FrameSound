@@ -3,6 +3,7 @@
 import { useState, useRef, useCallback } from 'react'
 import { TrackData, CardConfig } from '@/types'
 import CardCanvas from './CardCanvas'
+import { waitForLiquid } from './LiquidCardGlass'
 import { getTracksFromCollectionUrl } from '@/actions/spotify'
 
 type Props = {
@@ -56,6 +57,7 @@ export default function BatchExport({ config, accentColor, onClose }: Props) {
         await nextFrame()
         const el = stageRef.current
         if (!el) { failed++; continue }
+        await waitForLiquid(el)
         await document.fonts.ready
         await Promise.all(
           Array.from(el.querySelectorAll('img')).map(img => img.decode().catch(() => {}))

@@ -28,6 +28,7 @@ Next.js 16.2 Spotify card generator. Paste track URL → get styled visual card 
 - src/lib/liquid-glass/LiquidGlass.tsx — provider, <Glass>, instance/clip helpers
 - src/lib/wallpaper.ts — paints the backdrop the glass refracts
 - src/components/Landing.tsx — landing page (floating cards, parallax)
+- src/components/LiquidCardGlass.tsx — real WebGL liquid glass inside card presets
 - docs/DESIGN.md — FrameSound's design system; follow it for any UI work
 
 ## Liquid Glass UI
@@ -44,8 +45,11 @@ Next.js 16.2 Spotify card generator. Paste track URL → get styled visual card 
 - Overlays (menus, modals, toasts) use the CSS `.material` class.
 - Glass belongs only where a preset is meant to be glassy (Glass, Player);
   Bezel, Bloom, Ticket, Tag and Profile are solid designs.
-- Card presets can't use the WebGL engine (html-to-image export can't read it);
-  CardCanvas renders the same material in DOM/CSS via its `Pane` helper.
+- Glass and Player render real liquid glass in the card via
+  src/components/LiquidCardGlass.tsx: an in-card WebGL canvas (1400px wide,
+  preserveDrawingBuffer so html-to-image can export it) paints the backdrop and
+  bends it through elements marked `data-lg` / `data-lg-mat` / `data-lg-r`.
+  Exports wait for `data-liquid="ready"`. Without WebGL2, `Pane` falls back to CSS.
 - Not an Apple clone: Poppins + mono eyebrows, album-tinted accent, chips/toggles/ranges from globals.css.
 
 ## Env Vars (.env.local)

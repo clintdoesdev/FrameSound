@@ -188,14 +188,10 @@ export default function Landing({ search, error, recent, onBatch, children }: Pr
         </div>
 
         <h1 className="display fade-up" style={{
-          fontWeight: 700, fontSize: 'clamp(40px, 6.8vw, 72px)',
+          fontWeight: 700, fontSize: 'clamp(40px, 6.8vw, 72px)', color: '#ffffff',
           lineHeight: 1.04, textAlign: 'center', margin: '0 0 16px', animationDelay: '0.08s',
         }}>
-          Turn Spotify<br />
-          <span style={{
-            background: 'linear-gradient(100deg, var(--text) 10%, var(--accent-text) 55%, #f472b6 100%)',
-            WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent',
-          }}>into art.</span>
+          Turn Spotify<br />into art.
         </h1>
         <p className="fade-up" style={{
           fontSize: 16, color: 'var(--text-2)', textAlign: 'center',

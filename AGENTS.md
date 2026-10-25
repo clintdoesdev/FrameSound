@@ -51,6 +51,7 @@ Next.js 16.2 Spotify card generator. Paste track URL → get styled visual card 
   bends it through elements marked `data-lg` / `data-lg-mat` / `data-lg-r`.
   Exports wait for `data-liquid="ready"`. Without WebGL2, `Pane` falls back to CSS.
 - Not an Apple clone: Poppins + mono eyebrows, album-tinted accent, chips/toggles/ranges from globals.css.
+- Dark only — no light theme or `prefers-color-scheme` variants.
 
 ## Env Vars (.env.local)
 SPOTIFY_CLIENT_ID=

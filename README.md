@@ -19,7 +19,7 @@ Key capabilities:
 - **HD export** — download as PNG (3× scale), JPG (2× scale), transparent PNG, or copy directly to clipboard
 - **30-second audio preview** — plays the Spotify preview clip inline with an animated equalizer
 - **Recent tracks** — your last 5 tracks are saved to localStorage and shown as quick-access thumbnails
-- **Dark/light editor shell** — follows the system appearance without affecting the card
+- **Dark studio UI** — the app is dark-only; cards keep their own styling
 
 ---
 

@@ -1,10 +1,10 @@
 # FrameSound — Design System
 
-FrameSound's own look: a dark-first creative studio with soft glass, not a copy
+FrameSound's own look: a dark creative studio with soft glass, not a copy
 of any platform UI. Tokens live in `src/app/globals.css`.
 
 ## Character
-- Dark-first (`#0a0a0c`), warm paper light theme (`#f3f1ec`), both via `prefers-color-scheme`.
+- Dark only (`#0a0a0c`). There is no light theme; don't add `prefers-color-scheme` variants.
 - One accent. Mint `#2ee6a6` by default; in the editor it is **re-tinted from the album
   art** (`--accent`, with `--accent-ink` chosen for contrast). Use `--accent-text` for
   accent-coloured text so it stays readable in both themes.

@@ -18,7 +18,7 @@ import BatchExport from '@/components/BatchExport'
 import Landing, { Logo } from '@/components/Landing'
 import { GlassTabs } from '@/components/glass/Controls'
 import {
-  LiquidGlassProvider, Glass, useColorScheme, useGlassSupport, useMediaQuery, type Theme,
+  LiquidGlassProvider, Glass, useGlassSupport, useMediaQuery, type Theme,
 } from '@/lib/liquid-glass/LiquidGlass'
 import { paintEditor, loadImage } from '@/lib/wallpaper'
 
@@ -51,11 +51,8 @@ const PasteIcon = () => (
   </svg>
 )
 
-const LinkIcon = () => (
-  <svg viewBox="0 0 24 24" {...stroke} strokeWidth={1.8}>
-    <path d="M10 14a4 4 0 0 1 0-5.6l3-3a4 4 0 1 1 5.6 5.6l-1.5 1.5" />
-    <path d="M14 10a4 4 0 0 1 0 5.6l-3 3a4 4 0 1 1-5.6-5.6L6.9 11.5" />
-  </svg>
+const ClearIcon = () => (
+  <svg viewBox="0 0 24 24" {...stroke} strokeWidth={2.2}><path d="M7 7l10 10M17 7 7 17" /></svg>
 )
 
 /** Dark or light text, whichever reads better on the given colour. */
@@ -71,7 +68,7 @@ const PRESET_ORDER: CardConfig['preset'][] =
   ['glass', 'bezel', 'bloom', 'ticket', 'tag', 'profile', 'player']
 
 // ── Backdrop for the glass ─────────────────────────────────────
-// The editor's album-art backdrop. Repaints when the theme, artwork or viewport
+// The editor's album-art backdrop. Repaints when the artwork or viewport
 // changes; a fresh canvas each time lets the provider notice by identity.
 function useWallpaper(active: boolean, coverUrl: string | null | undefined, accent: string | null, theme: Theme) {
   const [size, setSize] = useState<[number, number] | null>(null)
@@ -134,7 +131,8 @@ export default function Home() {
   const [shareCopied, setShareCopied] = useState(false)
   const [batchOpen, setBatchOpen] = useState(false)
   const [tab, setTab] = useState<PanelTab>('style')
-  const theme = useColorScheme()
+  // FrameSound is dark-only.
+  const theme: Theme = 'dark'
   const onLanding = !track && !loading
   // WebGL glass only where nothing scrolls beneath it: the fixed desktop editor.
   // Anywhere else a canvas redrawn per frame trails the scroll and wobbles, so
@@ -234,6 +232,8 @@ export default function Home() {
     setLyrics(null)
     const result = await getTrackFromUrl(rawUrl)
     if (result.data) {
+      // The loaded track is shown in the editor, so the field is free again.
+      setUrl('')
       setTrack(result.data)
       addRecentTrack(result.data)
       startNewTrack()
@@ -307,7 +307,8 @@ export default function Home() {
 
   const loadFromRecent = useCallback((t: TrackData) => {
     setTrack(t)
-    setUrl(`https://open.spotify.com/track/${t.id}`)
+    setUrl('')
+    setError(null)
     startNewTrack()
     setLyrics(null)
     getLyrics(t.artist, t.title).then(r => {
@@ -325,43 +326,61 @@ export default function Home() {
     }
   }
 
+  const clearField = (
+    <button type="button" className="bar-clear" aria-label="Clear"
+      onClick={() => { setUrl(''); setError(null) }}>
+      <ClearIcon />
+    </button>
+  )
+
   const heroSearch = (
     <TrackSearch onSelect={selectSearchResult} query={url}>
-      <div className="hero-input glass">
-        <LinkIcon />
-        <input
-          value={url}
-          onChange={e => handleUrlInput(e.target.value)}
-          onPaste={handlePaste}
-          placeholder="Search or paste a Spotify link…"
-          aria-label="Search a song, or paste a Spotify link"
-          spellCheck={false}
-          autoComplete="off"
-          autoFocus
-        />
-        <button type="button" className="btn btn-glow" data-variant="primary" onClick={pasteFromClipboard}
-          style={{ height: 44, borderRadius: 12, flexShrink: 0 }}>
-          <PasteIcon /> Paste
-        </button>
-      </div>
+      {({ searching }) => (
+        <div className="hero-input">
+          <span className="bar-icon" aria-hidden>
+            {searching || loading ? <span className="spinner" /> : <SearchIcon />}
+          </span>
+          <input
+            value={url}
+            onChange={e => handleUrlInput(e.target.value)}
+            onPaste={handlePaste}
+            placeholder="Song name or Spotify link"
+            aria-label="Search a song, or paste a Spotify link"
+            spellCheck={false}
+            autoComplete="off"
+            enterKeyHint="search"
+            autoFocus
+          />
+          {url && clearField}
+          <button type="button" className="btn paste-btn" data-variant="primary" onClick={pasteFromClipboard}
+            aria-label="Paste from clipboard">
+            <PasteIcon /><span className="paste-label">Paste</span>
+          </button>
+        </div>
+      )}
     </TrackSearch>
   )
 
   const editorSearch = (
     <TrackSearch onSelect={selectSearchResult} query={url}>
-      <Glass className="search">
-        <SearchIcon />
-        <input
-          value={url}
-          onChange={e => handleUrlInput(e.target.value)}
-          onPaste={handlePaste}
-          placeholder="Search or paste a Spotify link"
-          aria-label="Search a song, or paste a Spotify link"
-          spellCheck={false}
-          autoComplete="off"
-        />
-        {loading && <span className="spinner" style={{ color: 'var(--accent-text)', marginRight: 10 }} aria-label="Loading" />}
-      </Glass>
+      {({ searching }) => (
+        <Glass className="search">
+          <span className="bar-icon" aria-hidden>
+            {searching || loading ? <span className="spinner" /> : <SearchIcon />}
+          </span>
+          <input
+            value={url}
+            onChange={e => handleUrlInput(e.target.value)}
+            onPaste={handlePaste}
+            placeholder="Find another song or paste a link"
+            aria-label="Search a song, or paste a Spotify link"
+            spellCheck={false}
+            autoComplete="off"
+            enterKeyHint="search"
+          />
+          {url && clearField}
+        </Glass>
+      )}
     </TrackSearch>
   )
 

@@ -1,15 +1,17 @@
 'use client'
 
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { createPortal } from 'react-dom'
 import Image from 'next/image'
 import { TrackData } from '@/types'
 import { searchTracksAction } from '@/actions/spotify'
 
 type Props = {
   onSelect: (track: TrackData) => void
-  /** Rendered above the results — lets the page keep owning the paste field. */
-  children?: React.ReactNode
+  /**
+   * Rendered above the results — lets the page keep owning the paste field.
+   * A function receives the search state, so the field can show its own spinner.
+   */
+  children?: React.ReactNode | ((state: { searching: boolean }) => React.ReactNode)
   /** Live text from the field the page renders as `children`. */
   query: string
 }
@@ -34,7 +36,9 @@ export default function TrackSearch({ onSelect, query, children }: Props) {
   useEffect(() => {
     const q = query.trim()
     if (looksLikeUrl || q.length < 2) {
-      setResults([]); setOpen(false); setError(null)
+      // Drop any request still in flight, or its spinner would never clear.
+      seq.current++
+      setResults([]); setOpen(false); setError(null); setSearching(false)
       return
     }
     const mine = ++seq.current
@@ -85,32 +89,13 @@ export default function TrackSearch({ onSelect, query, children }: Props) {
     <div ref={boxRef} style={{ position: 'relative', width: '100%' }} onKeyDown={onKeyDown}>
       {/* Raised above the scrim below so the field stays fully visible and
           interactive while the dropdown is open. */}
-      <div style={{ position: 'relative', zIndex: 35 }}>{children}</div>
+      <div style={{ position: 'relative', zIndex: 35 }}>
+        {typeof children === 'function' ? children({ searching }) : children}
+      </div>
 
-      {searching && (
-        <div style={{ position: 'absolute', right: 20, top: 18, zIndex: 36, color: 'var(--accent-text)' }}>
-          <span className="spinner" aria-hidden />
-        </div>
-      )}
-
-      {/* Dims the rest of the page so the suggestion list doesn't collide
-          visually with whatever sits underneath it (e.g. the card preview).
-          Portalled to <body> — a transform-animated ancestor (.fade-up etc.)
-          would otherwise become the containing block for this fixed element
-          and shrink it down to that ancestor's own box. */}
-      {showDropdown && typeof document !== 'undefined' && createPortal(
-        <div
-          aria-hidden
-          onClick={() => setOpen(false)}
-          style={{
-            position: 'fixed', inset: 0, zIndex: 30,
-            background: 'rgba(0,0,0,0.28)',
-            animation: 'fadeIn 150ms ease both',
-          }}
-        />,
-        document.body,
-      )}
-
+      {/* No page scrim: the app sits in its own stacking layer, so a body-level
+          overlay would cover these results and swallow clicks on them. The list
+          is opaque instead, and outside clicks are handled above. */}
       {showDropdown && (
         <div
           role="listbox"
@@ -120,7 +105,7 @@ export default function TrackSearch({ onSelect, query, children }: Props) {
             maxHeight: 360, overflowY: 'auto',
             animation: 'popIn 0.25s cubic-bezier(.2,.9,.25,1.05) both',
           }}
-          className="scroll material"
+          className="scroll material dropdown"
         >
           {error && (
             <div style={{ padding: '12px 14px', fontSize: 13, color: 'var(--danger)' }}>{error}</div>

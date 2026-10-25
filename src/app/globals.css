@@ -1,8 +1,8 @@
 @import "tailwindcss";
 
 /* ─── FrameSound design tokens — see docs/DESIGN.md ────────────────
-   A dark-first studio look: Poppins with mono labels, soft glass, and one
-   accent that the page re-tints from the album art (set on :root). */
+   A dark studio look (dark only): Poppins with mono labels, soft glass, and
+   one accent that the page re-tints from the album art (set on :root). */
 :root {
   --font:         var(--font-poppins), ui-sans-serif, system-ui, sans-serif;
   --font-display: var(--font-poppins), ui-sans-serif, system-ui, sans-serif;
@@ -36,25 +36,6 @@
   color-scheme: dark;
 }
 
-@media (prefers-color-scheme: light) {
-  :root {
-    --bg:        #f3f1ec;
-    --hero-bg:   #efece6;
-    --panel:     rgba(255,255,255,0.72);
-    --surface:   rgba(20,20,22,0.035);
-    --surface-2: rgba(20,20,22,0.06);
-    --surface-3: rgba(20,20,22,0.1);
-    --line:      rgba(20,20,22,0.08);
-    --line-2:    rgba(20,20,22,0.15);
-    --text:      #141416;
-    --text-2:    rgba(20,20,22,0.66);
-    --text-3:    rgba(20,20,22,0.45);
-    --grid-line: rgba(20,20,22,0.07);
-    --danger:    #e5383b;
-    --accent-text: color-mix(in oklab, var(--accent) 78%, black);
-    color-scheme: light;
-  }
-}
 
 /* ─── Base ─────────────────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; }
@@ -179,16 +160,30 @@ textarea.field { resize: none; }
 .search {
   display: flex; align-items: center; gap: 10px;
   height: 52px; padding: 0 8px 0 16px; border-radius: 16px;
-  transition: box-shadow 150ms;
+  transition: box-shadow 160ms;
 }
-.search:focus-within { box-shadow: inset 0 0 0 1px var(--accent), 0 0 0 4px var(--accent-soft); }
+.search:focus-within { box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--accent) 70%, transparent), 0 0 0 3px var(--accent-soft); }
 .search input {
   flex: 1; min-width: 0; height: 100%;
   border: 0; outline: none; background: transparent;
-  font-size: 15px; color: var(--text);
+  font-size: 15px; color: var(--text); text-overflow: ellipsis;
 }
 .search input::placeholder { color: var(--text-3); }
-.search > svg { color: var(--text-3); width: 17px; height: 17px; flex: none; }
+
+/* Shared by both search bars: leading icon/spinner and the clear button */
+.bar-icon { width: 20px; height: 20px; flex: none; display: grid; place-items: center; color: var(--text-3); }
+.bar-icon svg { width: 18px; height: 18px; }
+.bar-icon .spinner { width: 15px; height: 15px; color: var(--accent-text); }
+.bar-clear {
+  width: 30px; height: 30px; flex: none; border-radius: 9px;
+  display: grid; place-items: center; color: var(--text-3);
+  transition: background 140ms, color 140ms;
+}
+.bar-clear:hover { background: var(--surface-2); color: var(--text); }
+.bar-clear svg { width: 15px; height: 15px; }
+
+/* Search results: near-opaque so the page doesn't ghost through */
+.dropdown.material { background: rgba(16,16,20,0.985); box-shadow: inset 0 0 0 1px var(--line-2), 0 24px 60px -16px rgba(0,0,0,0.75); }
 
 /* ─── Controls ────────────────────────────────────────────────── */
 .chips { display: flex; flex-wrap: wrap; gap: 6px; }
@@ -421,14 +416,6 @@ textarea.field { resize: none; }
           backdrop-filter: blur(18px);
   box-shadow: inset 0 0 0 1px rgba(255,255,255,0.1), 0 14px 32px -8px rgba(0,0,0,0.5);
 }
-@media (prefers-color-scheme: light) {
-  .demo-glass {
-    color: #141416;
-    background: linear-gradient(135deg, rgba(255,255,255,0.75) 0%, rgba(255,255,255,0.45) 48%, rgba(255,255,255,0.62) 100%);
-    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.9), 0 22px 48px -14px rgba(40,30,20,0.22), 0 8px 18px -8px rgba(40,30,20,0.14);
-  }
-  .demo-strip { background: rgba(255,255,255,0.78); color: #141416; box-shadow: inset 0 0 0 1px rgba(0,0,0,0.06), 0 14px 32px -10px rgba(40,30,20,0.2); }
-}
 /* A tiny animated progress bar on the glass demo cards */
 .demo-progress { height: 3px; border-radius: 3px; background: rgba(127,127,127,0.3); overflow: hidden; margin-top: 7px; }
 .demo-progress i { display: block; height: 100%; background: currentColor; opacity: 0.85; animation: progress var(--p-dur, 9s) linear infinite; }
@@ -444,19 +431,31 @@ textarea.field { resize: none; }
           backdrop-filter: blur(20px);
 }
 .hero {
-  flex: 1; position: relative; z-index: 10;
+  /* Above the footer, so search results can drop over it */
+  flex: 1; position: relative; z-index: 11;
   display: flex; flex-direction: column; align-items: center; justify-content: center;
   padding: 48px 20px 64px;
 }
 .hero-input {
   display: flex; align-items: center; gap: 10px;
-  height: 62px; padding: 0 8px 0 20px; border-radius: 18px;
-  transition: box-shadow 150ms;
+  height: 64px; padding: 0 8px 0 20px; border-radius: 18px;
+  background: rgba(18,18,22,0.78);
+  -webkit-backdrop-filter: blur(24px) saturate(170%);
+          backdrop-filter: blur(24px) saturate(170%);
+  box-shadow: inset 0 0 0 1px var(--line-2), 0 18px 50px -20px rgba(0,0,0,0.7);
+  transition: box-shadow 200ms;
 }
-.hero-input:focus-within { box-shadow: inset 0 0 0 1px var(--accent), 0 0 0 4px var(--accent-soft), 0 8px 40px var(--accent-soft); }
-.hero-input input { flex: 1; min-width: 0; height: 100%; border: 0; outline: none; background: transparent; font-size: 16px; color: var(--text); }
+.hero-input:focus-within {
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--accent) 75%, transparent),
+              0 0 0 4px var(--accent-soft), 0 18px 60px -18px var(--accent-glow);
+}
+.hero-input input {
+  flex: 1; min-width: 0; height: 100%; border: 0; outline: none; background: transparent;
+  font-size: 16px; color: var(--text); text-overflow: ellipsis;
+}
 .hero-input input::placeholder { color: var(--text-3); }
-.hero-input > svg { color: var(--text-3); width: 18px; height: 18px; flex: none; }
+/* Concentric with the bar: 18px radius − 8px inset */
+.paste-btn { height: 48px; padding: 0 18px; border-radius: 10px; flex: none; font-size: 14px; }
 .landing-foot {
   position: relative; z-index: 10; flex: none;
   display: flex; flex-direction: column; align-items: center; gap: 5px;
@@ -538,7 +537,9 @@ textarea.field { resize: none; }
   .nav-bar .icon-btn, .nav-bar .bar-btn { width: 36px; min-height: 36px; height: 36px; }
 }
 @media (max-width: 420px) {
-  .hero-input { height: 56px; padding: 0 6px 0 14px; gap: 8px; }
+  .hero-input { height: 58px; padding: 0 6px 0 14px; gap: 8px; border-radius: 16px; }
   .hero-input input { font-size: 15px; }
+  .paste-btn { height: 46px; width: 46px; padding: 0; border-radius: 10px; }
+  .paste-label { display: none; }
   .hero { padding: 36px 16px 48px; }
 }

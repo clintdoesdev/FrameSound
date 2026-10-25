@@ -56,19 +56,6 @@ export function useMediaQuery(query: string): boolean {
   return match
 }
 
-/** Tracks prefers-color-scheme live. */
-export function useColorScheme(): Theme {
-  const [theme, setTheme] = useState<Theme>('dark')
-  useEffect(() => {
-    const mq = matchMedia('(prefers-color-scheme: dark)')
-    const sync = () => setTheme(mq.matches ? 'dark' : 'light')
-    sync()
-    mq.addEventListener('change', sync)
-    return () => mq.removeEventListener('change', sync)
-  }, [])
-  return theme
-}
-
 type SourceProps = {
   source: TexImageSource | null
   fit?: 'cover' | 'page'

@@ -1,4 +1,4 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import {
   Poppins,
   DM_Sans,
@@ -56,7 +56,7 @@ const oswald = Oswald({
 
 export const metadata: Metadata = {
   title: 'FrameSound — Spotify Card Generator',
-  description: 'Turn any Spotify track into a beautiful shareable card. Five presets, lyrics quotes, HD export.',
+  description: 'Turn any Spotify track into a beautiful shareable card. Seven liquid-glass presets, lyric quotes, HD export.',
   icons: {
     icon: '/favicon.svg',
     shortcut: '/favicon.svg',
@@ -66,6 +66,15 @@ export const metadata: Metadata = {
     description: 'Turn Spotify tracks into beautiful cards',
     type: 'website',
   },
+}
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  viewportFit: 'cover',
+  // Dark only — there is no light theme.
+  themeColor: '#08080a',
+  colorScheme: 'dark',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -83,7 +92,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   ].join(' ')
 
   return (
-    <html lang="en" data-accent="emerald" className={fontVars}>
+    // Poppins drives the UI; the rest are card typefaces.
+    <html lang="en" className={fontVars}>
       <body>{children}</body>
     </html>
   )

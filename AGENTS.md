@@ -17,12 +17,41 @@ Next.js 16.2 Spotify card generator. Paste track URL → get styled visual card 
 - src/actions/spotify.ts — Server Action: getTrackFromUrl
 - src/actions/lyrics.ts — Server Action: getLyrics
 - src/app/page.tsx — main page, all state lives here
-- src/components/CardCanvas.tsx — visual card renderer (5 presets)
+- src/components/CardCanvas.tsx — visual card renderer (7 presets; Glass and Player use glass)
 - src/components/LyricsPanel.tsx — lyrics selector
 - src/components/CustomizePanel.tsx — card config controls
 - src/components/ExportBar.tsx — PNG/JPG/transparent download
 - src/components/AudioPreview.tsx — 30s Spotify preview player
 - src/components/RecentTracks.tsx — localStorage recent history
+- src/components/glass/Controls.tsx — kit switch / slider / tab bar wrappers
+- src/lib/liquid-glass/liquid-glass.js — WebGL2 Liquid Glass engine (vendored kit, don't rewrite)
+- src/lib/liquid-glass/LiquidGlass.tsx — provider, <Glass>, instance/clip helpers
+- src/lib/wallpaper.ts — paints the backdrop the glass refracts
+- src/components/Landing.tsx — landing page (floating cards, parallax)
+- src/components/LiquidCardGlass.tsx — real WebGL liquid glass inside card presets
+- docs/DESIGN.md — FrameSound's design system; follow it for any UI work
+
+## Liquid Glass UI
+- The desktop editor chrome uses the liquid-glass kit: one fixed WebGL canvas
+  behind the page refracts a *source* canvas (the album art). DOM behind glass
+  is never refracted — paint it into the wallpaper instead.
+- WebGL glass is enabled only where nothing scrolls under it (desktop editor).
+  The landing page, mobile layouts and scroll-panel controls use CSS glass/DOM,
+  because a per-frame canvas trails compositor scroll and looks wobbly.
+- Glass elements are transparent DOM registered via `<Glass>`; without WebGL2 the
+  `.lg` class falls back to a CSS vibrancy material (`html.lg-on` marks WebGL).
+- Layers: 0 bars/sheets, 1 tab lens. Max 16 shapes and 24 fills per layer.
+- Kit springs are critically damped (no jelly/overshoot) — keep it that way.
+- Overlays (menus, modals, toasts) use the CSS `.material` class.
+- Glass belongs only where a preset is meant to be glassy (Glass, Player);
+  Bezel, Bloom, Ticket, Tag and Profile are solid designs.
+- Glass and Player render real liquid glass in the card via
+  src/components/LiquidCardGlass.tsx: an in-card WebGL canvas (1400px wide,
+  preserveDrawingBuffer so html-to-image can export it) paints the backdrop and
+  bends it through elements marked `data-lg` / `data-lg-mat` / `data-lg-r`.
+  Exports wait for `data-liquid="ready"`. Without WebGL2, `Pane` falls back to CSS.
+- Not an Apple clone: Poppins + mono eyebrows, album-tinted accent, chips/toggles/ranges from globals.css.
+- Dark only — no light theme or `prefers-color-scheme` variants.
 
 ## Env Vars (.env.local)
 SPOTIFY_CLIENT_ID=

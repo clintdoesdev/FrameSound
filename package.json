@@ -12,6 +12,7 @@
     "colorthief": "^3.3.1",
     "dom-to-image-more": "^3.7.2",
     "html-to-image": "^1.11.13",
+    "jszip": "^3.10.1",
     "next": "16.2.6",
     "react": "19.2.4",
     "react-dom": "19.2.4"

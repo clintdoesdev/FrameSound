@@ -10,12 +10,12 @@ export type TrackData = {
 }
 
 export type CardConfig = {
-  preset: 'glass' | 'poster' | 'minimal' | 'story' | 'square' | 'nowplaying'
+  preset: 'glass' | 'ticket' | 'tag' | 'profile' | 'player' | 'bezel' | 'bloom'
   bgStyle: 'blurred-art' | 'solid' | 'gradient' | 'transparent'
   bgColor: string
   tintHue: number
   textColor: 'white' | 'black' | 'auto'
-  font: 'poppins' | 'dm-serif' | 'playfair' | 'bebas' | 'instrument' | 'space-grotesk' | 'raleway' | 'cormorant' | 'oswald'
+  font: 'sf-pro' | 'poppins' | 'dm-serif' | 'playfair' | 'bebas' | 'instrument' | 'space-grotesk' | 'raleway' | 'cormorant' | 'oswald'
   showAlbumArt: boolean
   showTitle: boolean
   showArtist: boolean
@@ -25,6 +25,19 @@ export type CardConfig = {
   lyricQuote: string
   textAlign: 'left' | 'center' | 'right'
   artPadding: number       // 0–100 px, glass preset only
+  // Liquid-glass material used by every preset's glass surfaces
+  glassTint: 'auto' | 'light' | 'dark' | 'clear'
+  glassFrost: number       // 0–100, blur behind the glass
+  // Artwork framing
+  artZoom: number          // 100 = cover, up to 200
+  artX: number             // focal point %, 50 = centre
+  artY: number
+  // Lyric typography
+  lyricLines: number       // 1–4 visible lines
+  lyricScale: number       // 70–150 % of the preset's base size
+  lyricStyle: 'italic' | 'plain' | 'quoted'
+  // Export
+  exportSize: 'auto' | 'square' | 'story' | 'wide' | 'tight'
   // Experimental
   glowEnabled: boolean
   glowStrength: number    // 0–100
@@ -54,6 +67,15 @@ export const defaultConfig: CardConfig = {
   lyricQuote: '',
   textAlign: 'left',
   artPadding: 12,
+  glassTint: 'auto',
+  glassFrost: 50,
+  artZoom: 100,
+  artX: 50,
+  artY: 50,
+  lyricLines: 2,
+  lyricScale: 100,
+  lyricStyle: 'italic',
+  exportSize: 'auto',
   glowEnabled: false,
   glowStrength: 50,
   grainEnabled: false,

@@ -1,14 +1,16 @@
 'use client'
 
-import React, { useState, useCallback } from 'react'
+import React, { useState, useCallback, useEffect } from 'react'
 import { TrackData, CardConfig } from '@/types'
+import { waitForLiquid } from './LiquidCardGlass'
 
 type Props = {
   cardRef: React.RefObject<HTMLDivElement | null>
   track: TrackData
   config: CardConfig
   onConfigChange: (updates: Partial<CardConfig>) => void
-  accentColor?: string | null
+  /** Lets the page trigger an export from a keyboard shortcut. */
+  actionsRef?: React.MutableRefObject<{ exportPng: () => void } | null>
 }
 
 type Busy = 'png' | 'jpg' | 'transparent' | 'clipboard' | null
@@ -32,13 +34,7 @@ const CopyIcon = () => (
     <rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/>
   </svg>
 )
-const Spinner = () => (
-  <span style={{
-    display: 'inline-block', width: 14, height: 14,
-    border: '2px solid currentColor', borderTopColor: 'transparent',
-    borderRadius: '50%', animation: 'exportSpin 0.7s linear infinite',
-  }} />
-)
+const Spinner = () => <span className="spinner" aria-hidden />
 
 function safe(s: string) {
   return s.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '')
@@ -72,14 +68,25 @@ function waitForPaint(): Promise<void> {
 }
 async function waitReady(el: HTMLElement): Promise<void> {
   await waitForPaint()
+  await waitForLiquid(el)
   await document.fonts.ready
   const imgs = Array.from(el.querySelectorAll<HTMLImageElement>('img'))
   await Promise.all(imgs.map(img => img.decode().catch(() => {})))
 }
 
-async function composeSquare(
+// Target canvas per export size. `tight` keeps the card's own bounds; the rest
+// letterbox the card into a platform aspect so it can be posted without a crop.
+const SIZE_RATIO: Record<Exclude<CardConfig['exportSize'], 'tight'>, number | null> = {
+  auto:   1,        // legacy behaviour: padded square
+  square: 1,        // 1:1 feed post
+  story:  9 / 16,   // 9:16 story / reel
+  wide:   16 / 9,   // 16:9 link preview
+}
+
+async function compose(
   cardDataUrl: string,
   bg: string | null,
+  size: CardConfig['exportSize'],
   format: 'png' | 'jpeg',
   quality: number
 ): Promise<string> {
@@ -88,19 +95,31 @@ async function composeSquare(
     img.onload = () => {
       const w = img.width
       const h = img.height
-      const maxDim = Math.max(w, h)
-      const pad = Math.round(maxDim * 0.10)
-      const size = maxDim + pad * 2
       const canvas = document.createElement('canvas')
-      canvas.width = size
-      canvas.height = size
+
+      if (size === 'tight') {
+        canvas.width = w
+        canvas.height = h
+      } else {
+        const ratio = SIZE_RATIO[size] ?? 1
+        // Pad by 10% of the card's long edge, then grow whichever axis the
+        // target aspect needs — so the card is never cropped, only framed.
+        const pad = Math.round(Math.max(w, h) * 0.10)
+        const cw = w + pad * 2
+        const ch = h + pad * 2
+        canvas.width = Math.round(Math.max(cw, ch * ratio))
+        canvas.height = Math.round(Math.max(ch, cw / ratio))
+      }
+
       const ctx = canvas.getContext('2d')
       if (!ctx) { reject(new Error('no 2d ctx')); return }
       if (bg) {
         ctx.fillStyle = bg
-        ctx.fillRect(0, 0, size, size)
+        ctx.fillRect(0, 0, canvas.width, canvas.height)
       }
-      ctx.drawImage(img, Math.round((size - w) / 2), Math.round((size - h) / 2))
+      ctx.drawImage(img,
+        Math.round((canvas.width - w) / 2),
+        Math.round((canvas.height - h) / 2))
       resolve(canvas.toDataURL(`image/${format}`, quality))
     }
     img.onerror = () => reject(new Error('img load failed'))
@@ -110,7 +129,11 @@ async function composeSquare(
 
 const supportsClipboard = typeof window !== 'undefined' && typeof ClipboardItem !== 'undefined'
 
-export default function ExportBar({ cardRef, track, config, onConfigChange, accentColor }: Props) {
+// Exports are sized against this reference width, not the on-screen size, so
+// "3×" means the same pixels whether the preview is 340px or 470px wide.
+const REF_W = 470
+
+export default function ExportBar({ cardRef, track, config, onConfigChange, actionsRef }: Props) {
   const [busy, setBusy] = useState<Busy>(null)
   const [toast, setToast] = useState<string | null>(null)
 
@@ -121,179 +144,104 @@ export default function ExportBar({ cardRef, track, config, onConfigChange, acce
     setTimeout(() => setToast(null), 1800)
   }
 
-  const exportPNG = useCallback(async () => {
-    if (!cardRef.current) { showToast('No card to export'); return }
-    if (busy) return
-    setBusy('png')
-    const el = cardRef.current
+  const render = useCallback(async (scale: number): Promise<string> => {
+    const el = cardRef.current!
     await waitReady(el)
     const restore = await inlineImages(el)
     try {
       const { toPng } = await import('html-to-image')
-      const cardUrl = await toPng(el, { pixelRatio: 3 })
-      const url = await composeSquare(cardUrl, '#000000', 'png', 1)
-      const a = document.createElement('a')
-      a.href = url; a.download = `${filename}.png`; a.click()
-      showToast('Saved ✓')
-    } catch (e) {
-      console.error('PNG export failed:', e)
-      const msg = e instanceof Error ? e.message.slice(0, 50) : 'Unknown error'
-      showToast(`Failed: ${msg}`)
-    } finally { restore(); setBusy(null) }
-  }, [cardRef, busy, filename])
+      return await toPng(el, { pixelRatio: (scale * REF_W) / Math.max(1, el.offsetWidth) })
+    } finally { restore() }
+  }, [cardRef])
 
-  const exportJPG = useCallback(async () => {
+  const run = useCallback(async (kind: Exclude<Busy, null>, job: () => Promise<string>) => {
     if (!cardRef.current) { showToast('No card to export'); return }
     if (busy) return
-    setBusy('jpg')
-    const el = cardRef.current
-    await waitReady(el)
-    const restore = await inlineImages(el)
+    setBusy(kind)
     try {
-      const { toPng } = await import('html-to-image')
-      const url = await toPng(el, { pixelRatio: 2 })
-      const a = document.createElement('a')
-      a.href = url; a.download = `${filename}.png`; a.click()
-      showToast('Saved ✓')
+      showToast(await job())
     } catch (e) {
-      console.error('JPG export failed:', e)
+      console.error(`${kind} export failed:`, e)
       const msg = e instanceof Error ? e.message.slice(0, 50) : 'Unknown error'
       showToast(`Failed: ${msg}`)
-    } finally { restore(); setBusy(null) }
-  }, [cardRef, busy, filename])
-
-  const exportTransparent = useCallback(async () => {
-    if (!cardRef.current) { showToast('No card to export'); return }
-    if (busy) return
-    setBusy('transparent')
-    const prevBgStyle = config.bgStyle
-    onConfigChange({ bgStyle: 'transparent' })
-    await new Promise(r => setTimeout(r, 160))
-    const el = cardRef.current
-    await waitReady(el)
-    const restore = await inlineImages(el)
-    try {
-      const { toPng } = await import('html-to-image')
-      const cardUrl = await toPng(el, { pixelRatio: 2 })
-      const url = await composeSquare(cardUrl, null, 'png', 1)
-      const a = document.createElement('a')
-      a.href = url; a.download = `${filename}-alpha.png`; a.click()
-      showToast('Saved ✓')
-    } catch (e) {
-      console.error('Transparent export failed:', e)
-      const msg = e instanceof Error ? e.message.slice(0, 50) : 'Unknown error'
-      showToast(`Failed: ${msg}`)
-    } finally { restore(); onConfigChange({ bgStyle: prevBgStyle }); setBusy(null) }
-  }, [cardRef, busy, filename, config.bgStyle, onConfigChange])
-
-  const copyClipboard = useCallback(async () => {
-    if (!cardRef.current) { showToast('No card to export'); return }
-    if (busy) return
-    setBusy('clipboard')
-    const el = cardRef.current
-    await waitReady(el)
-    const restore = await inlineImages(el)
-    try {
-      const { toPng } = await import('html-to-image')
-      const cardUrl = await toPng(el, { pixelRatio: 2 })
-      const url = await composeSquare(cardUrl, '#000000', 'png', 1)
-      const res = await fetch(url)
-      const blob = await res.blob()
-      await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })])
-      showToast('Copied ✓')
-    } catch (e) {
-      console.error('Clipboard copy failed:', e)
-      const msg = e instanceof Error ? e.message.slice(0, 50) : 'Unknown error'
-      showToast(`Failed: ${msg}`)
-    } finally { restore(); setBusy(null) }
+    } finally { setBusy(null) }
   }, [cardRef, busy])
 
-  const btnBase = (isActive: boolean): React.CSSProperties => ({
-    flex: 1, height: 48, borderRadius: 8, border: 0,
-    cursor: isActive ? 'default' : 'pointer',
-    background: isActive ? (accentColor ? `${accentColor}30` : '#252525') : '#1a1a1a',
-    color: '#ffffff',
-    display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4,
-    transform: isActive ? 'scale(0.97)' : 'scale(1)',
-    transition: 'transform 100ms, background 120ms',
-    opacity: busy && !isActive ? 0.45 : 1,
-  })
-
-  const labelSty: React.CSSProperties = {
-    fontFamily: 'var(--font-poppins)', fontSize: 10, fontWeight: 600,
-    letterSpacing: '0.08em', textTransform: 'uppercase',
-    color: 'rgba(255,255,255,0.85)',
+  const download = (url: string, name: string) => {
+    const a = document.createElement('a')
+    a.href = url; a.download = name; a.click()
   }
 
+  const exportPNG = useCallback(() => run('png', async () => {
+    const url = await compose(await render(3), '#000000', config.exportSize, 'png', 1)
+    download(url, `${filename}.png`)
+    return 'Saved'
+  }), [run, render, config.exportSize, filename])
+
+  const exportJPG = useCallback(() => run('jpg', async () => {
+    const url = await compose(await render(2), '#000000', config.exportSize, 'jpeg', 0.92)
+    download(url, `${filename}.jpg`)
+    return 'Saved'
+  }), [run, render, config.exportSize, filename])
+
+  const exportTransparent = useCallback(() => run('transparent', async () => {
+    const prevBgStyle = config.bgStyle
+    onConfigChange({ bgStyle: 'transparent' })
+    try {
+      await new Promise(r => setTimeout(r, 160))
+      const url = await compose(await render(2), null, config.exportSize, 'png', 1)
+      download(url, `${filename}-alpha.png`)
+      return 'Saved'
+    } finally { onConfigChange({ bgStyle: prevBgStyle }) }
+  }), [run, render, config.bgStyle, config.exportSize, filename, onConfigChange])
+
+  const copyClipboard = useCallback(() => run('clipboard', async () => {
+    const url = await compose(await render(2), '#000000', config.exportSize, 'png', 1)
+    const blob = await (await fetch(url)).blob()
+    await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })])
+    return 'Copied'
+  }), [run, render, config.exportSize])
+
+  // No dep array on purpose: refresh the published closure every render so the
+  // shortcut never fires a stale `busy` capture.
+  useEffect(() => {
+    if (actionsRef) actionsRef.current = { exportPng: exportPNG }
+  })
 
   return (
-    <div style={{
-      borderTop: '1px solid rgba(255,255,255,0.08)',
-      padding: '8px 12px',
-      background: '#0d0d0d',
-      height: 64,
-      flexShrink: 0,
-      position: 'relative',
-      display: 'flex', alignItems: 'center',
-    }}>
-      <style>{`
-        @keyframes exportSpin { to { transform: rotate(360deg); } }
-        @keyframes slideUpToast {
-          from { opacity: 0; transform: translateX(-50%) translateY(10px); }
-          to   { opacity: 1; transform: translateX(-50%) translateY(0); }
-        }
-      `}</style>
-
+    <div style={{ position: 'relative', display: 'flex', gap: 8, alignItems: 'center' }}>
       {toast && (
-        <div style={{
-          position: 'absolute', bottom: 76, left: '50%',
-          transform: 'translateX(-50%)',
-          minWidth: 230,
-          background: 'rgba(18,18,18,0.94)',
-          backdropFilter: 'blur(24px)',
-          WebkitBackdropFilter: 'blur(24px)',
-          borderRadius: 14,
-          border: '1px solid rgba(255,255,255,0.10)',
-          borderLeft: `3px solid ${accentColor ?? 'var(--accent)'}`,
-          padding: '13px 20px',
-          display: 'flex', alignItems: 'center', gap: 10,
-          pointerEvents: 'none',
-          animation: 'slideUpToast 0.25s cubic-bezier(0.34,1.56,0.64,1) both',
-          boxShadow: '0 8px 32px rgba(0,0,0,0.55)',
-          zIndex: 50,
+        <div role="status" className="material" style={{
+          position: 'absolute', bottom: 'calc(100% + 12px)', left: '50%',
+          transform: 'translateX(-50%)', borderRadius: 999,
+          padding: '10px 18px', display: 'flex', alignItems: 'center', gap: 8,
+          fontSize: 15, fontWeight: 600, whiteSpace: 'nowrap', pointerEvents: 'none',
+          animation: 'popIn 0.3s cubic-bezier(.2,.9,.25,1.1) both', zIndex: 50,
         }}>
-          <svg viewBox="0 0 16 16" width="16" height="16" fill="none"
-            stroke={accentColor ?? 'var(--accent)'} strokeWidth="2.2"
-            strokeLinecap="round" strokeLinejoin="round">
-            <path d="M3 8l4 4 6-7"/>
-          </svg>
-          <span style={{ fontSize: 13, fontWeight: 500, color: 'rgba(255,255,255,0.88)', whiteSpace: 'nowrap' }}>{toast}</span>
+          <svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="var(--accent-text)" strokeWidth="2.2"
+            strokeLinecap="round" strokeLinejoin="round"><path d="M3 8l4 4 6-7"/></svg>
+          {toast}
         </div>
       )}
 
-      <div style={{ display: 'flex', gap: 6, width: '100%' }}>
-        <button style={btnBase(busy === 'png')} onClick={exportPNG} disabled={!!busy}>
-          {busy === 'png' ? <Spinner /> : <DlIcon />}
-          <span style={labelSty}>PNG 3×</span>
+      <button type="button" className="btn" data-variant="primary" onClick={exportPNG} disabled={!!busy}
+        style={{ flex: 1, minHeight: 44 }} title="Download PNG (⌘E)">
+        {busy === 'png' ? <Spinner /> : <DlIcon />} Export PNG
+      </button>
+      <button type="button" className="btn" onClick={exportJPG} disabled={!!busy}
+        style={{ minHeight: 44, padding: '0 12px' }} title="Download JPG (2×)">
+        {busy === 'jpg' ? <Spinner /> : 'JPG'}
+      </button>
+      <button type="button" className="btn" onClick={exportTransparent} disabled={!!busy}
+        style={{ minHeight: 44, width: 44, padding: 0 }} title="Transparent PNG" aria-label="Transparent PNG">
+        {busy === 'transparent' ? <Spinner /> : <AlphaIcon />}
+      </button>
+      {supportsClipboard && (
+        <button type="button" className="btn" onClick={copyClipboard} disabled={!!busy}
+          style={{ minHeight: 44, width: 44, padding: 0 }} title="Copy to clipboard" aria-label="Copy to clipboard">
+          {busy === 'clipboard' ? <Spinner /> : <CopyIcon />}
         </button>
-        <button style={btnBase(busy === 'jpg')} onClick={exportJPG} disabled={!!busy}>
-          {busy === 'jpg' ? <Spinner /> : <DlIcon />}
-          <span style={labelSty}>PNG 2×</span>
-        </button>
-        <button style={btnBase(busy === 'transparent')} onClick={exportTransparent} disabled={!!busy}>
-          {busy === 'transparent' ? <Spinner /> : <AlphaIcon />}
-          <span style={labelSty}>Alpha</span>
-        </button>
-        {supportsClipboard && (
-          <button
-            style={{ ...btnBase(busy === 'clipboard'), flex: 'none', width: 48 }}
-            onClick={copyClipboard} disabled={!!busy}
-            title="Copy to clipboard"
-          >
-            {busy === 'clipboard' ? <Spinner /> : <CopyIcon />}
-          </button>
-        )}
-      </div>
+      )}
     </div>
   )
 }

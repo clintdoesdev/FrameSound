@@ -1,8 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Image from 'next/image'
 import { TrackData } from '@/types'
+import { Glass } from '@/lib/liquid-glass/LiquidGlass'
 
 type Props = { onSelect: (track: TrackData) => void }
 
@@ -19,49 +20,43 @@ export function addRecentTrack(track: TrackData) {
 }
 
 export default function RecentTracks({ onSelect }: Props) {
-  const [recent] = useState<TrackData[]>(() => {
-    if (typeof window === 'undefined') return []
+  // Read after mount: the server render has no localStorage, and reading it
+  // during the first client render would mismatch hydration.
+  const [recent, setRecent] = useState<TrackData[]>([])
+  useEffect(() => {
     try {
       const raw = localStorage.getItem(STORAGE_KEY)
-      return raw ? JSON.parse(raw) : []
-    } catch { return [] }
-  })
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      if (raw) setRecent(JSON.parse(raw))
+    } catch { /* localStorage unavailable */ }
+  }, [])
 
   if (recent.length === 0) return null
 
   return (
-    <div>
-      <div className="mono" style={{ fontSize: 11, color: 'var(--fg-3)', letterSpacing: '0.04em', marginBottom: 8 }}>RECENT</div>
-      <div className="scroll" style={{ display: 'flex', gap: 8, overflowX: 'auto' }}>
+    <Glass className="recent-bar" style={{
+      display: 'flex', alignItems: 'center', gap: 10, minWidth: 0,
+      borderRadius: 16, padding: '7px 8px 7px 14px',
+    }}>
+      <span className="eyebrow" style={{ flex: 'none' }}>Recent</span>
+      <div className="scroll" style={{ display: 'flex', gap: 8, overflowX: 'auto', padding: 2 }}>
         {recent.map(track => (
           <button
             key={track.id}
+            type="button"
             onClick={() => onSelect(track)}
             title={`${track.title} — ${track.artist}`}
-            style={{
-              position: 'relative', width: 44, height: 44,
-              borderRadius: 6, overflow: 'hidden', flexShrink: 0,
-              border: '1px solid var(--line)', cursor: 'pointer',
-              background: 'var(--bg-2)', padding: 0,
-              transition: 'border-color 120ms, transform 120ms',
-            }}
-            onMouseEnter={e => {
-              e.currentTarget.style.borderColor = 'var(--accent)'
-              e.currentTarget.style.transform = 'scale(1.06)'
-            }}
-            onMouseLeave={e => {
-              e.currentTarget.style.borderColor = 'var(--line)'
-              e.currentTarget.style.transform = 'scale(1)'
-            }}
+            aria-label={`Open ${track.title} by ${track.artist}`}
+            className="recent-tile"
           >
             {track.coverUrl ? (
-              <Image src={track.coverUrl} alt={track.title} fill style={{ objectFit: 'cover' }} unoptimized />
+              <Image src={track.coverUrl} alt="" fill sizes="40px" style={{ objectFit: 'cover' }} unoptimized />
             ) : (
-              <div style={{ width: '100%', height: '100%', background: 'var(--bg-3)' }} />
+              <span style={{ position: 'absolute', inset: 0, background: 'var(--surface-3)' }} />
             )}
           </button>
         ))}
       </div>
-    </div>
+    </Glass>
   )
 }

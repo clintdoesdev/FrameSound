@@ -2,249 +2,253 @@
 
 import React, { useState } from 'react'
 import { CardConfig } from '@/types'
+import { Range, Chips, type TabItem } from '@/components/glass/Controls'
 
 type SavedPreset = { id: string; name: string; config: CardConfig }
 
 const STORAGE_KEY = 'framesound-saved-presets'
+
+// Presets that existed in earlier versions. Without this map a stale saved
+// preset silently falls through to the default branch and renders as the
+// wrong card, which reads as data loss to whoever saved it.
+const LEGACY_PRESETS: Record<string, CardConfig['preset']> = {
+  poster:     'bloom',
+  square:     'bezel',
+  minimal:    'profile',
+  nowplaying: 'player',
+  story:      'bloom',
+}
+const VALID_PRESETS: CardConfig['preset'][] =
+  ['glass', 'bezel', 'bloom', 'ticket', 'tag', 'profile', 'player']
+
+function migratePreset(p: string): CardConfig['preset'] {
+  if ((VALID_PRESETS as string[]).includes(p)) return p as CardConfig['preset']
+  return LEGACY_PRESETS[p] ?? 'glass'
+}
+
 function loadSavedPresets(): SavedPreset[] {
   if (typeof window === 'undefined') return []
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
-    return raw ? (JSON.parse(raw) as SavedPreset[]) : []
+    const list = raw ? (JSON.parse(raw) as SavedPreset[]) : []
+    return list.map(p => ({
+      ...p,
+      config: { ...p.config, font: p.config?.font ?? 'poppins', preset: migratePreset(p.config?.preset as string) },
+    }))
   } catch { return [] }
 }
 function persistPresets(list: SavedPreset[]) {
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify(list)) } catch { /* quota error */ }
 }
 
-type Props = {
-  config: CardConfig
-  onChange: (updates: Partial<CardConfig>) => void
-  accentColor?: string | null
-}
+export type PanelTab = 'style' | 'text' | 'layout' | 'effects'
 
-// Returns accent as a text-safe color. If the extracted album color is too dark
-// to read against a near-black panel (#0d0d0d), fall back to the CSS default.
-function textAccent(hex: string | null | undefined): string {
-  if (!hex || !/^#[0-9a-f]{6}$/i.test(hex)) return 'var(--accent)'
-  const r = parseInt(hex.slice(1, 3), 16) / 255
-  const g = parseInt(hex.slice(3, 5), 16) / 255
-  const b = parseInt(hex.slice(5, 7), 16) / 255
-  const lin = (c: number) => c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4
-  const lum = 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b)
-  return lum >= 0.18 ? hex : 'var(--accent)'
-}
+// ── Icons ─────────────────────────────
+const S = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.7, strokeLinecap: 'round', strokeLinejoin: 'round' } as const
+const Icon = ({ d, children }: { d?: string; children?: React.ReactNode }) => (
+  <svg viewBox="0 0 24 24" {...S}>{d ? <path d={d} /> : children}</svg>
+)
 
-// ── Icons ──────────────────────────────────────────────────────
-const IconBookmark = () => (
-  <svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M2 2h12v13l-6-4-6 4z"/>
-  </svg>
-)
-const IconImage = () => (
-  <svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-    <rect x="1.5" y="1.5" width="13" height="13" rx="2"/><circle cx="5.5" cy="5.5" r="1"/><path d="m14.5 10-4-4L2 14.5"/>
-  </svg>
-)
-const IconText = () => (
-  <svg viewBox="0 0 16 16" width="13" height="13" fill="currentColor">
-    <path d="M2 3h12v2H9v8H7V5H2z"/>
-  </svg>
-)
-const IconUser = () => (
-  <svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-    <circle cx="8" cy="5" r="3"/><path d="M2 14c0-3 2.7-5 6-5s6 2 6 5"/>
-  </svg>
-)
-const IconCalendar = () => (
-  <svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-    <rect x="1.5" y="2.5" width="13" height="12" rx="2"/><path d="M5 1v3M11 1v3M1.5 7h13"/>
-  </svg>
-)
-const IconClock = () => (
-  <svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-    <circle cx="8" cy="8" r="6.5"/><path d="M8 4.5v4l2 2"/>
-  </svg>
-)
-const IconQuote = () => (
-  <svg viewBox="0 0 16 16" width="13" height="13" fill="currentColor">
-    <path d="M1 3h5v5H3c0 2 1 3 3 3v2C2 13 1 10 1 7V3zM9 3h5v5h-3c0 2 1 3 3 3v2c-4 0-5-3-5-6V3z"/>
-  </svg>
-)
-const IconLayers = () => (
-  <svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-    <path d="m8 1.5 6.5 3.5-6.5 3.5L1.5 5 8 1.5z"/><path d="M1.5 9 8 12.5 14.5 9"/><path d="M1.5 12.5 8 16l6.5-3.5"/>
-  </svg>
-)
-const IconBg = () => (
-  <svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-    <circle cx="8" cy="8" r="6.5"/><path d="M8 1.5a5 5 0 0 0 5 5"/>
-  </svg>
-)
-const IconType = () => (
-  <svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M2 4V2h12v2M7 14h2M8 2v12"/>
-  </svg>
-)
-const IconEye = () => (
-  <svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M1 8s2.5-5 7-5 7 5 7 5-2.5 5-7 5-7-5-7-5z"/><circle cx="8" cy="8" r="2"/>
-  </svg>
-)
-const IconBeaker = () => (
-  <svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M6 1h4"/><path d="M7.5 1v5.2L3.2 13.5A1 1 0 0 0 4.1 15h7.8a1 1 0 0 0 .9-1.5L8.5 6.2V1"/>
-    <path d="M4.5 11h7" opacity="0.4"/>
-  </svg>
-)
-const IconGlow = () => (
-  <svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
-    <circle cx="8" cy="8" r="2.5" fill="currentColor" opacity="0.4"/>
-    <path d="M8 1v2M8 13v2M1 8h2M13 8h2M3.1 3.1l1.4 1.4M11.5 11.5l1.4 1.4M11.5 4.5l1.4-1.4M3.1 12.9l1.4-1.4"/>
-  </svg>
-)
-const IconVignette = () => (
-  <svg viewBox="0 0 16 16" width="13" height="13" fill="none">
-    <defs><radialGradient id="vg" cx="50%" cy="50%" r="50%"><stop offset="30%" stopColor="currentColor" stopOpacity="0"/><stop offset="100%" stopColor="currentColor" stopOpacity="0.9"/></radialGradient></defs>
-    <rect x="1" y="1" width="14" height="14" rx="2" fill="url(#vg)"/>
-    <rect x="1" y="1" width="14" height="14" rx="2" stroke="currentColor" strokeWidth="1.2" fill="none" opacity="0.5"/>
-  </svg>
-)
-const IconScanlines = () => (
-  <svg viewBox="0 0 16 16" width="13" height="13" fill="currentColor">
-    <rect x="1" y="2"  width="14" height="1.2" rx="0.6" opacity="0.9"/>
-    <rect x="1" y="5"  width="14" height="1.2" rx="0.6" opacity="0.7"/>
-    <rect x="1" y="8"  width="14" height="1.2" rx="0.6" opacity="0.9"/>
-    <rect x="1" y="11" width="14" height="1.2" rx="0.6" opacity="0.7"/>
-    <rect x="1" y="14" width="14" height="1.2" rx="0.6" opacity="0.9"/>
-  </svg>
-)
-const IconHolo = () => (
-  <svg viewBox="0 0 16 16" width="13" height="13" fill="none">
-    <rect x="1" y="1" width="14" height="14" rx="2" fill="url(#hg)"/>
+export const PANEL_TABS: TabItem<PanelTab>[] = [
+  { key: 'style', label: 'Style', icon: (
+    <Icon><rect x="3.5" y="3.5" width="7" height="7" rx="2" /><rect x="13.5" y="3.5" width="7" height="7" rx="2" /><rect x="3.5" y="13.5" width="7" height="7" rx="2" /><rect x="13.5" y="13.5" width="7" height="7" rx="3.5" /></Icon>
+  ) },
+  { key: 'text', label: 'Text', icon: (
+    <Icon><path d="M4 19 9.5 5h1L16 19M6 14.5h9" /><path d="M20.5 19v-5.5a2.6 2.6 0 0 0-5 0M16 16.5a2.3 2.3 0 1 0 4.5.6" /></Icon>
+  ) },
+  { key: 'layout', label: 'Layout', icon: (
+    <Icon><rect x="3.5" y="4" width="17" height="16" rx="3.5" /><path d="M3.5 14.5h17M12 14.5V20" /></Icon>
+  ) },
+  { key: 'effects', label: 'Effects', icon: (
+    <Icon><path d="M12 3.5v3M12 17.5v3M3.5 12h3M17.5 12h3M6 6l2 2M16 16l2 2M18 6l-2 2M8 16l-2 2" /><circle cx="12" cy="12" r="2.5" /></Icon>
+  ) },
+]
+
+const IconImage = () => <Icon><rect x="3" y="4.5" width="18" height="15" rx="3.5" /><circle cx="9" cy="10" r="1.6" /><path d="m21 15.5-4.5-4.5L8 19.5" /></Icon>
+const IconText = () => <Icon d="M5 6.5V5h14v1.5M12 5v14M9.5 19h5" />
+const IconUser = () => <Icon><circle cx="12" cy="8.5" r="3.5" /><path d="M5 19.5c.8-3.3 3.6-5 7-5s6.2 1.7 7 5" /></Icon>
+const IconCalendar = () => <Icon><rect x="3.5" y="5" width="17" height="15" rx="3.5" /><path d="M8 3v4M16 3v4M3.5 10h17" /></Icon>
+const IconClock = () => <Icon><circle cx="12" cy="12" r="8.5" /><path d="M12 7.5V12l3 2" /></Icon>
+const IconQuote = () => <Icon d="M9.5 7C6.5 8 5 10.2 5 13.5V17h4.5v-4.5H7M19 7c-3 1-4.5 3.2-4.5 6.5V17H19v-4.5h-2.5" />
+const IconGlow = () => <Icon><circle cx="12" cy="12" r="3.5" /><path d="M12 2.5v2.5M12 19v2.5M2.5 12H5M19 12h2.5M5.3 5.3 7 7M17 17l1.7 1.7M18.7 5.3 17 7M7 17l-1.7 1.7" /></Icon>
+const IconGrain = () => <Icon><circle cx="7" cy="7" r=".6" /><circle cx="12" cy="6" r=".6" /><circle cx="17" cy="8" r=".6" /><circle cx="9" cy="12" r=".6" /><circle cx="15" cy="12.5" r=".6" /><circle cx="6" cy="16" r=".6" /><circle cx="12" cy="17.5" r=".6" /><circle cx="18" cy="16.5" r=".6" /></Icon>
+const IconVignette = () => <Icon><rect x="3.5" y="4.5" width="17" height="15" rx="3.5" /><ellipse cx="12" cy="12" rx="5" ry="4" /></Icon>
+const IconScanlines = () => <Icon d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+const IconHolo = () => <Icon><path d="M12 3.5 20 8v8l-8 4.5L4 16V8z" /><path d="M4 8l8 4.5L20 8M12 12.5v8" /></Icon>
+const AlignLeftIcon = () => <Icon d="M4 6h16M4 10.5h10M4 15h13M4 19.5h8" />
+const AlignCenterIcon = () => <Icon d="M4 6h16M7 10.5h10M5.5 15h13M8 19.5h8" />
+const AlignRightIcon = () => <Icon d="M4 6h16M10 10.5h10M7 15h13M12 19.5h8" />
+
+// ── Preset thumbnails ───────────────────────────────────────────
+// Miniatures of each card: an "album art" gradient under panes of glass.
+const ART = 'url(#fs-art)'
+const GLASS = 'rgba(255,255,255,0.3)'
+const GLASS_EDGE = 'rgba(255,255,255,0.75)'
+const LINE = 'rgba(255,255,255,0.92)'
+const LINE_2 = 'rgba(255,255,255,0.5)'
+
+const ThumbDefs = () => (
+  <svg width="0" height="0" style={{ position: 'absolute' }} aria-hidden>
     <defs>
-      <linearGradient id="hg" x1="0" y1="0" x2="1" y2="1">
-        <stop offset="0%"   stopColor="#f0f" stopOpacity="0.7"/>
-        <stop offset="33%"  stopColor="#0ff" stopOpacity="0.7"/>
-        <stop offset="66%"  stopColor="#0f0" stopOpacity="0.6"/>
-        <stop offset="100%" stopColor="#ff0" stopOpacity="0.7"/>
+      <linearGradient id="fs-art" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0%" stopColor="#5e5ce6" />
+        <stop offset="55%" stopColor="#bf5af2" />
+        <stop offset="100%" stopColor="#ff375f" />
+      </linearGradient>
+      <linearGradient id="fs-fade" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stopColor="rgba(255,255,255,0)" />
+        <stop offset="100%" stopColor="rgba(255,255,255,0.38)" />
+      </linearGradient>
+      <linearGradient id="fs-slab" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stopColor="rgba(191,90,242,0.55)" />
+        <stop offset="100%" stopColor="rgba(94,92,230,0.35)" />
       </linearGradient>
     </defs>
-    <rect x="1" y="1" width="14" height="14" rx="2" stroke="currentColor" strokeWidth="0.8" fill="none" opacity="0.3"/>
   </svg>
 )
-const IconGrain = () => (
-  <svg viewBox="0 0 16 16" width="13" height="13" fill="currentColor">
-    <circle cx="3" cy="3" r="1" opacity="0.8"/>
-    <circle cx="8" cy="2" r="0.8" opacity="0.5"/>
-    <circle cx="13" cy="4" r="1" opacity="0.7"/>
-    <circle cx="5" cy="7" r="0.8" opacity="0.6"/>
-    <circle cx="11" cy="7" r="1" opacity="0.9"/>
-    <circle cx="2" cy="11" r="0.8" opacity="0.5"/>
-    <circle cx="7" cy="12" r="1" opacity="0.7"/>
-    <circle cx="13" cy="11" r="0.8" opacity="0.6"/>
-    <circle cx="9" cy="5" r="0.6" opacity="0.4"/>
-    <circle cx="4" cy="14" r="0.8" opacity="0.7"/>
-    <circle cx="14" cy="14" r="1" opacity="0.5"/>
-  </svg>
+const Plate = ({ children }: { children: React.ReactNode }) => (
+  <svg viewBox="0 0 44 36" width="100%" height="100%" fill="none" aria-hidden>{children}</svg>
 )
-const AlignLeftIcon = () => (
-  <svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor">
-    <rect x="1" y="3" width="14" height="1.5" rx="0.75"/>
-    <rect x="1" y="7" width="9" height="1.5" rx="0.75"/>
-    <rect x="1" y="11" width="12" height="1.5" rx="0.75"/>
-  </svg>
-)
-const AlignCenterIcon = () => (
-  <svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor">
-    <rect x="1" y="3" width="14" height="1.5" rx="0.75"/>
-    <rect x="3.5" y="7" width="9" height="1.5" rx="0.75"/>
-    <rect x="2" y="11" width="12" height="1.5" rx="0.75"/>
-  </svg>
-)
-const AlignRightIcon = () => (
-  <svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor">
-    <rect x="1" y="3" width="14" height="1.5" rx="0.75"/>
-    <rect x="6" y="7" width="9" height="1.5" rx="0.75"/>
-    <rect x="3" y="11" width="12" height="1.5" rx="0.75"/>
-  </svg>
+const Pane = (p: React.SVGProps<SVGRectElement>) => (
+  <rect fill={GLASS} stroke={GLASS_EDGE} strokeWidth="0.6" {...p} />
 )
 
-// ── Preset SVG illustrations ───────────────────────────────────
-const PresetPosterSVG = () => (
-  <svg viewBox="0 0 60 45" width="60" height="45" fill="none">
-    <rect x="8" y="4" width="44" height="37" rx="3" fill="rgba(255,255,255,0.10)"/>
-    <rect x="8" y="26" width="44" height="15" rx="0" fill="url(#pg)"/>
-    <defs><linearGradient id="pg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="rgba(0,0,0,0)"/><stop offset="100%" stopColor="rgba(0,0,0,0.8)"/></linearGradient></defs>
-    <rect x="13" y="30" width="22" height="2" rx="1" fill="rgba(255,255,255,0.9)"/>
-    <rect x="13" y="34" width="16" height="1.5" rx="0.75" fill="rgba(255,255,255,0.5)"/>
-    <rect x="13" y="37.5" width="10" height="1.2" rx="0.6" fill="rgba(255,255,255,0.3)"/>
-  </svg>
-)
-const PresetMinimalSVG = () => (
-  <svg viewBox="0 0 60 45" width="60" height="45" fill="none">
-    <rect x="8" y="8" width="44" height="29" rx="3" fill="rgba(255,255,255,0.06)"/>
-    <rect x="8" y="8" width="20" height="29" rx="3" fill="rgba(255,255,255,0.18)"/>
-    <rect x="32" y="16" width="16" height="2" rx="1" fill="rgba(255,255,255,0.7)"/>
-    <rect x="32" y="20.5" width="12" height="1.5" rx="0.75" fill="rgba(255,255,255,0.4)"/>
-    <rect x="32" y="25" width="10" height="1.2" rx="0.6" fill="rgba(255,255,255,0.25)"/>
-  </svg>
-)
-const PresetStorySVG = () => (
-  <svg viewBox="0 0 60 45" width="60" height="45" fill="none">
-    <rect x="20" y="3" width="20" height="39" rx="3" fill="rgba(255,255,255,0.10)"/>
-    <rect x="24" y="8" width="12" height="12" rx="2" fill="rgba(255,255,255,0.25)"/>
-    <rect x="22" y="24" width="16" height="2" rx="1" fill="rgba(255,255,255,0.7)"/>
-    <rect x="23" y="28" width="14" height="1.5" rx="0.75" fill="rgba(255,255,255,0.35)"/>
-    <rect x="25" y="31.5" width="10" height="1.2" rx="0.6" fill="rgba(255,255,255,0.2)"/>
-  </svg>
-)
-const PresetSquareSVG = () => (
-  <svg viewBox="0 0 60 45" width="60" height="45" fill="none">
-    <rect x="12" y="5" width="36" height="35" rx="3" fill="rgba(255,255,255,0.08)"/>
-    <rect x="20" y="10" width="20" height="14" rx="2" fill="rgba(255,255,255,0.22)"/>
-    <rect x="17" y="27" width="18" height="2" rx="1" fill="rgba(255,255,255,0.7)"/>
-    <rect x="17" y="31" width="14" height="1.5" rx="0.75" fill="rgba(255,255,255,0.35)"/>
-    <rect x="17" y="34.5" width="10" height="1.2" rx="0.6" fill="rgba(255,255,255,0.2)"/>
-  </svg>
-)
-const PresetGlassBezelSVG = () => (
-  <svg viewBox="0 0 60 45" width="60" height="45" fill="none">
-    {/* Outer bezel frame */}
-    <rect x="7" y="3" width="46" height="39" rx="5" fill="rgba(255,255,255,0.14)" stroke="rgba(255,255,255,0.10)" strokeWidth="0.6"/>
-    {/* Album art inset */}
-    <rect x="11" y="7" width="38" height="24" rx="3" fill="rgba(255,255,255,0.28)"/>
-    {/* Text in bezel below art */}
-    <rect x="11" y="34" width="18" height="2" rx="1" fill="rgba(255,255,255,0.80)"/>
-    <rect x="11" y="38" width="13" height="1.4" rx="0.7" fill="rgba(255,255,255,0.35)"/>
-  </svg>
-)
-const PresetNowPlayingSVG = () => (
-  <svg viewBox="0 0 60 45" width="60" height="45" fill="none">
-    {/* Card background */}
-    <rect x="3" y="8" width="54" height="29" rx="4" fill="rgba(255,255,255,0.06)"/>
-    {/* Left colour strip */}
-    <rect x="3" y="8" width="19" height="29" rx="4" fill="rgba(255,255,255,0.22)"/>
-    {/* Cover right-side rounded corners of strip (make right edge flat) */}
-    <rect x="16" y="8" width="6" height="29" fill="rgba(255,255,255,0.22)"/>
-    {/* Text lines on right */}
-    <rect x="28" y="15" width="21" height="2.2" rx="1" fill="rgba(255,255,255,0.75)"/>
-    <rect x="28" y="20" width="15" height="1.6" rx="0.8" fill="rgba(255,255,255,0.40)"/>
-    <rect x="28" y="25" width="10" height="1.2" rx="0.6" fill="rgba(255,255,255,0.22)"/>
-  </svg>
-)
-
-const PRESET_SVG: Record<string, React.ReactNode> = {
-  glass:      <PresetGlassBezelSVG />,
-  poster:     <PresetPosterSVG />,
-  minimal:    <PresetMinimalSVG />,
-  story:      <PresetStorySVG />,
-  square:     <PresetSquareSVG />,
-  nowplaying: <PresetNowPlayingSVG />,
+const PRESET_SVG: Record<CardConfig['preset'], React.ReactNode> = {
+  glass: (
+    <Plate>
+      <rect x="8" y="2" width="28" height="33" rx="4.5" fill={ART} />
+      <Pane x="10" y="22" width="24" height="11" rx="3.5" />
+      <rect x="12.5" y="25" width="12" height="1.8" rx="0.9" fill={LINE} />
+      <rect x="12.5" y="28.5" width="8" height="1.3" rx="0.65" fill={LINE_2} />
+    </Plate>
+  ),
+  bezel: (
+    <Plate>
+      <rect x="6" y="1" width="32" height="34" rx="5" fill="rgba(255,255,255,0.13)" stroke="rgba(255,255,255,0.34)" strokeWidth="0.7"/>
+      <rect x="9.5" y="4" width="25" height="19" rx="3.5" fill="rgba(255,255,255,0.42)"/>
+      <rect x="9.5" y="26" width="15" height="2.2" rx="1.1" fill="rgba(255,255,255,0.85)"/>
+      <rect x="9.5" y="30" width="10" height="1.5" rx="0.75" fill="rgba(255,255,255,0.42)"/>
+    </Plate>
+  ),
+  bloom: (
+    <Plate>
+      <rect x="6" y="1" width="32" height="34" rx="5" fill="url(#bloomG)"/>
+      <defs>
+        <linearGradient id="bloomG" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="rgba(255,255,255,0.42)"/>
+          <stop offset="100%" stopColor="rgba(255,255,255,0.14)"/>
+        </linearGradient>
+      </defs>
+      <rect x="10" y="24" width="16" height="2.4" rx="1.2" fill="rgba(255,255,255,0.92)"/>
+      <rect x="10" y="28.4" width="11" height="1.6" rx="0.8" fill="rgba(255,255,255,0.5)"/>
+    </Plate>
+  ),
+  ticket: (
+    <Plate>
+      <rect x="6" y="1" width="32" height="27" rx="4.5" fill="rgba(255,255,255,0.10)"/>
+      <rect x="9" y="3.5" width="26" height="15" rx="3" fill="rgba(255,255,255,0.30)"/>
+      <rect x="11" y="21" width="13" height="1.7" rx="0.85" fill="rgba(255,255,255,0.75)"/>
+      <rect x="11" y="24.3" width="9" height="1.2" rx="0.6" fill="rgba(255,255,255,0.4)"/>
+      <rect x="11" y="27" width="22" height="8" rx="2.5" fill="rgba(255,255,255,0.5)"/>
+      <circle cx="11" cy="28" r="1.9" fill="#1c1c1e"/>
+      <circle cx="33" cy="28" r="1.9" fill="#1c1c1e"/>
+      <rect x="13.5" y="29.5" width="5" height="4" rx="1" fill="rgba(0,0,0,0.45)"/>
+      <rect x="20.5" y="30" width="10" height="1.3" rx="0.65" fill="rgba(0,0,0,0.42)"/>
+    </Plate>
+  ),
+  tag: (
+    <Plate>
+      <rect x="6" y="1" width="32" height="27" rx="4.5" fill="rgba(255,255,255,0.10)"/>
+      <rect x="9" y="3.5" width="26" height="15" rx="3" fill="rgba(255,255,255,0.30)"/>
+      <rect x="11" y="21" width="13" height="1.7" rx="0.85" fill="rgba(255,255,255,0.75)"/>
+      <rect x="11" y="24.3" width="9" height="1.2" rx="0.6" fill="rgba(255,255,255,0.4)"/>
+      <rect x="11" y="27" width="22" height="8" rx="2.5" fill="rgba(255,255,255,0.5)"/>
+      <circle cx="11" cy="28" r="1.9" fill="#1c1c1e"/>
+      <circle cx="33" cy="28" r="1.9" fill="#1c1c1e"/>
+      <rect x="19.5" y="29.5" width="5" height="5" rx="1.5" fill="rgba(0,0,0,0.5)"/>
+    </Plate>
+  ),
+  profile: (
+    <Plate>
+      <rect x="4" y="1" width="36" height="34" rx="5" fill="rgba(255,255,255,0.07)"/>
+      <rect x="7" y="4" width="30" height="16" rx="3.5" fill="rgba(255,255,255,0.28)"/>
+      <rect x="8" y="15" width="9" height="9" rx="2.5" fill="rgba(255,255,255,0.55)" stroke="#1c1c1e" strokeWidth="1.2"/>
+      <rect x="19" y="17.5" width="11" height="1.7" rx="0.85" fill="rgba(255,255,255,0.7)"/>
+      <rect x="19" y="20.8" width="7" height="1.2" rx="0.6" fill="rgba(255,255,255,0.35)"/>
+      <rect x="8" y="27" width="20" height="1.4" rx="0.7" fill="rgba(255,255,255,0.28)"/>
+      <rect x="8" y="30.3" width="14" height="1.4" rx="0.7" fill="rgba(255,255,255,0.18)"/>
+    </Plate>
+  ),
+  player: (
+    <Plate>
+      <rect x="4" y="1" width="36" height="34" rx="5" fill="url(#fs-slab)" />
+      <Pane x="11" y="4" width="22" height="28" rx="4.5" />
+      <rect x="13" y="6.3" width="18" height="2.6" rx="1.3" fill="rgba(255,255,255,0.35)" />
+      <rect x="13" y="10.3" width="18" height="12" rx="2.5" fill={ART} />
+      <rect x="13" y="25" width="18" height="1" rx="0.5" fill="rgba(255,255,255,0.35)" />
+      <rect x="13" y="25" width="6" height="1" rx="0.5" fill={LINE} />
+      <circle cx="18" cy="29" r="1.4" fill="rgba(255,255,255,0.4)" />
+      <circle cx="22" cy="29" r="1.9" fill={LINE} />
+      <circle cx="26" cy="29" r="1.4" fill="rgba(255,255,255,0.4)" />
+    </Plate>
+  ),
 }
 
-// ── Font map for rendering cards in their own typeface ─────────
+// ── Layout helpers ──────────────────────────────────────────────
+/** A numbered panel section: mono eyebrow, optional action, then content. */
+function Section({ n, title, action, note, children }: {
+  n: string; title: string; action?: React.ReactNode; note?: string; children: React.ReactNode
+}) {
+  return (
+    <section className="section">
+      <div className="section-head">
+        <h3 className="eyebrow" style={{ margin: 0 }}><b>{n}</b>{title}</h3>
+        {action}
+      </div>
+      {children}
+      {note && <p className="note">{note}</p>}
+    </section>
+  )
+}
+
+/** An icon + label card that toggles, laid out two per row. */
+function Opt({ icon, label, value, onChange }: {
+  icon: React.ReactNode; label: string; value: boolean; onChange: (v: boolean) => void
+}) {
+  return (
+    <button type="button" role="switch" aria-checked={value} className="opt" onClick={() => onChange(!value)}>
+      {icon}<span>{label}</span>
+      <span className="toggle" data-on={value || undefined} aria-hidden><span /></span>
+    </button>
+  )
+}
+
+const pct = (v: number) => `${v}%`
+const HUE_TRACK = 'linear-gradient(to right, hsl(0,80%,55%), hsl(60,80%,55%), hsl(120,80%,55%), hsl(180,80%,55%), hsl(240,80%,55%), hsl(300,80%,55%), hsl(360,80%,55%))'
+const grid = (cols: number, gap = 6): React.CSSProperties => ({ display: 'grid', gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`, gap })
+
+// Curated one-tap looks so the panel is useful before anyone has saved anything.
+const STARTERS: { name: string; patch: Partial<CardConfig> }[] = [
+  { name: 'Liquid',  patch: { preset: 'glass', bgStyle: 'blurred-art', glassTint: 'auto', glassFrost: 50, textColor: 'auto', glowEnabled: false, grainEnabled: false, vignetteEnabled: false, scanlinesEnabled: false, holoEnabled: false } },
+  { name: 'Frosted', patch: { preset: 'glass', bgStyle: 'blurred-art', glassTint: 'light', glassFrost: 80, textColor: 'auto', grainEnabled: false, vignetteEnabled: false } },
+  { name: 'Lens',    patch: { preset: 'glass', bgStyle: 'blurred-art', glassTint: 'clear', glassFrost: 20, textColor: 'white', artPadding: 20 } },
+  { name: 'Poster',  patch: { preset: 'bloom', bgStyle: 'blurred-art', textAlign: 'left', vignetteEnabled: true, vignetteStrength: 40, grainEnabled: true, grainOpacity: 18 } },
+  { name: 'Stub',    patch: { preset: 'ticket', bgStyle: 'blurred-art', grainEnabled: true, grainOpacity: 14 } },
+  { name: 'Neon',    patch: { preset: 'player', bgStyle: 'gradient', glassTint: 'dark', glowEnabled: true, glowStrength: 70, holoEnabled: true, holoOpacity: 22 } },
+]
+
+const PRESETS: { id: CardConfig['preset']; name: string }[] = [
+  { id: 'glass',   name: 'Glass'   },
+  { id: 'bezel',   name: 'Bezel'   },
+  { id: 'bloom',   name: 'Bloom'   },
+  { id: 'ticket',  name: 'Ticket'  },
+  { id: 'tag',     name: 'Tag'     },
+  { id: 'profile', name: 'Profile' },
+  { id: 'player',  name: 'Player'  },
+]
+
 const FONT_CSS_VAR: Record<CardConfig['font'], string> = {
+  'sf-pro':         '-apple-system, BlinkMacSystemFont, system-ui, sans-serif',
   poppins:          'var(--font-poppins)',
   'dm-serif':       'var(--font-dm-serif)',
   playfair:         'var(--font-playfair)',
@@ -256,578 +260,308 @@ const FONT_CSS_VAR: Record<CardConfig['font'], string> = {
   oswald:           'var(--font-oswald)',
 }
 
-// ── Section accordion ──────────────────────────────────────────
-function Section({ icon, label, children }: {
-  icon: React.ReactNode; label: string; children: React.ReactNode
-}) {
-  const [open, setOpen] = useState(true)
-  return (
-    <div style={{ borderBottom: '1px solid rgba(255,255,255,0.06)', marginBottom: 4 }}>
-      <button
-        onClick={() => setOpen(o => !o)}
-        style={{
-          width: '100%', border: 0, background: 'transparent', cursor: 'pointer',
-          display: 'flex', alignItems: 'center', gap: 8,
-          padding: '13px 16px 12px',
-          borderBottom: open ? '1px solid rgba(255,255,255,0.05)' : 'none',
-          color: 'rgba(255,255,255,0.25)',
-        }}
-      >
-        <span style={{ display: 'flex', color: 'rgba(255,255,255,0.25)' }}>{icon}</span>
-        <span style={{
-          flex: 1, textAlign: 'left',
-          fontFamily: 'var(--font-mono)', fontSize: 10, fontWeight: 600,
-          letterSpacing: '0.12em', textTransform: 'uppercase',
-          color: open ? 'rgba(255,255,255,0.7)' : 'rgba(255,255,255,0.35)',
-        }}>
-          {label}
-        </span>
-        <svg viewBox="0 0 10 10" width="9" height="9" fill="none" stroke="rgba(255,255,255,0.25)" strokeWidth="1.5" strokeLinecap="round">
-          <path d={open ? 'm2 3.5 3 3 3-3' : 'm2 6.5 3-3 3 3'} />
-        </svg>
-      </button>
-      <div style={{
-        overflow: 'hidden',
-        maxHeight: open ? 9999 : 0,
-        transition: 'max-height 300ms ease',
-      }}>
-        <div style={{ padding: '14px 16px 18px', display: 'flex', flexDirection: 'column', gap: 16 }}>
-          {children}
-        </div>
-      </div>
-    </div>
-  )
-}
-
-// ── Pill toggle row (bgStyle / textColor) ──────────────────────
-function PillRow<T extends string>({ value, options, onChange, accent }: {
-  value: T
-  options: { value: T; label: React.ReactNode }[]
-  onChange: (v: T) => void
-  accent?: string
-}) {
-  const accentRgb = accent ?? 'var(--accent)'
-  return (
-    <div style={{ display: 'flex', gap: 6 }}>
-      {options.map((o, i) => {
-        const selected = value === o.value
-        return (
-          <button key={i} onClick={() => onChange(o.value)} style={{
-            flex: 1, height: 36, borderRadius: 999, border: 0, cursor: 'pointer',
-            fontSize: 12, fontWeight: 500,
-            background: selected ? (accent?.startsWith('#') ? `${accent}33` : 'var(--accent-quiet)') : '#1a1a1a',
-            color: selected ? (accent ?? 'var(--accent)') : 'rgba(255,255,255,0.5)',
-            outline: selected ? `1px solid ${accentRgb}` : '1px solid rgba(255,255,255,0.08)',
-            transition: 'all 120ms',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
-          }}>{o.label}</button>
-        )
-      })}
-    </div>
-  )
-}
-
-// ── Slider with styled track ───────────────────────────────────
-function StyledSlider({ value, min, max, step, onChange, trackStyle, label, suffix }: {
-  value: number; min: number; max: number; step: number
-  onChange: (v: number) => void
-  trackStyle?: React.CSSProperties
-  label: string
-  suffix?: string
-}) {
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)' }}>{label}</span>
-        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'rgba(255,255,255,0.7)' }}>{value}{suffix ?? (label.includes('Hue') ? '°' : 'px')}</span>
-      </div>
-      <div style={{ position: 'relative', height: 24, display: 'flex', alignItems: 'center' }}>
-        <div style={{
-          position: 'absolute', inset: 0, top: '50%', transform: 'translateY(-50%)',
-          height: 6, borderRadius: 3,
-          background: trackStyle?.background ?? `linear-gradient(to right, #1a1a1a, rgba(255,255,255,0.25))`,
-          ...trackStyle,
-        }} />
-        <input
-          type="range" min={min} max={max} step={step} value={value}
-          onChange={e => onChange(Number(e.target.value))}
-          style={{
-            position: 'relative', width: '100%', height: 24,
-            appearance: 'none', WebkitAppearance: 'none',
-            background: 'transparent', cursor: 'pointer', zIndex: 1,
-          }}
-        />
-        <style>{`
-          input[type=range]::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            width: 16px; height: 16px; border-radius: 50%;
-            background: #fff;
-            box-shadow: 0 0 0 3px #000, 0 1px 4px rgba(0,0,0,0.6);
-            cursor: pointer;
-          }
-          input[type=range]::-moz-range-thumb {
-            width: 16px; height: 16px; border-radius: 50%;
-            background: #fff; border: none;
-            box-shadow: 0 0 0 3px #000, 0 1px 4px rgba(0,0,0,0.6);
-            cursor: pointer;
-          }
-        `}</style>
-      </div>
-    </div>
-  )
-}
-
-// ── Toggle pill (visibility) ───────────────────────────────────
-function ToggleItem({ label, value, onChange, icon, accent }: {
-  label: string; value: boolean; onChange: (v: boolean) => void
-  icon: React.ReactNode; accent?: string
-}) {
-  return (
-    <div
-      onClick={() => onChange(!value)}
-      style={{
-        display: 'flex', alignItems: 'center', gap: 8,
-        height: 40, padding: '0 10px',
-        borderRadius: 8, cursor: 'pointer',
-        background: value ? (accent?.startsWith('#') ? `${accent}26` : 'var(--accent-quiet)') : 'transparent',
-        borderLeft: value ? `2px solid ${accent ?? 'var(--accent)'}` : '2px solid transparent',
-        transition: 'all 150ms',
-      }}
-    >
-      <span style={{ color: value ? (accent ?? 'var(--accent)') : 'rgba(255,255,255,0.3)', display: 'flex', flexShrink: 0 }}>{icon}</span>
-      <span style={{ flex: 1, fontSize: 12, color: value ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.45)' }}>{label}</span>
-      <div style={{
-        width: 36, height: 20, borderRadius: 999, flexShrink: 0,
-        background: value ? (accent?.startsWith('#') ? `${accent}99` : 'var(--accent)') : '#2a2a2a',
-        position: 'relative', transition: 'background 150ms',
-      }}>
-        <span style={{
-          position: 'absolute', top: 3, left: value ? 18 : 3,
-          width: 14, height: 14, borderRadius: '50%',
-          background: value ? '#fff' : 'rgba(255,255,255,0.5)',
-          transition: 'left 150ms',
-          boxShadow: '0 1px 3px rgba(0,0,0,0.4)',
-          display: 'block',
-        }} />
-      </div>
-    </div>
-  )
-}
-
-const PRESETS = [
-  { id: 'glass',      name: 'Glass'      },
-  { id: 'nowplaying', name: 'Now Playing'},
-  { id: 'poster',     name: 'Poster'     },
-  { id: 'minimal',    name: 'Minimal'    },
-  { id: 'story',      name: 'Story'      },
-  { id: 'square',     name: 'Square'     },
-] as const
-
 const FONTS: { value: CardConfig['font']; label: string; tag: string; weight: number; size: number }[] = [
-  { value: 'poppins',          label: 'Poppins',      tag: 'Modern',     weight: 600, size: 17 },
-  { value: 'space-grotesk',    label: 'Space Grotesk',tag: 'Modern',     weight: 600, size: 16 },
-  { value: 'raleway',          label: 'Raleway',      tag: 'Elegant',    weight: 300, size: 18 },
-  { value: 'oswald',           label: 'Oswald',       tag: 'Condensed',  weight: 500, size: 18 },
-  { value: 'bebas',            label: 'Bebas Neue',   tag: 'Display',    weight: 400, size: 22 },
-  { value: 'playfair',         label: 'Playfair',     tag: 'Serif',      weight: 700, size: 17 },
-  { value: 'dm-serif',         label: 'DM Serif',     tag: 'Serif',      weight: 400, size: 18 },
-  { value: 'cormorant',        label: 'Cormorant',    tag: 'Luxury',     weight: 600, size: 20 },
-  { value: 'instrument',       label: 'Instrument',   tag: 'Italic',     weight: 400, size: 18 },
+  { value: 'poppins',       label: 'Poppins',      tag: 'Modern',    weight: 600, size: 17 },
+  { value: 'space-grotesk', label: 'Grotesk',      tag: 'Modern',    weight: 600, size: 16 },
+  { value: 'sf-pro',        label: 'System',       tag: 'Neutral',   weight: 600, size: 17 },
+  { value: 'raleway',       label: 'Raleway',      tag: 'Elegant',   weight: 300, size: 18 },
+  { value: 'oswald',        label: 'Oswald',       tag: 'Condensed', weight: 500, size: 18 },
+  { value: 'bebas',         label: 'Bebas',        tag: 'Display',   weight: 400, size: 22 },
+  { value: 'playfair',      label: 'Playfair',     tag: 'Serif',     weight: 700, size: 17 },
+  { value: 'dm-serif',      label: 'DM Serif',     tag: 'Serif',     weight: 400, size: 18 },
+  { value: 'cormorant',     label: 'Cormorant',    tag: 'Luxury',    weight: 600, size: 20 },
+  { value: 'instrument',    label: 'Instrument',   tag: 'Italic',    weight: 400, size: 18 },
 ]
 
-const HUE_GRADIENT = 'linear-gradient(to right, hsl(0,80%,50%), hsl(45,80%,50%), hsl(90,80%,50%), hsl(135,80%,50%), hsl(180,80%,50%), hsl(225,80%,50%), hsl(270,80%,50%), hsl(315,80%,50%), hsl(360,80%,50%))'
+type Props = {
+  tab: PanelTab
+  config: CardConfig
+  onChange: (updates: Partial<CardConfig>) => void
+  /** The lyric picker, shown at the top of the Text tab. */
+  lyrics?: React.ReactNode
+}
 
-export default function CustomizePanel({ config, onChange, accentColor }: Props) {
-  const ac = accentColor ?? undefined          // raw hex — safe for bg tints
-  const act = textAccent(accentColor)          // luminance-checked — safe for text/border
-
+export default function CustomizePanel({ tab, config, onChange, lyrics }: Props) {
   const [savedPresets, setSavedPresets] = useState<SavedPreset[]>(() => loadSavedPresets())
   const [saveName, setSaveName] = useState('')
   const [showSaveInput, setShowSaveInput] = useState(false)
 
-  return (
-    <div style={{ background: '#0d0d0d', flex: 1 }}>
+  const savePreset = () => {
+    if (!saveName.trim()) return
+    const updated = [...savedPresets, { id: Date.now().toString(), name: saveName.trim(), config }]
+    setSavedPresets(updated)
+    persistPresets(updated)
+    setSaveName('')
+    setShowSaveInput(false)
+  }
 
-      {/* ── SAVED PRESETS ── */}
-      <Section icon={<IconBookmark />} label="Saved Presets">
-        {/* Save current config */}
-        {!showSaveInput ? (
-          <button
-            onClick={() => setShowSaveInput(true)}
-            style={{
-              width: '100%', height: 36, borderRadius: 8, border: '1px dashed rgba(255,255,255,0.15)',
-              background: 'transparent', cursor: 'pointer',
-              fontSize: 12, color: 'rgba(255,255,255,0.45)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-            }}
-          >
-            + Save current preset
-          </button>
-        ) : (
-          <div style={{ display: 'flex', gap: 6 }}>
-            <input
-              autoFocus
-              value={saveName}
-              onChange={e => setSaveName(e.target.value)}
-              onKeyDown={e => {
-                if (e.key === 'Enter' && saveName.trim()) {
-                  const newPreset: SavedPreset = { id: Date.now().toString(), name: saveName.trim(), config }
-                  const updated = [...savedPresets, newPreset]
-                  setSavedPresets(updated)
-                  persistPresets(updated)
-                  setSaveName('')
-                  setShowSaveInput(false)
-                }
-                if (e.key === 'Escape') { setSaveName(''); setShowSaveInput(false) }
-              }}
-              placeholder="Preset name…"
-              style={{
-                flex: 1, height: 34, borderRadius: 6, border: '1px solid rgba(255,255,255,0.15)',
-                background: 'rgba(255,255,255,0.06)', color: '#fff', fontSize: 12, padding: '0 10px',
-                outline: 'none',
-              }}
-            />
-            <button
-              onClick={() => {
-                if (!saveName.trim()) return
-                const newPreset: SavedPreset = { id: Date.now().toString(), name: saveName.trim(), config }
-                const updated = [...savedPresets, newPreset]
-                setSavedPresets(updated)
-                persistPresets(updated)
-                setSaveName('')
-                setShowSaveInput(false)
-              }}
-              style={{
-                height: 34, width: 56, borderRadius: 6, border: 0,
-                background: ac ? `${ac}33` : '#252525',
-                color: act, cursor: 'pointer', fontSize: 12, fontWeight: 600,
-              }}
-            >Save</button>
-            <button
-              onClick={() => { setSaveName(''); setShowSaveInput(false) }}
-              style={{
-                height: 34, width: 34, borderRadius: 6, border: 0,
-                background: 'transparent', color: 'rgba(255,255,255,0.4)',
-                cursor: 'pointer', fontSize: 16,
-              }}
-            >✕</button>
+  // ── STYLE ─────────────────────────────────────────────────────
+  if (tab === 'style') {
+    const glassy = config.preset === 'glass' || config.preset === 'player'
+    return (
+      <div className="panel-stack">
+        <ThumbDefs />
+        <Section n="01" title="Preset" action={<span className="eyebrow">keys 1–7</span>}>
+          <div style={grid(4, 8)}>
+            {PRESETS.map((p, i) => {
+              const sel = config.preset === p.id
+              return (
+                <button
+                  key={p.id} type="button" className="tile"
+                  aria-pressed={sel}
+                  aria-label={`${p.name} preset`} title={`${p.name} (${i + 1})`}
+                  onClick={() => onChange({ preset: p.id })}
+                  style={{ padding: '7px 5px 6px', gap: 5 }}
+                >
+                  {/* Fixed-dark plate — the thumbnails mirror the (dark) cards, so
+                      they stay legible in either app theme. */}
+                  <span style={{ width: '100%', height: 42, display: 'block', borderRadius: 8, background: '#161618', padding: 2 }}>{PRESET_SVG[p.id]}</span>
+                  <span style={{ fontSize: 11, fontWeight: 600, color: sel ? 'var(--text)' : 'var(--text-3)' }}>{p.name}</span>
+                </button>
+              )
+            })}
           </div>
+        </Section>
+
+        {glassy && (
+          <Section n="02" title="Glass" note="Tint and frost of this preset's glass panel.">
+            <Chips label="Glass tint" value={config.glassTint} onChange={v => onChange({ glassTint: v })}
+              options={[
+                { value: 'auto', label: 'Auto' },
+                { value: 'light', label: 'Light' },
+                { value: 'dark', label: 'Dark' },
+                { value: 'clear', label: 'Clear' },
+              ]} />
+            <Range label="Frost" value={config.glassFrost} min={0} max={100} step={5}
+              onChange={v => onChange({ glassFrost: v })} format={pct} />
+          </Section>
         )}
 
-        {/* Saved preset list */}
-        {savedPresets.length > 0 && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: showSaveInput ? 0 : -4 }}>
-            {savedPresets.map(p => (
-              <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <button
-                  onClick={() => onChange(p.config)}
-                  style={{
-                    flex: 1, height: 34, borderRadius: 7, border: '1px solid rgba(255,255,255,0.09)',
-                    background: '#1a1a1a', cursor: 'pointer', textAlign: 'left',
-                    padding: '0 10px', fontSize: 12, color: 'rgba(255,255,255,0.75)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                  }}
-                >
-                  <span>{p.name}</span>
-                  <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', fontFamily: 'var(--font-mono)' }}>
-                    {p.config.preset}
-                  </span>
-                </button>
-                <button
-                  onClick={() => {
-                    const updated = savedPresets.filter(x => x.id !== p.id)
-                    setSavedPresets(updated)
-                    persistPresets(updated)
-                  }}
-                  style={{
-                    width: 28, height: 34, borderRadius: 7, border: 0,
-                    background: 'transparent', cursor: 'pointer',
-                    color: 'rgba(255,255,255,0.25)', fontSize: 14,
-                  }}
-                >✕</button>
-              </div>
+        <Section n={glassy ? '03' : '02'} title="Background">
+          <Chips label="Background" value={config.bgStyle} onChange={v => onChange({ bgStyle: v })}
+            options={[
+              { value: 'blurred-art', label: 'Artwork' },
+              { value: 'gradient', label: 'Gradient' },
+              { value: 'solid', label: 'Solid' },
+              { value: 'transparent', label: 'None' },
+            ]} />
+          {config.bgStyle === 'solid' && (
+            <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}>
+              <span style={{ position: 'relative', width: 30, height: 30, borderRadius: 9, background: config.bgColor, boxShadow: 'inset 0 0 0 1px var(--line-2)' }}>
+                <input type="color" value={config.bgColor} aria-label="Background colour"
+                  onChange={e => onChange({ bgColor: e.target.value })}
+                  style={{ position: 'absolute', inset: 0, opacity: 0, width: '100%', height: '100%', cursor: 'pointer' }} />
+              </span>
+              <span className="mono" style={{ fontSize: 12, color: 'var(--text-2)' }}>{config.bgColor.toUpperCase()}</span>
+            </label>
+          )}
+          <Range label="Art hue" value={config.tintHue} min={0} max={360} step={1}
+            onChange={v => onChange({ tintHue: v })}
+            format={v => (v === 0 ? 'off' : `${v}°`)} track={HUE_TRACK} />
+        </Section>
+
+        <Section n={glassy ? '04' : '03'} title="Looks"
+          action={!showSaveInput && (
+            <button type="button" className="btn" data-variant="plain" style={{ fontSize: 12 }}
+              onClick={() => setShowSaveInput(true)}>+ Save current</button>
+          )}>
+          <div style={grid(3)}>
+            {STARTERS.map(st => (
+              <button key={st.name} type="button" className="btn" data-size="sm"
+                onClick={() => onChange(st.patch)}>{st.name}</button>
             ))}
           </div>
-        )}
-
-        {savedPresets.length === 0 && !showSaveInput && (
-          <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.25)', margin: 0 }}>
-            No saved presets yet. Save your current settings to quickly restore them.
-          </p>
-        )}
-      </Section>
-
-      {/* ── PRESET ── */}
-      <Section icon={<IconLayers />} label="Preset">
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-          {PRESETS.map(p => {
-            const sel = config.preset === p.id
-            return (
-              <button
-                key={p.id}
-                onClick={() => onChange({ preset: p.id })}
-                style={{
-                  background: sel ? (ac ? `${ac}26` : 'var(--accent-quiet)') : '#1a1a1a',
-                  border: `1.5px solid ${sel ? act : 'rgba(255,255,255,0.08)'}`,
-                  borderRadius: 10, cursor: 'pointer', padding: '10px 8px 8px',
-                  display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
-                  transition: 'border-color 120ms, background 120ms',
-                  minHeight: 90,
+          {showSaveInput && (
+            <div style={{ display: 'flex', gap: 8 }}>
+              <input
+                autoFocus className="field" value={saveName}
+                onChange={e => setSaveName(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === 'Enter') savePreset()
+                  if (e.key === 'Escape') { setSaveName(''); setShowSaveInput(false) }
                 }}
-              >
-                <div style={{ opacity: sel ? 1 : 0.6, transition: 'opacity 120ms' }}>
-                  {PRESET_SVG[p.id]}
-                </div>
-                <span style={{
-                  fontFamily: 'var(--font-poppins)', fontSize: 10, fontWeight: 600,
-                  letterSpacing: '0.08em', textTransform: 'uppercase',
-                  color: sel ? act : 'rgba(255,255,255,0.55)',
-                }}>{p.name}</span>
-              </button>
-            )
-          })}
-        </div>
-      </Section>
-
-      {/* ── BACKGROUND ── */}
-      <Section icon={<IconBg />} label="Background">
-        <PillRow
-          value={config.bgStyle}
-          onChange={v => onChange({ bgStyle: v })}
-          accent={act}
-          options={[
-            { value: 'blurred-art', label: 'Blurred' },
-            { value: 'gradient',    label: 'Grad' },
-            { value: 'solid',       label: 'Solid' },
-            { value: 'transparent', label: 'None' },
-          ]}
-        />
-
-        {config.bgStyle === 'solid' && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <div style={{ position: 'relative' }}>
-              <div style={{
-                width: 32, height: 32, borderRadius: 8,
-                background: config.bgColor,
-                border: '1px solid rgba(255,255,255,0.12)',
-                cursor: 'pointer',
-                overflow: 'hidden',
-              }}>
-                <input
-                  type="color" value={config.bgColor}
-                  onChange={e => onChange({ bgColor: e.target.value })}
-                  style={{ position: 'absolute', inset: 0, opacity: 0, width: '100%', height: '100%', cursor: 'pointer' }}
-                />
-              </div>
+                placeholder="Name this look" aria-label="Look name"
+              />
+              <button type="button" className="btn" data-variant="primary" onClick={savePreset} disabled={!saveName.trim()}>Save</button>
             </div>
-            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'rgba(255,255,255,0.55)' }}>{config.bgColor.toUpperCase()}</span>
-          </div>
-        )}
+          )}
+          {savedPresets.length > 0 && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              {savedPresets.map(p => (
+                <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <button type="button" className="opt" style={{ flex: 1 }} onClick={() => onChange(p.config)}>
+                    <span style={{ color: 'var(--text)' }}>{p.name}</span>
+                    <span className="eyebrow" style={{ flex: 'none' }}>{p.config.preset}</span>
+                  </button>
+                  <button type="button" className="icon-btn" aria-label={`Delete ${p.name}`}
+                    onClick={() => {
+                      const updated = savedPresets.filter(x => x.id !== p.id)
+                      setSavedPresets(updated)
+                      persistPresets(updated)
+                    }}>
+                    <Icon d="M5 7h14M10 7V5h4v2M7 7l1 12h8l1-12" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </Section>
+      </div>
+    )
+  }
 
-        <StyledSlider
-          value={config.tintHue} min={0} max={360} step={1}
-          onChange={v => onChange({ tintHue: v })}
-          trackStyle={{ background: HUE_GRADIENT }}
-          label="Tint Hue"
-        />
-      </Section>
+  // ── TEXT ──────────────────────────────────────────────────────
+  if (tab === 'text') return (
+    <div className="panel-stack">
+      {lyrics}
 
-      {/* ── TYPOGRAPHY ── */}
-      <Section icon={<IconType />} label="Typography">
-        {/* Font grid — 3 columns, each card shows font name in its own face */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 6 }}>
+      <Section n="02" title="Typeface">
+        <div style={grid(3)}>
           {FONTS.map(f => {
             const sel = config.font === f.value
             return (
-              <button
-                key={f.value}
+              <button key={f.value} type="button" className="tile" aria-pressed={sel}
                 onClick={() => onChange({ font: f.value })}
-                style={{
-                  height: 72, borderRadius: 10, border: 0,
-                  background: sel ? (ac ? `${ac}22` : 'rgba(100,120,255,0.12)') : '#161616',
-                  outline: sel ? `1.5px solid ${act}` : '1.5px solid rgba(255,255,255,0.07)',
-                  cursor: 'pointer',
-                  display: 'flex', flexDirection: 'column',
-                  alignItems: 'flex-start', justifyContent: 'flex-end',
-                  padding: '0 10px 9px',
-                  transition: 'outline-color 120ms, background 120ms',
-                  overflow: 'hidden',
-                  position: 'relative',
-                }}
-              >
-                {/* Font name rendered in its own typeface */}
+                style={{ height: 58, alignItems: 'flex-start', justifyContent: 'flex-end', padding: '0 10px 8px', overflow: 'hidden' }}>
                 <span style={{
-                  fontFamily: FONT_CSS_VAR[f.value],
-                  fontSize: f.size,
-                  fontWeight: f.weight,
-                  lineHeight: 1,
-                  color: sel ? act : 'rgba(255,255,255,0.80)',
-                  letterSpacing: f.value === 'bebas' || f.value === 'oswald' ? '0.04em' : f.value === 'raleway' ? '0.06em' : '0',
-                  display: 'block', width: '100%',
-                  whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                  fontFamily: FONT_CSS_VAR[f.value], fontSize: f.size * 0.82, fontWeight: f.weight, lineHeight: 1,
+                  color: 'var(--text)',
+                  letterSpacing: f.value === 'bebas' || f.value === 'oswald' ? '0.04em' : 0,
+                  width: '100%', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', textAlign: 'left',
                 }}>{f.label}</span>
-                {/* Category tag */}
-                <span style={{
-                  fontFamily: 'var(--font-mono)', fontSize: 9,
-                  color: sel ? act : 'rgba(255,255,255,0.25)',
-                  letterSpacing: '0.08em', textTransform: 'uppercase',
-                  marginTop: 4,
-                }}>{f.tag}</span>
+                <span className="mono" style={{ fontSize: 9.5, letterSpacing: '0.08em', textTransform: 'uppercase', color: sel ? 'var(--accent-text)' : 'var(--text-3)', marginTop: 5 }}>{f.tag}</span>
               </button>
             )
           })}
         </div>
+      </Section>
 
-        {/* Text color */}
-        <PillRow
-          value={config.textColor}
-          onChange={v => onChange({ textColor: v })}
-          accent={act}
+      <Section n="03" title="Colour & alignment">
+        <Chips label="Text colour" value={config.textColor} onChange={v => onChange({ textColor: v })}
           options={[
+            { value: 'auto', label: 'Auto' },
             { value: 'white', label: 'Light' },
             { value: 'black', label: 'Dark' },
-            { value: 'auto',  label: 'Auto' },
-          ]}
-        />
+          ]} />
+        <Chips label="Alignment" value={config.textAlign} onChange={v => onChange({ textAlign: v })}
+          options={[
+            { value: 'left', label: <><AlignLeftIcon /> Left</>, aria: 'Align left' },
+            { value: 'center', label: <><AlignCenterIcon /> Centre</>, aria: 'Align centre' },
+            { value: 'right', label: <><AlignRightIcon /> Right</>, aria: 'Align right' },
+          ]} />
+      </Section>
 
-        {/* Text align */}
-        <div style={{ display: 'flex', gap: 6 }}>
+      {config.showLyrics && (
+        <Section n="04" title="Lyric style">
+          <Chips label="Lyric style" value={config.lyricStyle} onChange={v => onChange({ lyricStyle: v })}
+            options={[
+              { value: 'italic', label: <i>Italic</i> },
+              { value: 'plain', label: 'Plain' },
+              { value: 'quoted', label: '“Quoted”' },
+            ]} />
+          <Range label="Lines" value={config.lyricLines} min={1} max={4} step={1}
+            onChange={v => onChange({ lyricLines: v })} />
+          <Range label="Size" value={config.lyricScale} min={70} max={150} step={5}
+            onChange={v => onChange({ lyricScale: v })} format={pct} />
+        </Section>
+      )}
+    </div>
+  )
+
+  // ── LAYOUT ────────────────────────────────────────────────────
+  if (tab === 'layout') return (
+    <div className="panel-stack">
+      <Section n="01" title="Show on card">
+        <div style={grid(2)}>
+          <Opt icon={<IconImage />} label="Album art" value={config.showAlbumArt} onChange={v => onChange({ showAlbumArt: v })} />
+          <Opt icon={<IconText />} label="Title" value={config.showTitle} onChange={v => onChange({ showTitle: v })} />
+          <Opt icon={<IconUser />} label="Artist" value={config.showArtist} onChange={v => onChange({ showArtist: v })} />
+          <Opt icon={<IconCalendar />} label="Year" value={config.showYear} onChange={v => onChange({ showYear: v })} />
+          <Opt icon={<IconClock />} label="Duration" value={config.showDuration} onChange={v => onChange({ showDuration: v })} />
+          <Opt icon={<IconQuote />} label="Lyrics" value={config.showLyrics} onChange={v => onChange({ showLyrics: v })} />
+        </div>
+      </Section>
+
+      {(config.showAlbumArt || config.preset === 'glass') && (
+        <Section n="02" title="Artwork"
+          action={config.showAlbumArt && (
+            <button type="button" className="btn" data-variant="plain" style={{ fontSize: 12 }}
+              onClick={() => onChange({ artZoom: 100, artX: 50, artY: 50 })}>Recentre</button>
+          )}
+          note={config.showAlbumArt ? 'Reframe the cover when the centre crop cuts off the subject.' : undefined}>
+          {config.showAlbumArt && (
+            <>
+              <Range label="Zoom" value={config.artZoom} min={100} max={200} step={5}
+                onChange={v => onChange({ artZoom: v })} format={pct} />
+              <Range label="Horizontal" value={config.artX} min={0} max={100} step={1}
+                onChange={v => onChange({ artX: v })} format={pct} />
+              <Range label="Vertical" value={config.artY} min={0} max={100} step={1}
+                onChange={v => onChange({ artY: v })} format={pct} />
+            </>
+          )}
+          {config.preset === 'glass' && (
+            <Range label="Panel inset" value={config.artPadding} min={0} max={60} step={2}
+              onChange={v => onChange({ artPadding: v })} format={v => `${v}px`} />
+          )}
+        </Section>
+      )}
+
+      <Section n="03" title="Export frame" note="The card is centred and framed to fit — never cropped.">
+        <div style={grid(5)}>
           {([
-            { value: 'left'   as const, icon: <AlignLeftIcon /> },
-            { value: 'center' as const, icon: <AlignCenterIcon /> },
-            { value: 'right'  as const, icon: <AlignRightIcon /> },
-          ]).map(o => {
-            const sel = config.textAlign === o.value
+            { v: 'auto',   label: 'Auto',   hint: 'pad' },
+            { v: 'tight',  label: 'Tight',  hint: 'none' },
+            { v: 'square', label: 'Square', hint: '1:1' },
+            { v: 'story',  label: 'Story',  hint: '9:16' },
+            { v: 'wide',   label: 'Wide',   hint: '16:9' },
+          ] as const).map(o => {
+            const sel = config.exportSize === o.v
             return (
-              <button key={o.value} onClick={() => onChange({ textAlign: o.value })} style={{
-                width: 40, height: 40, borderRadius: 8, border: 0, cursor: 'pointer',
-                background: sel ? (ac ? `${ac}33` : 'var(--accent-quiet)') : '#1a1a1a',
-                color: sel ? act : 'rgba(255,255,255,0.4)',
-                outline: sel ? `1.5px solid ${act}` : '1.5px solid rgba(255,255,255,0.08)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                transition: 'all 120ms',
-              }}>{o.icon}</button>
+              <button key={o.v} type="button" className="tile" aria-pressed={sel}
+                onClick={() => onChange({ exportSize: o.v })}
+                style={{ padding: '9px 2px', gap: 2 }}>
+                <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text)' }}>{o.label}</span>
+                <span className="mono" style={{ fontSize: 10, color: sel ? 'var(--accent-text)' : 'var(--text-3)' }}>{o.hint}</span>
+              </button>
             )
           })}
         </div>
       </Section>
+    </div>
+  )
 
-      {/* ── VISIBILITY ── */}
-      <Section icon={<IconEye />} label="Visibility">
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4 }}>
-          <ToggleItem icon={<IconImage />}    label="Album art"  value={config.showAlbumArt} onChange={v => onChange({ showAlbumArt: v })} accent={act} />
-          <ToggleItem icon={<IconText />}     label="Title"      value={config.showTitle}    onChange={v => onChange({ showTitle: v })}    accent={act} />
-          <ToggleItem icon={<IconUser />}     label="Artist"     value={config.showArtist}   onChange={v => onChange({ showArtist: v })}   accent={act} />
-          <ToggleItem icon={<IconCalendar />} label="Year"       value={config.showYear}     onChange={v => onChange({ showYear: v })}     accent={act} />
-          <ToggleItem icon={<IconClock />}    label="Duration"   value={config.showDuration} onChange={v => onChange({ showDuration: v })} accent={act} />
-          <ToggleItem icon={<IconQuote />}    label="Lyrics"     value={config.showLyrics}   onChange={v => onChange({ showLyrics: v })}   accent={act} />
-        </div>
-        {config.preset === 'glass' && (
-          <StyledSlider
-            value={config.artPadding} min={0} max={100} step={4}
-            onChange={v => onChange({ artPadding: v })}
-            label="Art Size" suffix="px"
-          />
-        )}
-      </Section>
-
-      {/* ── EXPERIMENTAL ── */}
-      <Section icon={<IconBeaker />} label="Experimental">
-        <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.28)', lineHeight: 1.5, margin: 0 }}>
-          These effects render in the preview and in exported images.
-        </p>
-
-        {/* Ambient Glow */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <ToggleItem
-            icon={<IconGlow />}
-            label="Ambient Glow"
-            value={config.glowEnabled}
-            onChange={v => onChange({ glowEnabled: v })}
-            accent={act}
-          />
-          {config.glowEnabled && (
-            <StyledSlider
-              value={config.glowStrength} min={10} max={100} step={5}
-              onChange={v => onChange({ glowStrength: v })}
-              label="Intensity" suffix="%"
-            />
-          )}
-        </div>
-
-        {/* Film Grain */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <ToggleItem
-            icon={<IconGrain />}
-            label="Film Grain"
-            value={config.grainEnabled}
-            onChange={v => onChange({ grainEnabled: v })}
-            accent={act}
-          />
-          {config.grainEnabled && (
-            <StyledSlider
-              value={config.grainOpacity} min={5} max={60} step={5}
-              onChange={v => onChange({ grainOpacity: v })}
-              label="Opacity" suffix="%"
-            />
-          )}
-        </div>
-
-        {/* Vignette */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <ToggleItem
-            icon={<IconVignette />}
-            label="Vignette"
-            value={config.vignetteEnabled}
-            onChange={v => onChange({ vignetteEnabled: v })}
-            accent={act}
-          />
-          {config.vignetteEnabled && (
-            <StyledSlider
-              value={config.vignetteStrength} min={10} max={100} step={5}
-              onChange={v => onChange({ vignetteStrength: v })}
-              label="Strength" suffix="%"
-            />
-          )}
-        </div>
-
-        {/* Scanlines */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <ToggleItem
-            icon={<IconScanlines />}
-            label="Scanlines"
-            value={config.scanlinesEnabled}
-            onChange={v => onChange({ scanlinesEnabled: v })}
-            accent={act}
-          />
-          {config.scanlinesEnabled && (
-            <StyledSlider
-              value={config.scanlinesOpacity} min={5} max={60} step={5}
-              onChange={v => onChange({ scanlinesOpacity: v })}
-              label="Opacity" suffix="%"
-            />
-          )}
-        </div>
-
-        {/* Holographic Shimmer */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <ToggleItem
-            icon={<IconHolo />}
-            label="Holo Shimmer"
-            value={config.holoEnabled}
-            onChange={v => onChange({ holoEnabled: v })}
-            accent={act}
-          />
-          {config.holoEnabled && (
-            <StyledSlider
-              value={config.holoOpacity} min={5} max={80} step={5}
-              onChange={v => onChange({ holoOpacity: v })}
-              label="Intensity" suffix="%"
-            />
-          )}
+  // ── EFFECTS ───────────────────────────────────────────────────
+  const effects: {
+    icon: React.ReactNode; label: string; on: keyof CardConfig; amt: keyof CardConfig
+    min: number; max: number; amtLabel: string
+  }[] = [
+    { icon: <IconGlow />,      label: 'Ambient glow', on: 'glowEnabled',      amt: 'glowStrength',     min: 10, max: 100, amtLabel: 'Intensity' },
+    { icon: <IconGrain />,     label: 'Film grain',   on: 'grainEnabled',     amt: 'grainOpacity',     min: 5,  max: 60,  amtLabel: 'Opacity' },
+    { icon: <IconVignette />,  label: 'Vignette',     on: 'vignetteEnabled',  amt: 'vignetteStrength', min: 10, max: 100, amtLabel: 'Strength' },
+    { icon: <IconScanlines />, label: 'Scanlines',    on: 'scanlinesEnabled', amt: 'scanlinesOpacity', min: 5,  max: 60,  amtLabel: 'Opacity' },
+    { icon: <IconHolo />,      label: 'Holo shimmer', on: 'holoEnabled',      amt: 'holoOpacity',      min: 5,  max: 80,  amtLabel: 'Intensity' },
+  ]
+  return (
+    <div className="panel-stack">
+      <Section n="01" title="Effects" note="Effects render in the preview and in exported images.">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {effects.map(fx => {
+            const on = config[fx.on] as boolean
+            return (
+              <div key={fx.label} style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <Opt icon={fx.icon} label={fx.label} value={on}
+                  onChange={v => onChange({ [fx.on]: v } as Partial<CardConfig>)} />
+                {on && (
+                  <div style={{ padding: '0 4px 6px' }}>
+                    <Range label={fx.amtLabel} value={config[fx.amt] as number} min={fx.min} max={fx.max} step={5}
+                      onChange={v => onChange({ [fx.amt]: v } as Partial<CardConfig>)} format={pct} />
+                  </div>
+                )}
+              </div>
+            )
+          })}
         </div>
       </Section>
-
     </div>
   )
 }
